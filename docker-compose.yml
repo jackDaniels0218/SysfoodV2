@@ -1,0 +1,42 @@
+# Uso: docker compose up
+# Luego abra http://localhost:8000  (usuario admin@sysfood.local / Sysfood2025*)
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: sysfood
+      MYSQL_USER: sysfood
+      MYSQL_PASSWORD: sysfood
+      MYSQL_ROOT_PASSWORD: sysfood-root
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - datos_mysql:/var/lib/mysql
+    restart: unless-stopped
+
+  web:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      DB_ENGINE: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: sysfood
+      DB_USER: sysfood
+      DB_PASSWORD: sysfood
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: clave-de-demostracion-cambiela-en-produccion-123456789
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      SITE_URL: http://localhost:8000
+      CARGAR_DEMO: "1"
+    volumes:
+      - documentos:/app/protegido
+      - respaldos:/app/backups
+    restart: unless-stopped
+
+volumes:
+  datos_mysql:
+  documentos:
+  respaldos:

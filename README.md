@@ -11,7 +11,36 @@ Conecta a **donantes** (personas naturales o jurídicas, públicos o anónimos) 
 
 ---
 
-## 1. Instalación
+## Inicio rápido (sin configurar nada)
+
+Elija **una** de estas dos opciones. Las dos crean la base de datos, cargan los datos de demostración y dejan el sistema en **http://localhost:8000**.
+Para ingresar, use `admin@sysfood.local` con la contraseña `Sysfood2025*` (más cuentas en la [sección 2](#2-cuentas-de-demostración)).
+
+### Opción A: Docker (recomendada, incluye MySQL 8)
+
+Solo necesita [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto.
+
+```bash
+git clone https://github.com/jackDaniels0218/SysfoodV2.git
+cd SysfoodV2
+docker compose up
+```
+
+La primera vez tarda unos minutos mientras descarga MySQL y prepara todo. Cuando aparezca `SysFood listo en http://localhost:8000`, abra esa dirección.
+Para detenerlo use `Ctrl+C`; para volver a iniciarlo, `docker compose up`. Los datos se conservan. Si quiere empezar desde cero, ejecute `docker compose down -v`.
+
+### Opción B: Sin Docker (solo Python)
+
+Solo necesita [Python 3.10 o superior](https://www.python.org/downloads/). En Windows marque «Add Python to PATH» al instalarlo.
+
+- **Windows:** haga doble clic en **`iniciar.bat`**.
+- **Linux / macOS:** ejecute `./iniciar.sh` en una terminal.
+
+La primera vez instala las dependencias; las siguientes solo arranca. Esta opción usa **SQLite**, una base de datos en un archivo, para no exigir MySQL. Para usar MySQL, siga la instalación completa.
+
+---
+
+## 1. Instalación completa (con MySQL propio)
 
 ### Requisitos
 

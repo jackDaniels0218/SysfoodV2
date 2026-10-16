@@ -1,0 +1,11 @@
+.venv
+venv
+.git
+.env
+db.sqlite3
+__pycache__
+*.pyc
+staticfiles
+capturas
+protegido/documentos
+backups/*.zip

@@ -4,3 +4,4 @@ cryptography>=42
 reportlab>=4.0
 openpyxl>=3.1
 waitress>=3.0
+whitenoise>=6.6
