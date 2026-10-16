@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}Trazabilidad y auditoría{% endblock %}
+{% block contenido %}
+<h1 class="h3">Trazabilidad y auditoría</h1>
+<p class="text-muted">Registros de solo consulta: no pueden editarse ni eliminarse.</p>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if vista == 'bitacora' %}active{% endif %}" href="?vista=bitacora">Bitácora de auditoría</a></li>
+  <li class="nav-item"><a class="nav-link {% if vista == 'kardex' %}active{% endif %}" href="?vista=kardex">Kardex de inventario</a></li>
+  <li class="nav-item"><a class="nav-link {% if vista == 'entregas' %}active{% endif %}" href="?vista=entregas">Historial de entregas</a></li>
+</ul>
+<form class="row g-2 mb-3" method="get">
+  <input type="hidden" name="vista" value="{{ vista }}">
+  <div class="col-6 col-md-2"><label class="form-label small">Desde</label><input type="date" name="desde" value="{{ request.GET.desde }}" class="form-control form-control-sm"></div>
+  <div class="col-6 col-md-2"><label class="form-label small">Hasta</label><input type="date" name="hasta" value="{{ request.GET.hasta }}" class="form-control form-control-sm"></div>
+  <div class="col-12 col-md-3"><label class="form-label small">Usuario</label>
+    <select name="usuario" class="form-select form-select-sm"><option value="">Todos</option>
+    {% for u in usuarios %}<option value="{{ u.pk }}" {% if request.GET.usuario == u.pk|stringformat:'s' %}selected{% endif %}>{{ u }} ({{ u.get_usu_rol_display }})</option>{% endfor %}
+    </select></div>
+  {% if tipos %}
+  <div class="col-6 col-md-2"><label class="form-label small">Tipo</label>
+    <select name="tipo" class="form-select form-select-sm"><option value="">Todos</option>
+    {% for k, v in tipos %}<option value="{{ k }}" {% if request.GET.tipo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+    </select></div>
+  {% endif %}
+  <div class="col-6 col-md-2"><label class="form-label small">Registro</label><input name="registro" value="{{ request.GET.registro }}" class="form-control form-control-sm" placeholder="ID, código, nombre"></div>
+  <div class="col-12 col-md-1 d-flex align-items-end"><button class="btn btn-sm btn-sysfood w-100">Filtrar</button></div>
+</form>
+<div class="table-responsive"><table class="table table-sm table-striped bg-white small">
+{% if vista == 'kardex' %}
+<thead><tr><th>Fecha</th><th>Producto</th><th>Movimiento</th><th>Cantidad</th><th>Disp. anterior → resultante</th><th>Reservado ant. → res.</th><th>Entrega</th><th>Usuario</th><th>Motivo</th></tr></thead>
+<tbody>{% for k in pagina %}
+<tr><td>{{ k.kar_fecha|date:"d/m/Y H:i" }}</td><td><a href="{% url 'inventario:detalle' k.inventario_id %}">#{{ k.inventario_id }} {{ k.inventario.inv_nom }}</a></td>
+<td>{{ k.get_kar_tipo_display }}</td><td>{{ k.kar_cantidad }}</td><td>{{ k.kar_cant_anterior }} → {{ k.kar_cant_resultante }}</td>
+<td>{{ k.kar_reserv_anterior }} → {{ k.kar_reserv_resultante }}</td><td>{% if k.entrega %}<a href="{% url 'entregas:detalle' k.entrega_id %}">{{ k.entrega.ent_cod }}</a>{% endif %}</td>
+<td>{{ k.usuario|default:"Sistema" }}</td><td>{{ k.kar_motivo }}</td></tr>
+{% empty %}<tr><td colspan="9" class="text-muted">Sin movimientos.</td></tr>{% endfor %}</tbody>
+{% elif vista == 'entregas' %}
+<thead><tr><th>Fecha</th><th>Entrega</th><th>Estado anterior</th><th>Estado nuevo</th><th>Usuario</th><th>Observación</th></tr></thead>
+<tbody>{% for h in pagina %}
+<tr><td>{{ h.his_fecha|date:"d/m/Y H:i" }}</td><td><a href="{% url 'entregas:detalle' h.entrega_id %}">{{ h.entrega.ent_cod }}</a></td>
+<td>{{ h.anterior_display }}</td><td>{{ h.nuevo_display }}</td><td>{{ h.usuario|default:"Sistema" }}</td><td>{{ h.his_obs }}</td></tr>
+{% empty %}<tr><td colspan="6" class="text-muted">Sin registros.</td></tr>{% endfor %}</tbody>
+{% else %}
+<thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Registro</th><th>Detalle</th><th>IP</th></tr></thead>
+<tbody>{% for b in pagina %}
+<tr><td>{{ b.bit_fecha|date:"d/m/Y H:i:s" }}</td><td>{{ b.usuario|default:"—" }}</td><td>{{ b.get_bit_accion_display }}</td>
+<td>{{ b.bit_entidad }}</td><td>{{ b.bit_registro }}</td><td>{{ b.bit_detalle }}</td><td>{{ b.bit_ip|default:"" }}</td></tr>
+{% empty %}<tr><td colspan="7" class="text-muted">Sin registros.</td></tr>{% endfor %}</tbody>
+{% endif %}
+</table></div>
+{% include "parciales/paginacion.html" %}
+{% endblock %}

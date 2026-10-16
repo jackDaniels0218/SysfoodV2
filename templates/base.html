@@ -1,0 +1,120 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}SysFood V2{% endblock %} · SysFood</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/sysfood.css' %}">
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  {% block head %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+<nav class="navbar navbar-expand-lg navbar-dark bg-sysfood sticky-top shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="{% url 'core:inicio' %}"><i class="bi bi-basket2-fill"></i> SysFood</a>
+    {% if user.is_authenticated %}
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="menu">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'reportes:dashboard' %}"><i class="bi bi-speedometer2"></i> Panel</a></li>
+        {% if user.es_admin %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Usuarios</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'usuarios:lista' %}">Cuentas</a></li>
+              <li><a class="dropdown-item" href="{% url 'usuarios:documentos_pendientes' %}">Documentos por revisar</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Inventario</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'inventario:lista' %}">Inventario</a></li>
+              <li><a class="dropdown-item" href="{% url 'donaciones:lista_admin' %}">Donaciones</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'catalogo:categorias' %}">Categorías</a></li>
+              <li><a class="dropdown-item" href="{% url 'catalogo:bodegas' %}">Bodegas</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:lista_admin' %}">Solicitudes</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'entregas:lista' %}">Entregas</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Sistema</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'reportes:reportes' %}">Reportes</a></li>
+              <li><a class="dropdown-item" href="{% url 'core:trazabilidad' %}">Trazabilidad y auditoría</a></li>
+              <li><a class="dropdown-item" href="{% url 'core:parametros' %}">Parámetros</a></li>
+            </ul>
+          </li>
+        {% elif user.es_donante %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'donaciones:nueva' %}"><i class="bi bi-plus-circle"></i> Donar</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'donaciones:mis_donaciones' %}">Mis donaciones</a></li>
+          {% if user.perfil_donante.don_tipo_persona == 'juridica' %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:documentos' %}">Documentos</a></li>
+          {% endif %}
+        {% elif user.es_beneficiario %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:catalogo' %}">Catálogo</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:carrito' %}"><i class="bi bi-cart3"></i> Carrito <span class="badge bg-light text-dark">{{ carrito_total }}</span></a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:mis_solicitudes' %}">Mis solicitudes</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'entregas:seguimiento' %}">Seguimiento</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:documentos' %}">Documentos</a></li>
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="{% url 'core:notificaciones' %}" title="Notificaciones">
+            <i class="bi bi-bell"></i><span class="d-lg-none"> Notificaciones</span>
+            {% if notificaciones_sin_leer %}<span class="badge rounded-pill bg-warning text-dark" id="contador-notificaciones">{{ notificaciones_sin_leer }}</span>{% endif %}
+          </a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> {{ user.usu_nom }} <small class="opacity-75">({{ user.get_usu_rol_display }})</small></a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{% url 'usuarios:perfil' %}">Mis datos</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="post" action="{% url 'usuarios:logout' %}">{% csrf_token %}
+                <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
+              </form>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    {% else %}
+    <div class="ms-auto">
+      <a class="btn btn-sm btn-outline-light" href="{% url 'usuarios:login' %}">Ingresar</a>
+      <a class="btn btn-sm btn-light" href="{% url 'usuarios:registro' %}">Registrarse</a>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="flex-grow-1 py-4">
+  <div class="container-xl">
+    {% if messages %}
+      {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ m }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+    {% block contenido %}{% endblock %}
+  </div>
+</main>
+
+<footer class="py-3 border-top bg-body-tertiary small text-muted">
+  <div class="container-xl d-flex flex-wrap justify-content-between gap-2">
+    <span>SysFood V2 · Gestión de donaciones de alimentos · Universidad de Cundinamarca</span>
+    <a href="{% url 'core:politica_datos' %}" class="text-muted">Política de tratamiento de datos (Ley 1581 de 2012)</a>
+  </div>
+</footer>
+<script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/sysfood.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-sm-10 col-md-7 col-lg-5">
+<div class="card shadow-sm"><div class="card-body p-4">
+  <h1 class="h4 mb-3 text-center"><i class="bi bi-basket2-fill text-sysfood"></i> Ingresar a SysFood</h1>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "parciales/form.html" %}
+    <button class="btn btn-sysfood w-100" type="submit">Ingresar</button>
+  </form>
+  <div class="d-flex justify-content-between mt-3 small">
+    <a href="{% url 'usuarios:recuperar' %}">¿Olvidó su contraseña?</a>
+    <a href="{% url 'usuarios:registro' %}">Crear una cuenta</a>
+  </div>
+</div></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% for e in ben.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+<div class="row">
+  <div class="col-md-4">{% with campo=ben.ben_tipo_doc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4">{% with campo=ben.ben_num_doc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4">{% with campo=ben.ben_fec_exp_doc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-8">{% with campo=ben.ben_dir %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4">{% with campo=ben.ben_num_personas %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4">{% with campo=ben.ben_sisben %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4">{% with campo=ben.ben_estrato %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-4 pt-md-4">{% with campo=ben.ben_discapacidad %}{% include "parciales/campo.html" %}{% endwith %}</div>
+</div>

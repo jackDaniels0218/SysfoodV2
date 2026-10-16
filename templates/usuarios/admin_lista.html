@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Usuarios</h1>
+  <a class="btn btn-sysfood" href="{% url 'usuarios:crear' %}"><i class="bi bi-person-plus"></i> Nuevo usuario</a>
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-12 col-md-4"><input name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Nombre, correo o documento"></div>
+  <div class="col-4 col-md-2"><select name="rol" class="form-select"><option value="">Rol</option>{% for k, v in roles %}<option value="{{ k }}" {% if request.GET.rol == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-4 col-md-2"><select name="estado" class="form-select"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-4 col-md-2"><select name="verif" class="form-select"><option value="">Verificación</option>{% for k, v in verifs %}<option value="{{ k }}" {% if request.GET.verif == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
+</form>
+<div class="table-responsive"><table class="table table-hover bg-white">
+<thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Verificación</th><th>Registro</th><th></th></tr></thead>
+<tbody>
+{% for u in pagina %}
+<tr>
+  <td>{{ u.nombre_completo }}{% if u.perfil_donante.don_raz_soc %}<div class="small text-muted">{{ u.perfil_donante.don_raz_soc }}</div>{% endif %}</td>
+  <td class="small">{{ u.usu_correo }}</td>
+  <td>{{ u.get_usu_rol_display }}</td>
+  <td>{% include "parciales/estado.html" with valor=u.usu_estado texto=u.get_usu_estado_display %}</td>
+  <td>{% if u.es_beneficiario %}{% include "parciales/estado.html" with valor=u.perfil_beneficiario.ben_estado_verif texto=u.perfil_beneficiario.get_ben_estado_verif_display %}{% else %}—{% endif %}</td>
+  <td class="small">{{ u.usu_fec_reg|date:"d/m/Y" }}</td>
+  <td><a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:revisar_usuario' u.pk %}">Ver</a></td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-muted">No hay usuarios con esos filtros.</td></tr>{% endfor %}
+</tbody></table></div>
+{% include "parciales/paginacion.html" %}
+{% endblock %}

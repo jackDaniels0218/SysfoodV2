@@ -1,0 +1,24 @@
+:root { --sf-verde: #1f7a4d; --sf-verde-oscuro: #165c3a; }
+.bg-sysfood { background-color: var(--sf-verde) !important; }
+.btn-sysfood { background-color: var(--sf-verde); border-color: var(--sf-verde); color: #fff; }
+.btn-sysfood:hover, .btn-sysfood:focus { background-color: var(--sf-verde-oscuro); border-color: var(--sf-verde-oscuro); color: #fff; }
+.text-sysfood { color: var(--sf-verde) !important; }
+.tarjeta-indicador { border-left: 4px solid var(--sf-verde); }
+.tarjeta-indicador .numero { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.fila-vencido { --bs-table-bg: #f8d7da; }
+.fila-proximo { --bs-table-bg: #fff3cd; }
+.vigencia-vigente { background-color: #198754; }
+.vigencia-proximo { background-color: #ffc107; color: #212529; }
+.vigencia-vencido { background-color: #dc3545; }
+.producto-card .card-body { display: flex; flex-direction: column; }
+.producto-card .card-body form { margin-top: auto; }
+.pasos { display: flex; gap: .5rem; flex-wrap: wrap; }
+.pasos .paso { flex: 1 1 120px; text-align: center; padding: .5rem; border-radius: .5rem; background: #e9ecef; color: #6c757d; }
+.pasos .paso.hecho { background: #d1e7dd; color: #0f5132; font-weight: 600; }
+.pasos .paso.actual { background: var(--sf-verde); color: #fff; font-weight: 600; }
+.doc-preview { max-height: 70vh; width: 100%; border: 1px solid #dee2e6; border-radius: .5rem; }
+.table td, .table th { vertical-align: middle; }
+.seccion-rol { display: none; }
+.seccion-rol.visible { display: block; }
+.hero { background: linear-gradient(135deg, #1f7a4d 0%, #2f6fb0 100%); color: #fff; border-radius: 1rem; }
+@media (max-width: 576px) { .tarjeta-indicador .numero { font-size: 1.4rem; } h1, .h1 { font-size: 1.6rem; } }

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Documentos por revisar{% endblock %}
+{% block contenido %}
+<h1 class="h3">Documentos por revisar <span class="badge bg-warning text-dark">{{ total }}</span></h1>
+{% for usuario, docs in usuarios %}
+  <h2 class="h5 mt-4"><a href="{% url 'usuarios:revisar_usuario' usuario.pk %}">{{ usuario.nombre_completo }}</a> <small class="text-muted">{{ usuario.get_usu_rol_display }}</small></h2>
+  {% for d in docs %}{% include "usuarios/_revision_doc.html" with siguiente="pendientes" %}{% endfor %}
+{% empty %}
+  <div class="alert alert-success">No hay documentos pendientes de revisión.</div>
+{% endfor %}
+{% endblock %}

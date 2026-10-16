@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Entregas{% endblock %}
+{% block contenido %}
+<h1 class="h3">Entregas</h1>
+<form class="row g-2 mb-3">
+  <div class="col-12 col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Código o beneficiario"></div>
+  <div class="col-6 col-md-2"><select class="form-select" name="estado"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><select class="form-select" name="modalidad"><option value="">Modalidad</option>{% for k, v in modalidades %}<option value="{{ k }}" {% if request.GET.modalidad == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="desde" value="{{ request.GET.desde }}"></div>
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="hasta" value="{{ request.GET.hasta }}"></div>
+  <div class="col-12 col-md-1"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
+</form>
+<div class="table-responsive"><table class="table table-hover bg-white">
+<thead><tr><th>Código</th><th>Creada</th><th>Beneficiario</th><th>Modalidad</th><th>Programada</th><th>Bodega</th><th>Estado</th><th></th></tr></thead>
+<tbody>
+{% for e in pagina %}
+<tr><td><code>{{ e.ent_cod }}</code></td><td>{{ e.ent_fec_crea|date:"d/m/Y" }}</td><td>{{ e.solicitud.beneficiario }}</td><td>{{ e.get_ent_modalidad_display }}</td>
+<td>{{ e.ent_fec_prog|date:"d/m/Y"|default:"—" }}</td><td>{{ e.bodega }}</td>
+<td>{% include "parciales/estado.html" with valor=e.ent_estado texto=e.get_ent_estado_display %}</td>
+<td><a class="btn btn-sm btn-outline-primary" href="{% url 'entregas:detalle' e.pk %}">Gestionar</a></td></tr>
+{% empty %}<tr><td colspan="8" class="text-muted">No hay entregas.</td></tr>{% endfor %}
+</tbody></table></div>
+{% include "parciales/paginacion.html" %}
+{% endblock %}

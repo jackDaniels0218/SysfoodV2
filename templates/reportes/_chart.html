@@ -1,0 +1,17 @@
+{% load static %}
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script>
+window.SF_COLORES = ["#1f7a4d", "#2f6fb0", "#d08a1e", "#b23b3b", "#6b5ca5", "#3c8d8d", "#8a8a8a"];
+window.sfGrafico = function (id, tipo, datos, opciones) {
+  var el = document.getElementById(id);
+  if (!el || !datos) { return; }
+  var circular = tipo === "pie" || tipo === "doughnut";
+  new Chart(el, {
+    type: tipo,
+    data: { labels: datos.etiquetas, datasets: [{ label: (opciones && opciones.titulo) || "Cantidad", data: datos.datos,
+      backgroundColor: circular ? SF_COLORES : "#1f7a4d", borderColor: tipo === "line" ? "#1f7a4d" : undefined, tension: 0.3 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: circular } },
+      scales: circular ? {} : { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+};
+</script>

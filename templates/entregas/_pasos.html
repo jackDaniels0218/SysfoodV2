@@ -1,0 +1,6 @@
+<div class="pasos mb-3">
+  {% for clave, nombre in pasos %}
+    <div class="paso {% if e.ent_estado == 'cancelado' %}{% elif forloop.counter < e.paso %}hecho{% elif forloop.counter == e.paso %}{% if e.ent_estado == 'entregado' %}hecho{% else %}actual{% endif %}{% endif %}">{{ forloop.counter }}. {{ nombre }}</div>
+  {% endfor %}
+</div>
+{% if e.ent_estado == 'cancelado' %}<div class="alert alert-danger">Entrega cancelada. Motivo: {{ e.ent_mot_cancel }}</div>{% endif %}

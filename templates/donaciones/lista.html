@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Donaciones{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">{% if es_admin %}Donaciones{% else %}Mis donaciones{% endif %}</h1>
+  {% if not es_admin %}<a class="btn btn-sysfood" href="{% url 'donaciones:nueva' %}"><i class="bi bi-plus-circle"></i> Nueva donación</a>{% endif %}
+</div>
+<form class="row g-2 mb-3">
+  <div class="col-6 col-md-2"><select class="form-select" name="estado"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  {% if es_admin %}
+  <div class="col-6 col-md-3"><select class="form-select" name="donante"><option value="">Donante</option>{% for u in donantes %}<option value="{{ u.pk }}" {% if request.GET.donante == u.pk|stringformat:'s' %}selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><select class="form-select" name="anonima"><option value="">Pública/anónima</option><option value="0" {% if request.GET.anonima == '0' %}selected{% endif %}>Pública</option><option value="1" {% if request.GET.anonima == '1' %}selected{% endif %}>Anónima</option></select></div>
+  {% endif %}
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="desde" value="{{ request.GET.desde }}" title="Desde"></div>
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="hasta" value="{{ request.GET.hasta }}" title="Hasta"></div>
+  <div class="col-6 col-md-1"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
+</form>
+<div class="table-responsive"><table class="table table-hover bg-white">
+<thead><tr><th>N.º</th><th>Fecha</th>{% if es_admin %}<th>Donante</th>{% endif %}<th>Productos</th><th>Anónima</th><th>Estado</th><th></th></tr></thead>
+<tbody>
+{% for d in pagina %}
+<tr>
+  <td>#{{ d.pk }}</td><td>{{ d.dona_fec_reg|date:"d/m/Y H:i" }}</td>
+  {% if es_admin %}<td>{% if d.dona_anonima %}<span class="text-muted"><i class="bi bi-incognito"></i> Donante anónimo</span>{% else %}{{ d.nombre_publico }}{% endif %}</td>{% endif %}
+  <td>{{ d.productos }}</td><td>{{ d.dona_anonima|yesno:"Sí,No" }}</td>
+  <td>{% include "parciales/estado.html" with valor=d.dona_estado texto=d.get_dona_estado_display %}</td>
+  <td><a class="btn btn-sm btn-outline-primary" href="{% url 'donaciones:detalle' d.pk %}">Ver</a></td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-muted">No hay donaciones registradas.</td></tr>{% endfor %}
+</tbody></table></div>
+{% include "parciales/paginacion.html" %}
+{% endblock %}

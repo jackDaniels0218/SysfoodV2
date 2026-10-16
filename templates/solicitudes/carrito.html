@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load sysfood %}
+{% block titulo %}Carrito{% endblock %}
+{% block contenido %}
+<h1 class="h3">Mi carrito <small class="text-muted fs-6">{{ items|length }} de {{ maximo }} productos</small></h1>
+{% if items %}
+<div class="table-responsive"><table class="table bg-white align-middle">
+<thead><tr><th>Producto</th><th>Cantidad</th><th>Disponible</th><th>Vence</th><th>Agregado</th><th></th></tr></thead>
+<tbody>
+{% for it in items %}
+<tr>
+  <td>{{ it.inventario.inv_nom }}<div class="small text-muted">{{ it.inventario.categoria }}</div></td>
+  <td style="min-width:200px">
+    <form method="post" action="{% url 'solicitudes:agregar' it.inventario_id %}" class="input-group input-group-sm">{% csrf_token %}
+      <input type="hidden" name="volver" value="{% url 'solicitudes:carrito' %}">
+      <input type="number" class="form-control" name="cantidad" value="{{ it.car_cant|decimal_input }}" min="0.01" step="0.01">
+      <span class="input-group-text">{{ it.inventario.inv_unidad }}</span>
+      <button class="btn btn-outline-secondary">Actualizar</button>
+    </form>
+  </td>
+  <td>{{ it.inventario.inv_cant_disp }}</td>
+  <td>{{ it.inventario.inv_fec_venc|date:"d/m/Y" }}</td>
+  <td class="small">{{ it.car_fec_agregado|date:"d/m/Y H:i" }}</td>
+  <td><form method="post" action="{% url 'solicitudes:quitar' it.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i> Quitar</button></form></td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+<div class="d-flex flex-wrap gap-2">
+  <form method="post" action="{% url 'solicitudes:enviar' %}">{% csrf_token %}<button class="btn btn-sysfood btn-lg"><i class="bi bi-send"></i> Enviar solicitud</button></form>
+  <form method="post" action="{% url 'solicitudes:vaciar' %}" data-confirmar="¿Vaciar el carrito?">{% csrf_token %}<button class="btn btn-outline-danger btn-lg">Vaciar carrito</button></form>
+  <a class="btn btn-link" href="{% url 'solicitudes:catalogo' %}">Seguir agregando</a>
+</div>
+{% else %}
+<div class="alert alert-info">Su carrito está vacío. <a href="{% url 'solicitudes:catalogo' %}" class="alert-link">Ir al catálogo</a>.</div>
+{% endif %}
+{% endblock %}

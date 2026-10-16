@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Editar parámetro{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-lg-6">
+<div class="card"><div class="card-body">
+  <h1 class="h4">Editar parámetro</h1>
+  <p><code>{{ p.par_clave }}</code><br><span class="text-muted">{{ p.par_desc }}</span></p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "parciales/form.html" %}
+    <button class="btn btn-sysfood">Guardar</button>
+    <a class="btn btn-link" href="{% url 'core:parametros' %}">Volver</a>
+  </form>
+</div></div>
+</div></div>
+{% endblock %}

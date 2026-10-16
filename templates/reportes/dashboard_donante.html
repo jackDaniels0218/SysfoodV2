@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Mi panel{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Hola, {{ user.usu_nom }}</h1>
+  <a class="btn btn-sysfood btn-lg" href="{% url 'donaciones:nueva' %}"><i class="bi bi-plus-circle"></i> Registrar donación</a>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ total }}</div><div class="small text-muted">Donaciones registradas</div></div></div></div>
+  {% for estado, n in por_estado.items %}<div class="col-6 col-md"><div class="card h-100"><div class="card-body py-2"><div class="fw-bold fs-4">{{ n }}</div><div class="small text-muted">{{ estado }}</div></div></div></div>{% endfor %}
+</div>
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-body"><h2 class="h6">Mis donaciones por estado</h2><div style="height:240px"><canvas id="g-estado"></canvas></div></div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Cantidades donadas</h2>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>Unidad</th><th>Donado</th><th>Entregado</th><th>Disponible</th></tr></thead>
+      <tbody>{% for c in cantidades %}<tr><td>{{ c.inv_unidad|capfirst }}</td><td>{{ c.donado }}</td><td>{{ c.entregado }}</td><td>{{ c.disponible }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">Aún no ha donado productos.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Mis productos próximos a vencer</h2>
+    <ul class="list-group list-group-flush small">{% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><span>{{ i.inv_nom }}</span><span>{{ i.inv_cant_disp }} {{ i.inv_unidad }} · {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>{% empty %}<li class="list-group-item text-muted">Ninguno.</li>{% endfor %}</ul>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Donaciones recientes</h2>
+    <ul class="list-group list-group-flush small">{% for d in recientes %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'donaciones:detalle' d.pk %}">#{{ d.pk }} · {{ d.n }} producto(s)</a><span>{{ d.get_dona_estado_display }}</span></li>{% empty %}<li class="list-group-item text-muted">Ninguna.</li>{% endfor %}</ul>
+  </div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "reportes/_chart.html" %}
+{{ g_estado|json_script:"d-estado" }}
+<script>sfGrafico("g-estado", "doughnut", JSON.parse(JSON.parse(document.getElementById("d-estado").textContent)));</script>
+{% endblock %}

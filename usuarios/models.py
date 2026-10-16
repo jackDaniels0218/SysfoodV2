@@ -1,0 +1,257 @@
+import hashlib
+import secrets
+from datetime import timedelta
+
+from django.conf import settings
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
+
+
+class UsuarioManager(BaseUserManager):
+    def create_user(self, usu_correo, password=None, **extra):
+        if not usu_correo:
+            raise ValueError("El correo es obligatorio.")
+        usuario = self.model(usu_correo=self.normalize_email(usu_correo).lower(), **extra)
+        usuario.set_password(password)
+        usuario.save(using=self._db)
+        return usuario
+
+    def create_superuser(self, usu_correo, password=None, **extra):
+        extra.setdefault("usu_rol", Usuario.ADMIN)
+        extra.setdefault("usu_acepta_datos", True)
+        extra.setdefault("usu_fec_acepta", timezone.now())
+        return self.create_user(usu_correo, password, **extra)
+
+    def get_by_natural_key(self, correo):
+        return self.get(usu_correo__iexact=correo)
+
+
+class Usuario(AbstractBaseUser):
+    """Cuenta del sistema (Actividad 1). Un único rol por usuario."""
+
+    ADMIN, DONANTE, BENEFICIARIO = "administrador", "donante", "beneficiario"
+    ROLES = [(ADMIN, "Administrador"), (DONANTE, "Donante"), (BENEFICIARIO, "Beneficiario")]
+    ACTIVO, INACTIVO, BLOQUEADO = "activo", "inactivo", "bloqueado"
+    ESTADOS = [(ACTIVO, "Activo"), (INACTIVO, "Inactivo"), (BLOQUEADO, "Bloqueado")]
+
+    usu_id = models.AutoField(primary_key=True)
+    usu_rol = models.CharField("rol", max_length=15, choices=ROLES, db_index=True)
+    usu_correo = models.EmailField("correo electrónico", max_length=150, unique=True)
+    password = models.CharField("contraseña", max_length=128, db_column="usu_pwd_hash")
+    usu_nom = models.CharField("nombres", max_length=80)
+    usu_ape = models.CharField("apellidos", max_length=80)
+    usu_tel = models.CharField("teléfono", max_length=20)
+    usu_estado = models.CharField("estado", max_length=10, choices=ESTADOS, default=ACTIVO, db_index=True)
+    usu_acepta_datos = models.BooleanField("acepta la política de datos", default=False)
+    usu_fec_acepta = models.DateTimeField("fecha de aceptación", null=True, blank=True)
+    usu_intentos = models.PositiveSmallIntegerField("intentos fallidos", default=0)
+    last_login = models.DateTimeField("último acceso", null=True, blank=True, db_column="usu_ult_acceso")
+    usu_bloqueo_hasta = models.DateTimeField("bloqueado hasta", null=True, blank=True)
+    usu_token_rec = models.CharField("token de recuperación", max_length=64, blank=True)
+    usu_token_exp = models.DateTimeField("vencimiento del token", null=True, blank=True)
+    usu_fec_reg = models.DateTimeField("fecha de registro", auto_now_add=True)
+
+    objects = UsuarioManager()
+
+    USERNAME_FIELD = "usu_correo"
+    EMAIL_FIELD = "usu_correo"
+    REQUIRED_FIELDS = ["usu_nom", "usu_ape", "usu_tel"]
+
+    class Meta:
+        db_table = "usuario"
+        ordering = ["usu_nom", "usu_ape"]
+
+    def __str__(self):
+        return self.nombre_completo
+
+    @property
+    def nombre_completo(self):
+        return f"{self.usu_nom} {self.usu_ape}".strip()
+
+    @property
+    def is_active(self):
+        return self.usu_estado != self.INACTIVO
+
+    @property
+    def es_admin(self):
+        return self.usu_rol == self.ADMIN
+
+    @property
+    def es_donante(self):
+        return self.usu_rol == self.DONANTE
+
+    @property
+    def es_beneficiario(self):
+        return self.usu_rol == self.BENEFICIARIO
+
+    # --- Recuperación de contraseña: se guarda solo la huella del token.
+    @staticmethod
+    def _huella(token):
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    def generar_token_recuperacion(self, minutos):
+        token = secrets.token_urlsafe(32)
+        self.usu_token_rec = self._huella(token)
+        self.usu_token_exp = timezone.now() + timedelta(minutes=minutos)
+        self.save(update_fields=["usu_token_rec", "usu_token_exp"])
+        return token
+
+    def token_valido(self, token):
+        return bool(
+            self.usu_token_rec
+            and self.usu_token_exp
+            and self.usu_token_exp > timezone.now()
+            and secrets.compare_digest(self.usu_token_rec, self._huella(token))
+        )
+
+    def invalidar_token(self):
+        self.usu_token_rec = ""
+        self.usu_token_exp = None
+
+    @classmethod
+    def buscar_por_token(cls, token):
+        return cls.objects.filter(usu_token_rec=cls._huella(token)).first()
+
+
+class PerfilDonante(models.Model):
+    """Datos adicionales del rol Donante."""
+
+    NATURAL, JURIDICA = "natural", "juridica"
+    TIPOS_PERSONA = [(NATURAL, "Persona natural"), (JURIDICA, "Persona jurídica")]
+    TIPOS_DOC = [("CC", "Cédula de ciudadanía"), ("CE", "Cédula de extranjería"), ("NIT", "NIT"), ("Pasaporte", "Pasaporte")]
+    FRECUENCIAS = [("", "Sin definir"), ("mensual", "Mensual"), ("trimestral", "Trimestral"), ("anual", "Anual")]
+
+    usuario = models.OneToOneField(
+        Usuario, on_delete=models.CASCADE, primary_key=True, db_column="usu_id", related_name="perfil_donante",
+    )
+    don_tipo_persona = models.CharField("tipo de persona", max_length=10, choices=TIPOS_PERSONA)
+    don_tipo_doc = models.CharField("tipo de documento", max_length=10, choices=TIPOS_DOC)
+    don_doc_nit = models.CharField(
+        "número de documento o NIT", max_length=20, unique=True,
+        error_messages={"unique": "Ya existe un donante registrado con este documento o NIT."},
+    )
+    don_raz_soc = models.CharField("razón social", max_length=150, blank=True)
+    don_contacto = models.CharField("nombre de contacto", max_length=150, blank=True)
+    don_dir = models.CharField("dirección", max_length=200)
+    don_frecuencia = models.CharField("frecuencia de donación", max_length=12, choices=FRECUENCIAS, blank=True)
+    don_anonimo_def = models.BooleanField("donar de forma anónima por defecto", default=False)
+
+    class Meta:
+        db_table = "donante"
+        verbose_name = "donante"
+
+    def clean(self):
+        if self.don_tipo_persona == self.JURIDICA and not self.don_raz_soc:
+            raise ValidationError({"don_raz_soc": "La razón social es obligatoria para personas jurídicas."})
+        if self.don_tipo_persona == self.JURIDICA and self.don_tipo_doc != "NIT":
+            raise ValidationError({"don_tipo_doc": "Las personas jurídicas se identifican con NIT."})
+
+    @property
+    def nombre_publico(self):
+        if self.don_tipo_persona == self.JURIDICA and self.don_raz_soc:
+            return self.don_raz_soc
+        return self.usuario.nombre_completo
+
+
+class PerfilBeneficiario(models.Model):
+    """Datos adicionales del rol Beneficiario."""
+
+    TIPOS_DOC = [("CC", "Cédula de ciudadanía"), ("TI", "Tarjeta de identidad"), ("CE", "Cédula de extranjería"), ("Pasaporte", "Pasaporte")]
+    SISBEN = [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("NR", "No registrado")]
+    ESTRATOS = [(i, str(i)) for i in range(1, 7)]
+    PENDIENTE, EN_REVISION, VERIFICADO, RECHAZADO = "pendiente", "en_revision", "verificado", "rechazado"
+    ESTADOS_VERIF = [(PENDIENTE, "Pendiente"), (EN_REVISION, "En revisión"), (VERIFICADO, "Verificado"), (RECHAZADO, "Rechazado")]
+
+    usuario = models.OneToOneField(
+        Usuario, on_delete=models.CASCADE, primary_key=True, db_column="usu_id", related_name="perfil_beneficiario",
+    )
+    ben_tipo_doc = models.CharField("tipo de documento", max_length=10, choices=TIPOS_DOC)
+    ben_num_doc = models.CharField("número de documento", max_length=20)
+    ben_fec_exp_doc = models.DateField("fecha de expedición del documento")
+    ben_dir = models.CharField("dirección de residencia", max_length=200)
+    ben_num_personas = models.PositiveSmallIntegerField("personas en el hogar")
+    ben_sisben = models.CharField("nivel de Sisbén", max_length=2, choices=SISBEN)
+    ben_estrato = models.PositiveSmallIntegerField("estrato social", choices=ESTRATOS)
+    ben_discapacidad = models.BooleanField("tiene discapacidad", default=False)
+    ben_estado_verif = models.CharField(
+        "estado de verificación", max_length=12, choices=ESTADOS_VERIF, default=PENDIENTE, db_index=True,
+    )
+    ben_fec_verif = models.DateTimeField("fecha de verificación", null=True, blank=True)
+
+    class Meta:
+        db_table = "beneficiario"
+        verbose_name = "beneficiario"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ben_tipo_doc", "ben_num_doc"], name="ben_documento_unico",
+                violation_error_message="Ya existe un beneficiario registrado con este documento.",
+            ),
+            models.CheckConstraint(condition=models.Q(ben_estrato__gte=1, ben_estrato__lte=6), name="ben_estrato_rango"),
+            models.CheckConstraint(condition=models.Q(ben_num_personas__gte=1), name="ben_personas_minimo"),
+        ]
+
+    def clean(self):
+        if self.ben_fec_exp_doc and self.ben_fec_exp_doc > timezone.localdate():
+            raise ValidationError({"ben_fec_exp_doc": "La fecha de expedición no puede ser futura."})
+
+    @property
+    def verificado(self):
+        return self.ben_estado_verif == self.VERIFICADO
+
+
+def ruta_documento(instancia, nombre):
+    return f"documentos/{instancia.usuario_id}/{nombre}"
+
+
+class DocumentoValidacion(models.Model):
+    """Documentos de soporte (Actividad 2)."""
+
+    IDENTIDAD, SISBEN, RESIDENCIA, DISCAPACIDAD = "identidad", "sisben", "residencia", "discapacidad"
+    CAMARA_COMERCIO, RUT = "camara_comercio", "rut"
+    TIPOS = [
+        (IDENTIDAD, "Documento de identidad"),
+        (SISBEN, "Certificado de Sisbén"),
+        (RESIDENCIA, "Soporte de residencia o estrato"),
+        (DISCAPACIDAD, "Certificado de discapacidad"),
+        (CAMARA_COMERCIO, "Cámara de Comercio"),
+        (RUT, "RUT"),
+    ]
+    TIPOS_BENEFICIARIO = (IDENTIDAD, SISBEN, RESIDENCIA, DISCAPACIDAD)
+    TIPOS_DONANTE_JURIDICO = (CAMARA_COMERCIO, RUT)
+
+    CARGADO, APROBADO, RECHAZADO, VENCIDO = "cargado", "aprobado", "rechazado", "vencido"
+    ESTADOS = [(CARGADO, "Cargado"), (APROBADO, "Aprobado"), (RECHAZADO, "Rechazado"), (VENCIDO, "Vencido")]
+
+    docv_id = models.AutoField(primary_key=True)
+    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column="usu_id", related_name="documentos")
+    revisor = models.ForeignKey(
+        Usuario, on_delete=models.PROTECT, null=True, blank=True, db_column="usu_id_revisor", related_name="+",
+    )
+    docv_tipo = models.CharField("tipo de documento", max_length=20, choices=TIPOS)
+    docv_nom_archivo = models.CharField("nombre del archivo", max_length=255)
+    docv_ruta = models.CharField("ruta protegida", max_length=255)
+    docv_mime = models.CharField("tipo MIME", max_length=50)
+    docv_tam_bytes = models.PositiveIntegerField("tamaño (bytes)")
+    docv_hash = models.CharField("huella SHA-256", max_length=64, db_index=True)
+    docv_estado = models.CharField("estado", max_length=10, choices=ESTADOS, default=CARGADO, db_index=True)
+    docv_obs = models.TextField("observación", blank=True)
+    docv_fec_carga = models.DateTimeField("fecha de carga", auto_now_add=True)
+    docv_fec_revision = models.DateTimeField("fecha de revisión", null=True, blank=True)
+    docv_fec_venc = models.DateField("fecha de vencimiento", null=True, blank=True)
+
+    class Meta:
+        db_table = "documento_validacion"
+        ordering = ["usuario", "docv_tipo"]
+
+    def __str__(self):
+        return f"{self.get_docv_tipo_display()} de {self.usuario}"
+
+    @property
+    def ruta_absoluta(self):
+        return settings.PROTECTED_MEDIA_ROOT / self.docv_ruta
+
+    @property
+    def es_imagen(self):
+        return self.docv_mime.startswith("image/")

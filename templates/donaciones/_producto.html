@@ -1,0 +1,19 @@
+<div class="card mb-3 producto-form">
+  <div class="card-body">
+    {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+    {% for e in f.non_field_errors %}<div class="alert alert-danger py-1">{{ e }}</div>{% endfor %}
+    <div class="row g-2">
+      <div class="col-md-4">{% with campo=f.dd_nom %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-md-4">{% with campo=f.categoria %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-md-4">{% with campo=f.dd_desc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-6 col-md-2">{% with campo=f.dd_cantidad %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-6 col-md-2">{% with campo=f.dd_unidad %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-6 col-md-3">{% with campo=f.dd_fec_venc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-6 col-md-3">{% with campo=f.dd_lote %}{% include "parciales/campo.html" %}{% endwith %}</div>
+      <div class="col-md-2 d-flex align-items-center">
+        {% if f.DELETE %}<span class="d-none">{{ f.DELETE }}</span>{% endif %}
+        <button type="button" class="btn btn-sm btn-outline-danger" data-quitar><i class="bi bi-trash"></i> Quitar</button>
+      </div>
+    </div>
+  </div>
+</div>

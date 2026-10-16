@@ -1,0 +1,164 @@
+import json
+from collections import OrderedDict
+
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q, Sum
+from django.http import Http404, HttpResponse
+from django.shortcuts import render
+from django.utils import timezone
+
+from catalogo.models import Bodega, Categoria
+from core.fechas import inicio_dia
+from core.permisos import solo_admin
+from core.servicios import auditar
+from core.tareas import ultima_ejecucion
+from donaciones.models import Donacion
+from entregas.models import Entrega
+from inventario.models import Inventario
+from solicitudes.models import Solicitud
+from usuarios.models import DocumentoValidacion, PerfilBeneficiario, Usuario
+
+from . import consultas, exportar
+
+
+def _conteo(qs, campo, opciones):
+    datos = dict(qs.values_list(campo).annotate(n=Count("pk")).values_list(campo, "n"))
+    return OrderedDict((etiqueta, datos.get(clave, 0)) for clave, etiqueta in opciones)
+
+
+def _grafico(conteo):
+    return json.dumps({"etiquetas": list(conteo.keys()), "datos": list(conteo.values())})
+
+
+@login_required
+def dashboard(request):
+    u = request.user
+    if u.es_admin:
+        return _dashboard_admin(request)
+    if u.es_donante:
+        return _dashboard_donante(request)
+    return _dashboard_beneficiario(request)
+
+
+def _dashboard_admin(request):
+    activo = Inventario.objects.exclude(inv_estado=Inventario.RETIRADO)
+    usuarios_rol = OrderedDict()
+    for rol, nombre in Usuario.ROLES:
+        usuarios_rol[nombre] = _conteo(Usuario.objects.filter(usu_rol=rol), "usu_estado", Usuario.ESTADOS)
+    contexto = {
+        "usuarios_rol": usuarios_rol,
+        "donaciones": _conteo(Donacion.objects.all(), "dona_estado", Donacion.ESTADOS),
+        "inventario": {
+            "disponible": Inventario.catalogo().count(),
+            "proximo": activo.filter(inv_est_venc=Inventario.PROXIMO).count(),
+            "vencido": activo.filter(inv_est_venc=Inventario.VENCIDO).count(),
+            "reservado": activo.filter(inv_cant_reserv__gt=0).count(),
+        },
+        "docs_pendientes": DocumentoValidacion.objects.filter(docv_estado=DocumentoValidacion.CARGADO).count(),
+        "ben_en_revision": PerfilBeneficiario.objects.filter(ben_estado_verif=PerfilBeneficiario.EN_REVISION).count(),
+        "sol_pendientes": Solicitud.objects.filter(sol_estado=Solicitud.PENDIENTE).count(),
+        "entregas": _conteo(Entrega.objects.all(), "ent_estado", Entrega.ESTADOS),
+        "proximos": activo.filter(inv_est_venc=Inventario.PROXIMO).select_related("categoria").order_by("inv_fec_venc")[:8],
+        "ultima_ejecucion": ultima_ejecucion(),
+    }
+    contexto["g_donaciones"] = _grafico(contexto["donaciones"])
+    contexto["g_entregas"] = _grafico(contexto["entregas"])
+    contexto["g_inventario"] = json.dumps({
+        "etiquetas": ["Vigente", "Próximo a vencer", "Vencido"],
+        "datos": [activo.filter(inv_est_venc=Inventario.VIGENTE).count(), contexto["inventario"]["proximo"], contexto["inventario"]["vencido"]],
+    })
+    return render(request, "reportes/dashboard_admin.html", contexto)
+
+
+def _dashboard_donante(request):
+    mias = request.user.donaciones.all()
+    inventario = Inventario.objects.filter(detalle__donacion__donante=request.user)
+    cantidades = (
+        inventario.values("inv_unidad").annotate(donado=Sum("inv_cant_inicial"), disponible=Sum("inv_cant_disp"))
+        .order_by("inv_unidad")
+    )
+    entregado = dict(
+        inventario.filter(kardex__kar_tipo="entrega").values("inv_unidad").annotate(t=Sum("kardex__kar_cantidad")).values_list("inv_unidad", "t")
+    )
+    por_estado = _conteo(mias, "dona_estado", Donacion.ESTADOS)
+    return render(request, "reportes/dashboard_donante.html", {
+        "por_estado": por_estado, "g_estado": _grafico(por_estado), "total": mias.count(),
+        "cantidades": [dict(c, entregado=entregado.get(c["inv_unidad"], 0)) for c in cantidades],
+        "proximos": inventario.filter(inv_est_venc=Inventario.PROXIMO).exclude(inv_estado=Inventario.RETIRADO).order_by("inv_fec_venc"),
+        "recientes": mias.annotate(n=Count("detalles")).order_by("-dona_fec_reg")[:5],
+    })
+
+
+def _dashboard_beneficiario(request):
+    perfil = request.user.perfil_beneficiario
+    solicitudes = request.user.solicitudes.all()
+    return render(request, "reportes/dashboard_beneficiario.html", {
+        "perfil": perfil,
+        "disponibles": Inventario.catalogo().count() if perfil.verificado else None,
+        "solicitudes": _conteo(solicitudes, "sol_estado", Solicitud.ESTADOS),
+        "entregas": Entrega.objects.filter(solicitud__beneficiario=request.user).order_by("-ent_fec_crea")[:5],
+        "recientes": solicitudes.select_related("entrega")[:5],
+    })
+
+
+def _filtros(request):
+    """Toma solo filtros válidos: fechas AAAA-MM-DD e identificadores numéricos."""
+    filtros = {}
+    for clave in ("desde", "hasta"):
+        valor = request.GET.get(clave, "").strip()
+        if valor and inicio_dia(valor):
+            filtros[clave] = valor
+    for clave in ("categoria", "donante", "bodega"):
+        valor = request.GET.get(clave, "").strip()
+        if valor.isdigit():
+            filtros[clave] = valor
+    if request.GET.get("estado", "").strip():
+        filtros["estado"] = request.GET["estado"].strip()
+    return filtros
+
+
+def _texto_filtros(f):
+    nombres = {"desde": "Desde", "hasta": "Hasta", "estado": "Estado", "categoria": "Categoría", "donante": "Donante", "bodega": "Bodega"}
+    valores = dict(f)
+    if "categoria" in f:
+        valores["categoria"] = Categoria.objects.filter(pk=f["categoria"]).values_list("cat_nom", flat=True).first() or f["categoria"]
+    if "bodega" in f:
+        valores["bodega"] = Bodega.objects.filter(pk=f["bodega"]).values_list("bod_nom", flat=True).first() or f["bodega"]
+    if "donante" in f:
+        valores["donante"] = f"ID {f['donante']}"
+    return "Filtros: " + (", ".join(f"{nombres[k]}: {v}" for k, v in valores.items()) if valores else "ninguno") + "."
+
+
+@solo_admin
+def reportes(request):
+    tipo = request.GET.get("tipo", "donaciones")
+    if tipo not in consultas.TIPOS:
+        raise Http404
+    filtros = _filtros(request)
+    datos = consultas.generar(tipo, filtros)
+    consulta = request.GET.copy()
+    consulta["tipo"] = tipo
+    return render(request, "reportes/reportes.html", {
+        "tipos": consultas.TIPOS, "tipo": tipo, "d": datos, "filtros": filtros, "texto_filtros": _texto_filtros(filtros),
+        "g1": json.dumps(datos["grafico"]), "g2": json.dumps(datos.get("grafico2")) if datos.get("grafico2") else "",
+        "categorias": Categoria.objects.all(), "bodegas": Bodega.objects.all(), "donantes": consultas.donantes_para_filtro(),
+        "query": consulta.urlencode(),
+    })
+
+
+@solo_admin
+def exportar_reporte(request, formato):
+    tipo = request.GET.get("tipo", "donaciones")
+    if tipo not in consultas.TIPOS or formato not in ("pdf", "xlsx"):
+        raise Http404
+    filtros = _filtros(request)
+    datos = consultas.generar(tipo, filtros)
+    texto = _texto_filtros(filtros)
+    nombre = f"sysfood_{tipo}_{timezone.localtime():%Y%m%d_%H%M}"
+    if formato == "pdf":
+        respuesta = HttpResponse(exportar.a_pdf(datos, texto), content_type="application/pdf")
+    else:
+        respuesta = HttpResponse(exportar.a_excel(datos, texto), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre}.{formato}"'
+    auditar(request, "crear", "reporte", tipo, f"Exportación {formato.upper()}. {texto}")
+    return respuesta

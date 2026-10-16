@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes{% endblock %}
+{% block contenido %}
+<h1 class="h3">Reportes</h1>
+<ul class="nav nav-pills flex-wrap mb-3">
+  {% for k, v in tipos.items %}<li class="nav-item"><a class="nav-link {% if k == tipo %}active bg-sysfood{% endif %}" href="?tipo={{ k }}">{{ v }}</a></li>{% endfor %}
+</ul>
+<form class="row g-2 mb-3 card card-body flex-row" method="get">
+  <input type="hidden" name="tipo" value="{{ tipo }}">
+  <div class="col-6 col-md-2"><label class="form-label small">Desde</label><input type="date" class="form-control form-control-sm" name="desde" value="{{ filtros.desde }}"></div>
+  <div class="col-6 col-md-2"><label class="form-label small">Hasta</label><input type="date" class="form-control form-control-sm" name="hasta" value="{{ filtros.hasta }}"></div>
+  {% if d.estados %}<div class="col-6 col-md-2"><label class="form-label small">Estado</label><select class="form-select form-select-sm" name="estado"><option value="">Todos</option>{% for k, v in d.estados %}<option value="{{ k }}" {% if filtros.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>{% endif %}
+  {% if tipo != 'beneficiarios' %}
+  <div class="col-6 col-md-2"><label class="form-label small">Categoría</label><select class="form-select form-select-sm" name="categoria"><option value="">Todas</option>{% for c in categorias %}<option value="{{ c.pk }}" {% if filtros.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="form-label small">Donante</label><select class="form-select form-select-sm" name="donante"><option value="">Todos</option>{% for u in donantes %}<option value="{{ u.pk }}" {% if filtros.donante == u.pk|stringformat:'s' %}selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-1"><label class="form-label small">Bodega</label><select class="form-select form-select-sm" name="bodega"><option value="">Todas</option>{% for b in bodegas %}<option value="{{ b.pk }}" {% if filtros.bodega == b.pk|stringformat:'s' %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+  {% endif %}
+  <div class="col-12 col-md-1 d-flex align-items-end"><button class="btn btn-sm btn-sysfood w-100">Aplicar</button></div>
+</form>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div><h2 class="h5 mb-0">{{ d.titulo }}</h2><div class="small text-muted">{{ texto_filtros }} Generado {{ d.generado }}.</div></div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-danger" href="{% url 'reportes:exportar' 'pdf' %}?{{ query }}"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    <a class="btn btn-outline-success" href="{% url 'reportes:exportar' 'xlsx' %}?{{ query }}"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+  </div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-3"><div class="card h-100"><div class="card-body small">
+    {% for a, b in d.resumen %}<div class="d-flex justify-content-between border-bottom py-1"><span>{{ a }}</span><strong>{{ b }}</strong></div>{% endfor %}
+  </div></div></div>
+  <div class="col-lg-{% if g2 %}4{% else %}9{% endif %}"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ d.grafico.titulo }}</h3><div style="height:260px"><canvas id="g1"></canvas></div></div></div></div>
+  {% if g2 %}<div class="col-lg-5"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ d.grafico2.titulo }}</h3><div style="height:260px"><canvas id="g2"></canvas></div></div></div></div>{% endif %}
+</div>
+<div class="table-responsive"><table class="table table-sm table-striped bg-white small">
+  <thead><tr>{% for c in d.columnas %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for f in d.filas %}<tr>{% for v in f %}<td>{{ v }}</td>{% endfor %}</tr>{% empty %}<tr><td colspan="{{ d.columnas|length }}" class="text-muted">Sin registros para los filtros seleccionados.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}
+{% block scripts %}
+{% include "reportes/_chart.html" %}
+{{ g1|json_script:"d-g1" }}{% if g2 %}{{ g2|json_script:"d-g2" }}{% endif %}
+<script>
+var g1 = JSON.parse(JSON.parse(document.getElementById("d-g1").textContent));
+sfGrafico("g1", g1.tipo, g1);
+var nodo2 = document.getElementById("d-g2");
+if (nodo2) { var g2 = JSON.parse(JSON.parse(nodo2.textContent)); sfGrafico("g2", g2.tipo, g2); }
+</script>
+{% endblock %}

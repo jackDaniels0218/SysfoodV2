@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}Registro{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-lg-9">
+<div class="card shadow-sm"><div class="card-body p-4">
+  <h1 class="h4">Crear una cuenta</h1>
+  <p class="text-muted small">Los campos con <span class="text-danger">*</span> son obligatorios.</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% for e in form.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+    {% include "usuarios/_cuenta.html" %}
+    <div class="seccion-rol" data-rol="donante">
+      <h2 class="h6 text-sysfood border-bottom pb-1 mt-2">Datos del donante</h2>
+      {% include "usuarios/_perfil_donante.html" %}
+    </div>
+    <div class="seccion-rol" data-rol="beneficiario">
+      <h2 class="h6 text-sysfood border-bottom pb-1 mt-2">Datos del beneficiario</h2>
+      <p class="small text-muted">Después del registro deberá cargar sus documentos para que el administrador verifique su cuenta.</p>
+      {% include "usuarios/_perfil_beneficiario.html" %}
+    </div>
+    <div class="border rounded p-3 bg-light mb-3">
+      {% with campo=form.acepta %}{% include "parciales/campo.html" %}{% endwith %}
+      <a class="small" href="{% url 'core:politica_datos' %}" target="_blank">Leer la política de tratamiento de datos</a>
+    </div>
+    <button class="btn btn-sysfood btn-lg">Crear cuenta</button>
+    <a class="btn btn-link" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
+  </form>
+</div></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% with c=campo %}
+{% if c.field.widget.input_type == 'checkbox' %}
+<div class="form-check mb-3">
+  {{ c }}
+  <label class="form-check-label" for="{{ c.id_for_label }}">{{ c.label }}</label>
+  {% if c.help_text %}<div class="form-text">{{ c.help_text|safe }}</div>{% endif %}
+  {% for e in c.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+</div>
+{% elif c.field.widget.input_type == 'radio' %}
+<div class="mb-3">
+  <label class="form-label fw-semibold">{{ c.label }}</label>
+  <div>
+  {% for r in c %}
+    <div class="form-check form-check-inline">
+      {{ r.tag }}<label class="form-check-label" for="{{ r.id_for_label }}">{{ r.choice_label }}</label>
+    </div>
+  {% endfor %}
+  </div>
+  {% for e in c.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+</div>
+{% else %}
+<div class="mb-3">
+  <label class="form-label" for="{{ c.id_for_label }}">{{ c.label }}{% if c.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+  {% if c.errors %}{{ c.as_widget|safe }}{% else %}{{ c }}{% endif %}
+  {% if c.help_text %}<div class="form-text">{{ c.help_text|safe }}</div>{% endif %}
+  {% for e in c.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+</div>
+{% endif %}
+{% endwith %}

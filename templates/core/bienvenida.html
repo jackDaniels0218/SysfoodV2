@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Bienvenido{% endblock %}
+{% block contenido %}
+<section class="hero p-4 p-md-5 mb-4">
+  <h1 class="display-6 fw-bold">Donaciones de alimentos transparentes y trazables</h1>
+  <p class="lead mb-4">SysFood conecta a donantes con familias en condición de vulnerabilidad, bajo la supervisión de un administrador que verifica cada paso.</p>
+  <a class="btn btn-light btn-lg me-2 mb-2" href="{% url 'usuarios:registro' %}">Crear una cuenta</a>
+  <a class="btn btn-outline-light btn-lg mb-2" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
+</section>
+<div class="row g-3">
+  <div class="col-md-4"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><i class="bi bi-gift text-sysfood"></i> Donantes</h2>
+    <p class="mb-0">Personas o empresas registran sus productos, de forma pública o anónima, y siguen su recorrido hasta la entrega.</p>
+  </div></div></div>
+  <div class="col-md-4"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><i class="bi bi-people text-sysfood"></i> Beneficiarios</h2>
+    <p class="mb-0">Verifican su cuenta con documentos, arman un carrito de hasta 5 productos y siguen la entrega con un código.</p>
+  </div></div></div>
+  <div class="col-md-4"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><i class="bi bi-shield-check text-sysfood"></i> Administración</h2>
+    <p class="mb-0">Control de inventario y vencimientos, aprobación de solicitudes, trazabilidad completa y reportes.</p>
+  </div></div></div>
+</div>
+{% endblock %}

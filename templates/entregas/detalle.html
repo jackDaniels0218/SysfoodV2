@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}Entrega {{ e.ent_cod }}{% endblock %}
+{% block contenido %}
+<h1 class="h3">Entrega <code>{{ e.ent_cod }}</code> {% include "parciales/estado.html" with valor=e.ent_estado texto=e.get_ent_estado_display %}</h1>
+{% include "entregas/_pasos.html" %}
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <dl class="row small mb-0">
+        <dt class="col-5">Solicitud</dt><dd class="col-7"><a href="{% url 'solicitudes:admin_detalle' e.solicitud_id %}">#{{ e.solicitud_id }}</a></dd>
+        <dt class="col-5">Beneficiario</dt><dd class="col-7">{{ e.solicitud.beneficiario }} · {{ e.solicitud.beneficiario.usu_tel }}</dd>
+        <dt class="col-5">Modalidad</dt><dd class="col-7">{{ e.get_ent_modalidad_display }}</dd>
+        {% if e.ent_dir_entrega %}<dt class="col-5">Dirección</dt><dd class="col-7">{{ e.ent_dir_entrega }}</dd>{% endif %}
+        <dt class="col-5">Bodega de origen</dt><dd class="col-7">{{ e.bodega }} · {{ e.bodega.bod_dir }}</dd>
+        <dt class="col-5">Responsable</dt><dd class="col-7">{{ e.responsable }}</dd>
+        <dt class="col-5">Programada</dt><dd class="col-7">{{ e.ent_fec_prog|date:"d/m/Y"|default:"—" }}</dd>
+        <dt class="col-5">Entregada</dt><dd class="col-7">{{ e.ent_fec_entrega|date:"d/m/Y h:i a"|default:"—" }}</dd>
+        <dt class="col-5">Creada</dt><dd class="col-7">{{ e.ent_fec_crea|date:"d/m/Y h:i a" }}</dd>
+        {% if e.ent_obs %}<dt class="col-5">Observaciones</dt><dd class="col-7">{{ e.ent_obs|linebreaksbr }}</dd>{% endif %}
+      </dl>
+    </div></div>
+    {% if e.cancelable %}
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Datos de la entrega</h2>
+      <form method="post" action="{% url 'entregas:actualizar' e.pk %}" novalidate>{% csrf_token %}
+        {% with campo=form.ent_modalidad %}{% include "parciales/campo.html" %}{% endwith %}
+        <div id="dir-entrega">{% with campo=form.ent_dir_entrega %}{% include "parciales/campo.html" %}{% endwith %}</div>
+        {% with campo=form.ent_fec_prog %}{% include "parciales/campo.html" %}{% endwith %}
+        {% with campo=form.responsable %}{% include "parciales/campo.html" %}{% endwith %}
+        {% with campo=form.ent_obs %}{% include "parciales/campo.html" %}{% endwith %}
+        <button class="btn btn-sm btn-outline-primary">Guardar datos</button>
+      </form>
+    </div></div>
+    {% endif %}
+  </div>
+  <div class="col-lg-7">
+    {% if e.siguiente_estado %}
+    <form method="post" action="{% url 'entregas:avanzar' e.pk %}" class="card border-success mb-3">{% csrf_token %}<div class="card-body">
+    {% endif %}
+    <div class="table-responsive"><table class="table table-sm bg-white">
+      <thead><tr><th>Producto</th><th>Asignado</th><th>Entregado</th></tr></thead>
+      <tbody>{% for d in detalles %}
+      <tr><td>{{ d.inventario.inv_nom }} <small class="text-muted">#{{ d.inventario_id }}</small></td><td>{{ d.de_cant_asig }} {{ d.inventario.inv_unidad }}</td>
+      <td>{% if e.siguiente_estado == 'entregado' %}<input class="form-control form-control-sm" type="number" step="0.01" min="0" max="{{ d.de_cant_asig }}" name="entregada_{{ d.pk }}" value="{{ d.de_cant_asig }}" style="max-width:120px">{% else %}{{ d.de_cant_entregada|default:"—" }}{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% if e.siguiente_estado %}
+      <input class="form-control form-control-sm mb-2" name="observacion" placeholder="Observación (opcional)">
+      <button class="btn btn-success">Pasar a «{{ siguiente }}»</button>
+      {% if e.siguiente_estado == 'entregado' %}<p class="small text-muted mt-2 mb-0">Se descontará definitivamente lo entregado; lo no entregado vuelve al inventario.</p>{% endif %}
+    </div></form>
+    {% endif %}
+    {% if e.cancelable %}
+    <div class="card border-danger mb-3"><div class="card-body">
+      <form method="post" action="{% url 'entregas:cancelar' e.pk %}" class="row g-2" data-confirmar="Se liberarán las cantidades reservadas. ¿Cancelar la entrega?">{% csrf_token %}
+        <div class="col-md-8"><input class="form-control" name="motivo" placeholder="Motivo de la cancelación (obligatorio)" required></div>
+        <div class="col-md-4"><button class="btn btn-outline-danger w-100">Cancelar entrega</button></div>
+      </form>
+    </div></div>
+    {% endif %}
+    <h2 class="h6">Historial de estados</h2>
+    <ul class="list-group small">
+      {% for h in historial %}<li class="list-group-item"><strong>{{ h.nuevo_display }}</strong>{% if h.his_estado_ant %} (desde {{ h.anterior_display }}){% endif %} · {{ h.his_fecha|date:"d/m/Y h:i a" }} · {{ h.usuario }}{% if h.his_obs %}<div class="text-muted">{{ h.his_obs }}</div>{% endif %}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

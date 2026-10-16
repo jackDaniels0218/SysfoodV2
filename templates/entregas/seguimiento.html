@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}Seguimiento de entrega{% endblock %}
+{% block contenido %}
+<h1 class="h3">Seguimiento de mi entrega</h1>
+<form class="row g-2 mb-4" method="get">
+  <div class="col-8 col-md-4"><input class="form-control" name="codigo" value="{{ codigo }}" placeholder="Código, p. ej. SF-AB12CD34" required></div>
+  <div class="col-4 col-md-2"><button class="btn btn-sysfood w-100">Consultar</button></div>
+</form>
+{% if e %}
+<div class="card mb-4"><div class="card-body">
+  <h2 class="h5"><code>{{ e.ent_cod }}</code> {% include "parciales/estado.html" with valor=e.ent_estado texto=e.get_ent_estado_display %}</h2>
+  {% include "entregas/_pasos.html" %}
+  <p class="mb-1"><strong>Modalidad:</strong> {{ e.get_ent_modalidad_display }}{% if e.ent_modalidad == 'recogida' %} en {{ e.bodega }} ({{ e.bodega.bod_dir }}){% else %} a {{ e.ent_dir_entrega }}{% endif %}</p>
+  <p class="mb-1"><strong>Fecha programada:</strong> {{ e.ent_fec_prog|date:"d/m/Y"|default:"Por definir" }}</p>
+  {% if e.ent_fec_entrega %}<p class="mb-1"><strong>Entregada:</strong> {{ e.ent_fec_entrega|date:"d/m/Y h:i a" }}</p>{% endif %}
+  <h3 class="h6 mt-3">Productos</h3>
+  <ul class="small">{% for d in detalles %}<li>{{ d.inventario.inv_nom }}: {{ d.de_cant_asig }} {{ d.inventario.inv_unidad }}{% if d.de_cant_entregada is not None %} (entregado {{ d.de_cant_entregada }}){% endif %}</li>{% endfor %}</ul>
+  <h3 class="h6">Avance</h3>
+  <ul class="list-group small">{% for h in historial %}<li class="list-group-item">{{ h.his_fecha|date:"d/m/Y h:i a" }} · <strong>{{ h.nuevo_display }}</strong>{% if h.his_obs %} — {{ h.his_obs }}{% endif %}</li>{% endfor %}</ul>
+</div></div>
+{% endif %}
+<h2 class="h5">Mis entregas</h2>
+<div class="list-group">
+{% for m in mias %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="?codigo={{ m.ent_cod }}"><span><code>{{ m.ent_cod }}</code> · {{ m.ent_fec_crea|date:"d/m/Y" }}</span><span>{{ m.get_ent_estado_display }}</span></a>
+{% empty %}<div class="list-group-item text-muted">Aún no tiene entregas.</div>{% endfor %}
+</div>
+{% endblock %}

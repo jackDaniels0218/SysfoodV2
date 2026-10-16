@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Panel del administrador{% endblock %}
+{% block contenido %}
+<h1 class="h3">Panel del administrador</h1>
+<p class="small text-muted">Control de vencimientos ejecutado por última vez: {{ ultima_ejecucion|date:"d/m/Y h:i a"|default:"nunca" }}</p>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'usuarios:documentos_pendientes' %}"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ docs_pendientes }}</div><div class="small text-muted">Documentos por revisar</div></div></div></a></div>
+  <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'solicitudes:lista_admin' %}"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ sol_pendientes }}</div><div class="small text-muted">Solicitudes pendientes</div></div></div></a></div>
+  <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'inventario:lista' %}?vigencia=proximo"><div class="card tarjeta-indicador h-100" style="border-left-color:#ffc107"><div class="card-body"><div class="numero">{{ inventario.proximo }}</div><div class="small text-muted">Próximos a vencer</div></div></div></a></div>
+  <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'inventario:lista' %}?vigencia=vencido"><div class="card tarjeta-indicador h-100" style="border-left-color:#dc3545"><div class="card-body"><div class="numero">{{ inventario.vencido }}</div><div class="small text-muted">Vencidos por retirar</div></div></div></a></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ inventario.disponible }}</div><div class="small text-muted">Productos disponibles</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ inventario.reservado }}</div><div class="small text-muted">Productos con reservas</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ ben_en_revision }}</div><div class="small text-muted">Beneficiarios en revisión</div></div></div></div>
+  <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'reportes:reportes' %}"><div class="card tarjeta-indicador h-100" style="border-left-color:#2f6fb0"><div class="card-body"><div class="numero"><i class="bi bi-bar-chart"></i></div><div class="small text-muted">Reportes</div></div></div></a></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Donaciones por estado</h2><div style="height:220px"><canvas id="g-donaciones"></canvas></div></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Inventario por vigencia</h2><div style="height:220px"><canvas id="g-inventario"></canvas></div></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Entregas por estado</h2><div style="height:220px"><canvas id="g-entregas"></canvas></div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Usuarios por rol y estado</h2>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>Rol</th><th>Activo</th><th>Inactivo</th><th>Bloqueado</th></tr></thead>
+      <tbody>{% for rol, c in usuarios_rol.items %}<tr><td>{{ rol }}</td>{% for n in c.values %}<td>{{ n }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Entrega prioritaria: próximos a vencer</h2>
+    <ul class="list-group list-group-flush small">
+      {% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'inventario:detalle' i.pk %}">{{ i.inv_nom }}</a><span>{{ i.inv_cant_disp }} {{ i.inv_unidad }} · vence {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>
+      {% empty %}<li class="list-group-item text-muted">No hay productos próximos a vencer.</li>{% endfor %}
+    </ul>
+  </div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% include "reportes/_chart.html" %}
+{{ g_donaciones|json_script:"d-donaciones" }}{{ g_inventario|json_script:"d-inventario" }}{{ g_entregas|json_script:"d-entregas" }}
+<script>
+function sfDatos(id) { return JSON.parse(JSON.parse(document.getElementById(id).textContent)); }
+sfGrafico("g-donaciones", "bar", sfDatos("d-donaciones"));
+sfGrafico("g-inventario", "doughnut", sfDatos("d-inventario"));
+sfGrafico("g-entregas", "bar", sfDatos("d-entregas"));
+</script>
+{% endblock %}

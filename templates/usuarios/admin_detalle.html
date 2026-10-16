@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}{{ objeto }}{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">{{ objeto.nombre_completo }} <small class="text-muted fs-6">{{ objeto.get_usu_rol_display }}</small></h1>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'usuarios:editar' objeto.pk %}">Editar</a>
+    {% if objeto.usu_estado != 'activo' %}
+    <form method="post" action="{% url 'usuarios:cambiar_estado' objeto.pk %}">{% csrf_token %}<input type="hidden" name="estado" value="activo"><button class="btn btn-success">{% if objeto.usu_estado == 'bloqueado' %}Desbloquear{% else %}Activar{% endif %}</button></form>
+    {% elif objeto.pk != user.pk %}
+    <form method="post" action="{% url 'usuarios:cambiar_estado' objeto.pk %}" data-confirmar="¿Desactivar esta cuenta?">{% csrf_token %}<input type="hidden" name="estado" value="inactivo"><button class="btn btn-outline-warning">Desactivar</button></form>
+    {% endif %}
+    {% if objeto.pk != user.pk %}
+    <form method="post" action="{% url 'usuarios:eliminar' objeto.pk %}" data-confirmar="Si el usuario tiene registros asociados se desactivará en lugar de eliminarse. ¿Continuar?">{% csrf_token %}<button class="btn btn-outline-danger">Eliminar</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-sysfood">Cuenta</h2>
+      <dl class="row small mb-0">
+        <dt class="col-5">Correo</dt><dd class="col-7">{{ objeto.usu_correo }}</dd>
+        <dt class="col-5">Teléfono</dt><dd class="col-7">{{ objeto.usu_tel }}</dd>
+        <dt class="col-5">Estado</dt><dd class="col-7">{% include "parciales/estado.html" with valor=objeto.usu_estado texto=objeto.get_usu_estado_display %}{% if objeto.usu_bloqueo_hasta %} hasta {{ objeto.usu_bloqueo_hasta|date:"d/m/Y h:i a" }}{% endif %}</dd>
+        <dt class="col-5">Intentos fallidos</dt><dd class="col-7">{{ objeto.usu_intentos }}</dd>
+        <dt class="col-5">Último acceso</dt><dd class="col-7">{{ objeto.last_login|date:"d/m/Y h:i a"|default:"—" }}</dd>
+        <dt class="col-5">Registro</dt><dd class="col-7">{{ objeto.usu_fec_reg|date:"d/m/Y" }}</dd>
+        <dt class="col-5">Política de datos</dt><dd class="col-7">{% if objeto.usu_acepta_datos %}Aceptada el {{ objeto.usu_fec_acepta|date:"d/m/Y" }}{% else %}No{% endif %}</dd>
+      </dl>
+      {% if objeto.es_donante %}
+      <h2 class="h6 text-sysfood mt-3">Donante</h2>
+      {% with p=objeto.perfil_donante %}
+      <dl class="row small mb-0">
+        <dt class="col-5">Tipo de persona</dt><dd class="col-7">{{ p.get_don_tipo_persona_display }}</dd>
+        <dt class="col-5">Documento</dt><dd class="col-7">{{ p.don_tipo_doc }} {{ p.don_doc_nit }}</dd>
+        {% if p.don_raz_soc %}<dt class="col-5">Razón social</dt><dd class="col-7">{{ p.don_raz_soc }}</dd>{% endif %}
+        <dt class="col-5">Contacto</dt><dd class="col-7">{{ p.don_contacto|default:"—" }}</dd>
+        <dt class="col-5">Dirección</dt><dd class="col-7">{{ p.don_dir }}</dd>
+        <dt class="col-5">Frecuencia</dt><dd class="col-7">{{ p.get_don_frecuencia_display|default:"—" }}</dd>
+        <dt class="col-5">Anónimo por defecto</dt><dd class="col-7">{{ p.don_anonimo_def|yesno:"Sí,No" }}</dd>
+      </dl>
+      {% endwith %}
+      {% elif objeto.es_beneficiario %}
+      <h2 class="h6 text-sysfood mt-3">Beneficiario</h2>
+      {% with p=objeto.perfil_beneficiario %}
+      <dl class="row small mb-0">
+        <dt class="col-5">Documento</dt><dd class="col-7">{{ p.ben_tipo_doc }} {{ p.ben_num_doc }} (exp. {{ p.ben_fec_exp_doc|date:"d/m/Y" }})</dd>
+        <dt class="col-5">Dirección</dt><dd class="col-7">{{ p.ben_dir }}</dd>
+        <dt class="col-5">Personas en el hogar</dt><dd class="col-7">{{ p.ben_num_personas }}</dd>
+        <dt class="col-5">Sisbén / Estrato</dt><dd class="col-7">{{ p.get_ben_sisben_display }} / {{ p.ben_estrato }}</dd>
+        <dt class="col-5">Discapacidad</dt><dd class="col-7">{{ p.ben_discapacidad|yesno:"Sí,No" }}</dd>
+        <dt class="col-5">Verificación</dt><dd class="col-7">{% include "parciales/estado.html" with valor=p.ben_estado_verif texto=p.get_ben_estado_verif_display %} {{ p.ben_fec_verif|date:"d/m/Y" }}</dd>
+      </dl>
+      {% endwith %}
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    {% if resumen %}
+    <h2 class="h5">Documentos de validación</h2>
+    <ul class="list-inline small">
+      {% for r in resumen %}<li class="list-inline-item">{{ r.nombre }}{% if r.obligatorio %}*{% endif %}: {% if r.doc %}{% include "parciales/estado.html" with valor=r.doc.docv_estado texto=r.doc.get_docv_estado_display %}{% else %}<span class="badge bg-light text-dark border">Sin cargar</span>{% endif %}</li>{% endfor %}
+    </ul>
+    {% for d in documentos %}{% include "usuarios/_revision_doc.html" %}{% empty %}<p class="text-muted">Aún no ha cargado documentos.</p>{% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

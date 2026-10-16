@@ -1,0 +1,10 @@
+<div class="row">
+  {% if form.usu_rol and not form.usu_rol.is_hidden %}{% if form.usu_rol.field.widget.input_type == 'radio' %}<div class="col-12">{% else %}<div class="col-md-6">{% endif %}{% with campo=form.usu_rol %}{% include "parciales/campo.html" %}{% endwith %}</div>{% endif %}
+  {% if form.usu_estado %}<div class="col-md-6">{% with campo=form.usu_estado %}{% include "parciales/campo.html" %}{% endwith %}</div>{% endif %}
+  <div class="col-md-6">{% with campo=form.usu_nom %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=form.usu_ape %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=form.usu_correo %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=form.usu_tel %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=form.password1 %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=form.password2 %}{% include "parciales/campo.html" %}{% endwith %}</div>
+</div>

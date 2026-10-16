@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-lg-9">
+<div class="card shadow-sm"><div class="card-body p-4">
+  <h1 class="h4">{{ titulo }}</h1>
+  <form method="post" novalidate>{% csrf_token %}
+    {% for e in form.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+    {% include "usuarios/_cuenta.html" %}
+    <div class="seccion-rol" data-rol="donante"><h2 class="h6 text-sysfood border-bottom pb-1">Datos del donante</h2>{% include "usuarios/_perfil_donante.html" %}</div>
+    <div class="seccion-rol" data-rol="beneficiario"><h2 class="h6 text-sysfood border-bottom pb-1">Datos del beneficiario</h2>{% include "usuarios/_perfil_beneficiario.html" %}</div>
+    <button class="btn btn-sysfood">Guardar</button>
+    <a class="btn btn-link" href="{% if objeto %}{% url 'usuarios:revisar_usuario' objeto.pk %}{% else %}{% url 'usuarios:lista' %}{% endif %}">Cancelar</a>
+  </form>
+</div></div>
+</div></div>
+{% endblock %}

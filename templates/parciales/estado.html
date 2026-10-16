@@ -1,0 +1,6 @@
+{% spaceless %}
+{% if valor in 'disponible,activo,activa,aprobado,aprobada,verificado,entregado,entregada,vigente' %}<span class="badge bg-success">{{ texto }}</span>
+{% elif valor in 'pendiente,cargado,en_revision,reservada,reservado,en_bodega,en_entrega,proximo' %}<span class="badge bg-warning text-dark">{{ texto }}</span>
+{% elif valor in 'rechazado,rechazada,vencido,vencida,bloqueado,cancelado,cancelada' %}<span class="badge bg-danger">{{ texto }}</span>
+{% else %}<span class="badge bg-secondary">{{ texto }}</span>{% endif %}
+{% endspaceless %}

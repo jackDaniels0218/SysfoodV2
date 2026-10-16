@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Categorías{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Categorías de producto</h1>
+  <a class="btn btn-sysfood" href="{% url 'catalogo:categoria_nueva' %}"><i class="bi bi-plus"></i> Nueva categoría</a>
+</div>
+<form class="row g-2 mb-3"><div class="col-8 col-md-5"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Buscar"></div>
+<div class="col-4 col-md-2"><select class="form-select" name="estado"><option value="">Estado</option><option value="activa" {% if request.GET.estado == 'activa' %}selected{% endif %}>Activa</option><option value="inactiva" {% if request.GET.estado == 'inactiva' %}selected{% endif %}>Inactiva</option></select></div>
+<div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div></form>
+<div class="table-responsive"><table class="table table-hover bg-white">
+<thead><tr><th>Nombre</th><th>Descripción</th><th>Perecedero</th><th>Días de alerta</th><th>Productos</th><th>Estado</th><th></th></tr></thead>
+<tbody>
+{% for c in lista %}
+<tr>
+  <td>{{ c.cat_nom }}</td><td class="small">{{ c.cat_desc }}</td><td>{{ c.cat_perecedero|yesno:"Sí,No" }}</td>
+  <td>{% if c.cat_dias_alerta %}{{ c.cat_dias_alerta }}{% else %}<span class="text-muted">General ({{ c.dias_alerta }})</span>{% endif %}</td>
+  <td>{{ c.productos }}</td>
+  <td>{% include "parciales/estado.html" with valor=c.cat_estado texto=c.get_cat_estado_display %}</td>
+  <td class="text-nowrap">
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'catalogo:categoria_editar' c.pk %}">Editar</a>
+    <form class="d-inline" method="post" action="{% url 'catalogo:categoria_eliminar' c.pk %}" data-confirmar="Si la categoría tiene productos se inactivará. ¿Continuar?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
+  </td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-muted">No hay categorías.</td></tr>{% endfor %}
+</tbody></table></div>
+<p class="small text-muted">Las unidades de medida se administran en <a href="{% url 'core:parametros' %}">Parámetros</a>.</p>
+{% endblock %}

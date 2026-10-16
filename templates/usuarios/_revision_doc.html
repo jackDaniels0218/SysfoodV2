@@ -1,0 +1,22 @@
+<div class="border rounded p-3 mb-3 bg-white">
+  <div class="d-flex flex-wrap justify-content-between gap-2">
+    <div>
+      <strong>{{ d.get_docv_tipo_display }}</strong> {% include "parciales/estado.html" with valor=d.docv_estado texto=d.get_docv_estado_display %}
+      <div class="small text-muted">{{ d.docv_nom_archivo }} · {{ d.docv_mime }} · {{ d.docv_tam_bytes|filesizeformat }} · cargado {{ d.docv_fec_carga|date:"d/m/Y H:i" }}{% if d.docv_fec_venc %} · vence {{ d.docv_fec_venc|date:"d/m/Y" }}{% endif %}</div>
+      <div class="small text-muted">SHA-256: <code>{{ d.docv_hash|truncatechars:20 }}</code></div>
+      {% if d.revisor %}<div class="small">Revisado por {{ d.revisor }} el {{ d.docv_fec_revision|date:"d/m/Y H:i" }}{% if d.docv_obs %}: {{ d.docv_obs }}{% endif %}</div>{% endif %}
+    </div>
+    <a class="btn btn-sm btn-outline-secondary align-self-start" href="{% url 'usuarios:ver_documento' d.pk %}" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Abrir</a>
+  </div>
+  {% if d.es_imagen %}<img class="doc-preview mt-2" src="{% url 'usuarios:ver_documento' d.pk %}" alt="Vista previa">{% else %}<iframe class="doc-preview mt-2" style="height:420px" src="{% url 'usuarios:ver_documento' d.pk %}" title="Vista previa"></iframe>{% endif %}
+  {% if d.docv_estado == 'cargado' or d.docv_estado == 'rechazado' %}
+  <form class="row g-2 mt-2" method="post" action="{% url 'usuarios:revisar_documento' d.pk %}">{% csrf_token %}
+    {% if siguiente %}<input type="hidden" name="siguiente" value="{{ siguiente }}">{% endif %}
+    <div class="col-md-8"><input class="form-control form-control-sm" name="observacion" placeholder="Observación (obligatoria al rechazar)"></div>
+    <div class="col-md-4 d-flex gap-2">
+      <button class="btn btn-sm btn-success flex-fill" name="decision" value="aprobar">Aprobar</button>
+      <button class="btn btn-sm btn-danger flex-fill" name="decision" value="rechazar">Rechazar</button>
+    </div>
+  </form>
+  {% endif %}
+</div>

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Parámetros{% endblock %}
+{% block contenido %}
+<h1 class="h3">Parámetros del sistema</h1>
+<p class="text-muted">Los parámetros no se crean ni se eliminan. Todo cambio queda en la bitácora de auditoría.</p>
+<div class="table-responsive"><table class="table table-hover bg-white">
+<thead><tr><th>Clave</th><th>Valor</th><th>Descripción</th><th>Modificado</th><th></th></tr></thead>
+<tbody>
+{% for p in lista %}
+<tr>
+  <td><code>{{ p.par_clave }}</code></td>
+  <td class="text-break">{{ p.par_valor|default:"—" }}</td>
+  <td class="small">{{ p.par_desc }}</td>
+  <td class="small text-muted">{{ p.par_fec_mod|date:"d/m/Y h:i a" }}{% if p.usuario_mod %}<br>{{ p.usuario_mod }}{% endif %}</td>
+  <td><a class="btn btn-sm btn-outline-primary" href="{% url 'core:parametro_editar' p.pk %}">Editar</a></td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% endblock %}

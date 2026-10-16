@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Mis datos{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-lg-9">
+<div class="card shadow-sm"><div class="card-body p-4">
+  <h1 class="h4">Mis datos <small class="text-muted fs-6">({{ user.get_usu_rol_display }})</small></h1>
+  {% if user.es_beneficiario %}
+  <p>Estado de verificación: {% include "parciales/estado.html" with valor=user.perfil_beneficiario.ben_estado_verif texto=user.perfil_beneficiario.get_ben_estado_verif_display %}</p>
+  {% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    {% for e in form.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+    {% include "usuarios/_cuenta.html" %}
+    {% if user.es_donante %}<h2 class="h6 text-sysfood border-bottom pb-1">Datos del donante</h2>{% include "usuarios/_perfil_donante.html" %}{% endif %}
+    {% if user.es_beneficiario %}<h2 class="h6 text-sysfood border-bottom pb-1">Datos del beneficiario</h2>{% include "usuarios/_perfil_beneficiario.html" %}{% endif %}
+    <button class="btn btn-sysfood">Guardar cambios</button>
+  </form>
+  <p class="small text-muted mt-3 mb-0">Aceptó la política de tratamiento de datos el {{ user.usu_fec_acepta|date:"d/m/Y" }}. Último acceso: {{ user.last_login|date:"d/m/Y h:i a"|default:"—" }}.</p>
+</div></div>
+</div></div>
+{% endblock %}

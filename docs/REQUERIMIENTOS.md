@@ -1,0 +1,28 @@
+# Trazabilidad de requerimientos
+
+Dónde quedó implementado cada uno de los 22 requerimientos y qué prueba automática lo verifica.
+
+| # | Requerimiento | Implementación | Pruebas |
+| --- | --- | --- | --- |
+| 1 | CRUD Usuarios | `usuarios/models.py` (`Usuario`, `PerfilDonante`, `PerfilBeneficiario`), `usuarios/views.py` (registro, perfil, administración). Baja lógica: si tiene registros, se desactiva. Rol fijo (sin CRUD de roles). | `usuarios/tests/test_acceso.py`, `test_admin_usuarios.py` |
+| 2 | CRUD Documentos de validación | `DocumentoValidacion`, `usuarios/servicios.py`: valida formato real (firma del archivo), tamaño y duplicado por SHA-256. Flujo pendiente → en revisión → verificado/rechazado. Cámara del dispositivo. | `usuarios/tests/test_documentos.py` |
+| 3 | CRUD Categorías | `catalogo/` · días de alerta propios o generales · se inactiva si tiene productos | `catalogo/tests/test_catalogo.py` |
+| 4 | CRUD Bodegas | `catalogo/` · responsable · se inactiva si tiene inventario | `catalogo/tests/test_catalogo.py` |
+| 5 | CRUD Donaciones | `donaciones/`: un formulario con encabezado y varios productos (formset). Ingreso automático al inventario. Edición o cancelación solo si no está reservada ni entregada. Anonimato, con consulta de identidad solo por el administrador (auditada). | `donaciones/tests/test_donaciones.py` |
+| 6 | CRUD Inventario | `inventario/`: lista con filtros, búsqueda y orden por vencimiento; ajuste con motivo (kardex); baja lógica con motivo; no se retira con entregas pendientes; cantidades nunca negativas (validación y restricción `CHECK` en la base de datos). | `inventario/tests/test_inventario.py` |
+| 7 | CRUD Solicitudes | `solicitudes/`: aprobar (reserva y genera entrega «en revisión»), rechazar o cancelar (motivo obligatorio, libera lo reservado). Todo o nada. | `solicitudes/tests/test_solicitudes.py` |
+| 8 | CRUD Entregas | `entregas/`: código único `SF-XXXXXXXX`, modalidad, transiciones En revisión → En bodega → En entrega → Entregado, o Cancelado. Al entregar se descuenta; lo no entregado vuelve al inventario. | `entregas/tests/test_entregas.py` |
+| 9 | CRUD Parámetros | `core/parametros.py`, `core/views.py`: no se crean ni eliminan; se validan por tipo; cada cambio queda en la bitácora. | `core/tests/test_core.py::ParametrosTests` |
+| 10 | Acceso y autenticación | Registro con política de datos, contraseña confirmada y robusta, sesión con cookie HttpOnly, bloqueo temporal tras N intentos, recuperación con token de un solo uso (se guarda solo su huella SHA-256) y control por rol en el servidor. | `usuarios/tests/test_acceso.py` |
+| 11 | Catálogo, carrito y solicitud | Catálogo solo vigente y disponible; carrito temporal con máximo de 5 productos distintos (parámetro); al enviar se vacía y se notifica al administrador. | `solicitudes/tests/test_solicitudes.py` |
+| 12 | Control de vencimientos | `inventario/servicios.py::controlar_vencimientos`, `core/tareas.py`. Se ejecuta automáticamente una vez al día (middleware) y con `manage.py actualizar_vencimientos`. Colores, prioridad, notificaciones, carrito depurado y donación «vencida». | `inventario/tests/test_inventario.py::ControlVencimientosTests` |
+| 13 | Notificaciones | `core/models.py::Notificacion`, `core/servicios.py`: internas y por correo (SMTP), lista, marcar como leída. | `core/tests/test_core.py::NotificacionesTests` y en cada flujo |
+| 14 | Trazabilidad y auditoría | `Kardex`, `HistorialEntrega` y `Bitacora` son de solo inserción (no se editan ni borran); consulta con filtros por fecha, usuario y registro; la bitácora guarda la IP. | `TrazabilidadTests`, `test_kardex_es_inmutable`, `test_historial_inmutable` |
+| 15 | Dashboard y reportes | `reportes/`: panel por rol; 5 reportes con filtros por fechas, estado, categoría, donante y bodega; gráficos (Chart.js); exportación a PDF (ReportLab) y Excel (openpyxl, con gráfico). Los anónimos nunca se revelan en reportes. | `core/tests/test_core.py::ReportesTests`, `AnonimatoTests` |
+| 16 | Rendimiento | Índices en estados y fechas, paginación, `select_related`. Prueba de carga con 100 usuarios concurrentes: 0 errores, p95 de 1,3 s. | `RendimientoTests` (≤ 2 s por página y carga de 5 MB en < 5 s) |
+| 17 | Seguridad | PBKDF2 con sal, cookie HttpOnly, CSRF, bloqueo por intentos, tokens de un solo uso, control de acceso en cada vista, HTTPS con `DJANGO_HTTPS=1` (redirección, cookies seguras, HSTS). | `SeguridadTests`, `ControlPorRolTests` |
+| 18 | Protección de datos | Aceptación obligatoria (Ley 1581 de 2012), página de política, documentos en carpeta no pública servidos solo al titular y al administrador, anonimato. | `test_aceptar_politica_es_obligatorio`, `test_solo_titular_y_administrador_ven_el_documento` |
+| 19 | Trazabilidad e integridad | Baja lógica, registros inmutables, restricciones `CHECK` y validaciones contra negativos y sobre-reservas, operaciones atómicas (`transaction.atomic` con `select_for_update`). | `test_aprobacion_es_todo_o_nada`, `test_cantidad_nunca_negativa` |
+| 20 | Usabilidad | Bootstrap 5 responsivo, menús por rol, flujos guiados, mensajes claros, todo en español. Probado en escritorio y celular. | `SeguridadTests::test_interfaz_en_espanol` y prueba en navegador |
+| 21 | Tecnología | Python + Django 5.2 + ORM, MySQL 8 (PyMySQL), HTML/CSS/Bootstrap 5, SMTP, cámara del dispositivo (`capture="environment"`). | Toda la suite se ejecuta sobre MySQL 8 |
+| 22 | Mantenibilidad y respaldo | Aplicaciones modulares; Windows, Linux y macOS; `manage.py respaldo` y `restaurar` (datos y documentos). | `RespaldoTests` (respalda, daña los datos y restaura) |

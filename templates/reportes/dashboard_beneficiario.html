@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Mi panel{% endblock %}
+{% block contenido %}
+<h1 class="h3">Hola, {{ user.usu_nom }}</h1>
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card tarjeta-indicador h-100"><div class="card-body">
+    <div class="small text-muted">Estado de verificación</div>
+    <div class="fs-5 fw-bold">{% include "parciales/estado.html" with valor=perfil.ben_estado_verif texto=perfil.get_ben_estado_verif_display %}</div>
+    {% if not perfil.verificado %}<a class="btn btn-sm btn-sysfood mt-2" href="{% url 'usuarios:documentos' %}">Gestionar mis documentos</a>{% endif %}
+  </div></div></div>
+  <div class="col-md-4"><div class="card tarjeta-indicador h-100"><div class="card-body">
+    <div class="numero">{% if disponibles is not None %}{{ disponibles }}{% else %}—{% endif %}</div>
+    <div class="small text-muted">Productos disponibles</div>
+    {% if perfil.verificado %}<a class="btn btn-sm btn-sysfood mt-2" href="{% url 'solicitudes:catalogo' %}">Ver catálogo</a>{% else %}<div class="small">Disponible cuando su cuenta esté verificada.</div>{% endif %}
+  </div></div></div>
+  <div class="col-md-4"><div class="card tarjeta-indicador h-100"><div class="card-body">
+    <div class="small text-muted mb-1">Mis solicitudes</div>
+    {% for e, n in solicitudes.items %}<span class="badge bg-light text-dark border me-1">{{ e }}: {{ n }}</span>{% endfor %}
+  </div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Mis entregas</h2>
+    <ul class="list-group list-group-flush small">{% for e in entregas %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'entregas:seguimiento' %}?codigo={{ e.ent_cod }}"><code>{{ e.ent_cod }}</code></a><span>{{ e.get_ent_estado_display }}</span></li>{% empty %}<li class="list-group-item text-muted">Aún no tiene entregas.</li>{% endfor %}</ul>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Solicitudes recientes</h2>
+    <ul class="list-group list-group-flush small">{% for s in recientes %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'solicitudes:detalle' s.pk %}">#{{ s.pk }} · {{ s.sol_fec_envio|date:"d/m/Y" }}</a><span>{{ s.get_sol_estado_display }}</span></li>{% empty %}<li class="list-group-item text-muted">Ninguna.</li>{% endfor %}</ul>
+  </div></div></div>
+</div>
+{% endblock %}

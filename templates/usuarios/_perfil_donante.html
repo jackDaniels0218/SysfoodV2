@@ -1,0 +1,11 @@
+{% for e in don.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+<div class="row">
+  <div class="col-md-6">{% with campo=don.don_tipo_persona %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=don.don_tipo_doc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=don.don_doc_nit %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6 solo-juridica">{% with campo=don.don_raz_soc %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=don.don_contacto %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=don.don_dir %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6">{% with campo=don.don_frecuencia %}{% include "parciales/campo.html" %}{% endwith %}</div>
+  <div class="col-md-6 pt-md-4">{% with campo=don.don_anonimo_def %}{% include "parciales/campo.html" %}{% endwith %}</div>
+</div>

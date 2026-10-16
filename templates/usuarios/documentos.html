@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}Mis documentos{% endblock %}
+{% block contenido %}
+<h1 class="h3">Documentos de validación</h1>
+{% if perfil %}
+<div class="alert {% if perfil.ben_estado_verif == 'verificado' %}alert-success{% elif perfil.ben_estado_verif == 'rechazado' %}alert-danger{% elif perfil.ben_estado_verif == 'en_revision' %}alert-warning{% else %}alert-info{% endif %}">
+  Estado de su cuenta: <strong>{{ perfil.get_ben_estado_verif_display }}</strong>.
+  {% if perfil.ben_estado_verif == 'pendiente' %}Cargue todos los documentos obligatorios para que el administrador los revise.
+  {% elif perfil.ben_estado_verif == 'en_revision' %}El administrador está revisando sus documentos. Le avisaremos por correo y en Notificaciones.
+  {% elif perfil.ben_estado_verif == 'rechazado' %}Uno o más documentos fueron rechazados. Revise la observación y vuelva a cargarlos.
+  {% else %}Ya puede <a href="{% url 'solicitudes:catalogo' %}" class="alert-link">consultar el catálogo</a> y enviar solicitudes.{% endif %}
+</div>
+{% endif %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="table-responsive"><table class="table bg-white align-middle">
+      <thead><tr><th>Documento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for r in resumen %}
+      <tr>
+        <td>{{ r.nombre }}{% if r.obligatorio %} <span class="text-danger" title="Obligatorio">*</span>{% endif %}
+          {% if r.doc %}<div class="small text-muted">{{ r.doc.docv_nom_archivo }} · {{ r.doc.docv_tam_bytes|filesizeformat }} · {{ r.doc.docv_fec_carga|date:"d/m/Y" }}</div>{% endif %}
+          {% if r.doc.docv_obs %}<div class="small text-danger">Observación: {{ r.doc.docv_obs }}</div>{% endif %}
+        </td>
+        <td>{% if r.doc %}{% include "parciales/estado.html" with valor=r.doc.docv_estado texto=r.doc.get_docv_estado_display %}{% else %}<span class="badge bg-light text-dark border">Sin cargar</span>{% endif %}</td>
+        <td class="text-nowrap">
+          {% if r.doc %}
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'usuarios:ver_documento' r.doc.pk %}" target="_blank">Ver</a>
+            {% if r.doc.docv_estado != 'aprobado' %}
+            <a class="btn btn-sm btn-outline-primary" href="?tipo={{ r.tipo }}#cargar">Reemplazar</a>
+            <form class="d-inline" method="post" action="{% url 'usuarios:eliminar_documento' r.doc.pk %}" data-confirmar="¿Eliminar este documento?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
+            {% endif %}
+          {% else %}
+            <a class="btn btn-sm btn-sysfood" href="?tipo={{ r.tipo }}#cargar">Cargar</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small text-muted"><span class="text-danger">*</span> Obligatorio. Los documentos solo los ven usted y el administrador.</p>
+  </div>
+  <div class="col-lg-5" id="cargar">
+    <div class="card shadow-sm"><div class="card-body">
+      <h2 class="h5">Cargar o reemplazar un documento</h2>
+      <p class="small text-muted">Formatos: {{ formatos }}. Tamaño máximo: {{ max_mb }} MB.</p>
+      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+        {% for e in form.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+        {% with campo=form.docv_tipo %}{% include "parciales/campo.html" %}{% endwith %}
+        {% with campo=form.archivo %}{% include "parciales/campo.html" %}{% endwith %}
+        <div class="mb-3">
+          <label class="btn btn-outline-secondary btn-sm" for="archivo-camara"><i class="bi bi-camera"></i> Tomar foto con la cámara</label>
+          <input class="d-none" type="file" id="archivo-camara" accept="image/*" capture="environment">
+          <span class="small text-muted ms-1" id="aviso-camara">Disponible en celulares y tabletas.</span>
+        </div>
+        {% with campo=form.docv_fec_venc %}{% include "parciales/campo.html" %}{% endwith %}
+        <button class="btn btn-sysfood w-100">Cargar documento</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

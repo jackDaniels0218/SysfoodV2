@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}Donación #{{ d.pk }}{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Donación #{{ d.pk }} {% include "parciales/estado.html" with valor=d.dona_estado texto=d.get_dona_estado_display %}</h1>
+  <div class="d-flex gap-2">
+    {% if d.editable %}<a class="btn btn-outline-primary" href="{% url 'donaciones:editar' d.pk %}">Editar</a>{% endif %}
+    {% if d.dona_estado == 'disponible' or d.dona_estado == 'vencida' %}{% if not d.tiene_movimientos_de_salida %}
+    <button class="btn btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#cancelar">Cancelar donación</button>
+    {% endif %}{% endif %}
+  </div>
+</div>
+<div class="collapse mb-3" id="cancelar"><div class="card card-body border-danger">
+  <form method="post" action="{% url 'donaciones:cancelar' d.pk %}" class="row g-2" data-confirmar="Los productos se retirarán del inventario. ¿Cancelar la donación?">{% csrf_token %}
+    <div class="col-md-9">{{ cancelar_form.motivo }}</div>
+    <div class="col-md-3"><button class="btn btn-danger w-100">Confirmar cancelación</button></div>
+  </form>
+</div></div>
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <dl class="row mb-0 small">
+      <dt class="col-5">Donante</dt>
+      <dd class="col-7">
+        {% if revelar %}{{ nombre_donante }}{% if d.dona_anonima %} <span class="badge bg-secondary">Anónima</span>{% endif %}
+          {% if user.es_admin %}<div class="text-muted">{{ d.donante.usu_correo }} · {{ d.donante.usu_tel }}</div>{% endif %}
+        {% else %}
+          <i class="bi bi-incognito"></i> Donante anónimo
+          {% if user.es_admin %}
+          <form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="accion" value="revelar"><button class="btn btn-sm btn-outline-secondary ms-2" title="La consulta queda registrada en la bitácora">Ver identidad</button></form>
+          {% endif %}
+        {% endif %}
+      </dd>
+      <dt class="col-5">Registro</dt><dd class="col-7">{{ d.dona_fec_reg|date:"d/m/Y h:i a" }}</dd>
+      <dt class="col-5">Última modificación</dt><dd class="col-7">{{ d.dona_fec_mod|date:"d/m/Y h:i a" }}</dd>
+      <dt class="col-5">Observaciones</dt><dd class="col-7">{{ d.dona_obs|linebreaksbr|default:"—" }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body small">
+    {% if d.editable %}<p class="mb-1"><i class="bi bi-pencil text-success"></i> Puede editar o cancelar esta donación mientras no tenga reservas ni entregas.</p>
+    {% else %}<p class="mb-1"><i class="bi bi-lock text-secondary"></i> La donación ya no puede editarse.</p>{% endif %}
+    <p class="mb-0">Recibirá notificaciones cuando sus productos se reserven, cambie el estado de la entrega o se acerque su vencimiento. Nunca verá datos de los beneficiarios.</p>
+  </div></div></div>
+</div>
+<h2 class="h5">Productos</h2>
+<div class="table-responsive"><table class="table bg-white">
+<thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad</th><th>Vence</th><th>Lote</th><th>Estado</th><th>Inventario</th></tr></thead>
+<tbody>
+{% for p in detalles %}
+<tr>
+  <td>{{ p.dd_nom }}{% if p.dd_desc %}<div class="small text-muted">{{ p.dd_desc }}</div>{% endif %}</td>
+  <td>{{ p.categoria }}</td><td>{{ p.dd_cantidad }} {{ p.dd_unidad }}</td><td>{{ p.dd_fec_venc|date:"d/m/Y" }}</td><td>{{ p.dd_lote|default:"—" }}</td>
+  <td>{{ p.get_dd_estado_display }}</td>
+  <td class="small">{% with i=p.inventario %}{% if i %}
+    {% if user.es_admin %}<a href="{% url 'inventario:detalle' i.pk %}">#{{ i.pk }}</a> · {% endif %}
+    Disp. {{ i.inv_cant_disp }} · Res. {{ i.inv_cant_reserv }}
+    <span class="badge vigencia-{{ i.inv_est_venc }}">{{ i.get_inv_est_venc_display }}</span>
+    <div>{{ i.get_inv_estado_display }} · {{ i.bodega }}</div>
+  {% endif %}{% endwith %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% endblock %}
