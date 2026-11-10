@@ -1,22 +1,65 @@
-<div class="border rounded p-3 mb-3 bg-white">
+{% load sysfood %}
+<div class="card mb-3 sf-revision {% if d.semaforo %}sf-borde-{{ d.semaforo }}{% endif %}">
+  <div class="card-body">
   <div class="d-flex flex-wrap justify-content-between gap-2">
     <div>
       <strong>{{ d.get_docv_tipo_display }}</strong> {% include "parciales/estado.html" with valor=d.docv_estado texto=d.get_docv_estado_display %}
+      {% if d.docv_verif_auto %}<span class="badge bg-light text-dark border"><i class="bi bi-robot" aria-hidden="true"></i> Decisión automática</span>{% endif %}
       <div class="small text-muted">{{ d.docv_nom_archivo }} · {{ d.docv_mime }} · {{ d.docv_tam_bytes|filesizeformat }} · cargado {{ d.docv_fec_carga|date:"d/m/Y H:i" }}{% if d.docv_fec_venc %} · vence {{ d.docv_fec_venc|date:"d/m/Y" }}{% endif %}</div>
       <div class="small text-muted">SHA-256: <code>{{ d.docv_hash|truncatechars:20 }}</code></div>
-      {% if d.revisor %}<div class="small">Revisado por {{ d.revisor }} el {{ d.docv_fec_revision|date:"d/m/Y H:i" }}{% if d.docv_obs %}: {{ d.docv_obs }}{% endif %}</div>{% endif %}
+      {% if d.revisor %}<div class="small">Revisado por {{ d.revisor }} el {{ d.docv_fec_revision|date:"d/m/Y H:i" }}{% if d.docv_obs %}: {{ d.docv_obs }}{% endif %}</div>
+      {% elif d.docv_verif_auto %}<div class="small">Resuelto por el sistema el {{ d.docv_fec_revision|date:"d/m/Y H:i" }}: {{ d.docv_obs }}</div>{% endif %}
     </div>
-    <a class="btn btn-sm btn-outline-secondary align-self-start" href="{% url 'usuarios:ver_documento' d.pk %}" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Abrir</a>
+    <a class="btn btn-sm btn-outline-secondary align-self-start" href="{% url 'usuarios:ver_documento' d.pk %}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Abrir</a>
   </div>
-  {% if d.es_imagen %}<img class="doc-preview mt-2" src="{% url 'usuarios:ver_documento' d.pk %}" alt="Vista previa">{% else %}<iframe class="doc-preview mt-2" style="height:420px" src="{% url 'usuarios:ver_documento' d.pk %}" title="Vista previa"></iframe>{% endif %}
-  {% if d.docv_estado == 'cargado' or d.docv_estado == 'rechazado' %}
-  <form class="row g-2 mt-2" method="post" action="{% url 'usuarios:revisar_documento' d.pk %}">{% csrf_token %}
-    {% if siguiente %}<input type="hidden" name="siguiente" value="{{ siguiente }}">{% endif %}
-    <div class="col-md-8"><input class="form-control form-control-sm" name="observacion" placeholder="Observación (obligatoria al rechazar)"></div>
-    <div class="col-md-4 d-flex gap-2">
-      <button class="btn btn-sm btn-success flex-fill" name="decision" value="aprobar">Aprobar</button>
-      <button class="btn btn-sm btn-danger flex-fill" name="decision" value="rechazar">Rechazar</button>
+  <div class="row g-3 mt-1">
+    <div class="col-lg-6">
+      {% if d.es_imagen %}<img class="doc-preview" src="{% url 'usuarios:ver_documento' d.pk %}" alt="Vista previa de {{ d.get_docv_tipo_display|lower }}" loading="lazy">
+      {% else %}<iframe class="doc-preview" style="height:380px" src="{% url 'usuarios:ver_documento' d.pk %}" title="Vista previa de {{ d.get_docv_tipo_display|lower }}" loading="lazy"></iframe>{% endif %}
     </div>
-  </form>
-  {% endif %}
+    <div class="col-lg-6">
+      <h3 class="h6 d-flex align-items-center gap-2">Lo que el sistema leyó
+        {% if d.semaforo %}<span class="sf-semaforo sf-semaforo-{{ d.semaforo }}" role="img" aria-label="Semáforo {{ d.semaforo }}"></span>{% endif %}
+      </h3>
+      {% if d.docv_ocr_estado == "procesado" %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="progress flex-grow-1" role="progressbar" aria-label="Confianza" aria-valuenow="{{ d.docv_ocr_confianza|porcentaje:100 }}" aria-valuemin="0" aria-valuemax="100" style="height:.6rem">
+            <div class="progress-bar sf-conf-{{ d.semaforo }}" style="width:{{ d.docv_ocr_confianza|porcentaje:100 }}%"></div>
+          </div>
+          <strong class="small text-nowrap">{{ d.docv_ocr_confianza|numero }} %</strong>
+        </div>
+        <p class="small mb-2">{{ d.get_docv_decision_auto_display }} · umbrales: rechazo &lt; {{ d.docv_ocr_resultado.umbral_bajo }} %, pre-aprobación ≥ {{ d.docv_ocr_resultado.umbral_alto }} %.</p>
+        <div class="table-responsive"><table class="table table-sm small mb-2">
+          <thead><tr><th scope="col">Dato</th><th scope="col">Registrado</th><th scope="col">Leído</th><th scope="col"><span class="visually-hidden">Resultado</span></th></tr></thead>
+          <tbody>
+          {% for c in d.docv_ocr_resultado.campos %}
+          <tr class="{% if c.coincide < 1 %}sf-discrepancia{% endif %}">
+            <td>{{ c.etiqueta }}</td><td>{{ c.esperado }}</td><td>{{ c.leido|default:"—" }}</td>
+            <td class="text-nowrap">{% if c.coincide >= 1 %}<i class="bi bi-check-circle-fill text-success" aria-label="Coincide"></i>{% elif c.coincide > 0 %}<i class="bi bi-exclamation-triangle-fill text-warning" aria-label="Coincide parcialmente"></i> {{ c.coincide|porcentaje:1|numero }} %{% else %}<i class="bi bi-x-circle-fill text-danger" aria-label="No coincide"></i>{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% with q=d.docv_ocr_resultado.calidad %}{% if q %}<p class="small text-muted mb-2">Calidad: nitidez {{ q.nitidez }} (mínimo {{ q.nitidez_minima }}){% if q.ancho %} · {{ q.ancho }}×{{ q.alto }} px{% endif %} · legibilidad OCR {{ d.docv_ocr_resultado.confianza_ocr|numero }} %{% if q.problemas %} · <span class="text-danger">{{ q.problemas|join:"; " }}</span>{% endif %}</p>{% endif %}{% endwith %}
+        <details class="small"><summary>Texto leído completo</summary><pre class="sf-ocr-texto mt-2">{{ d.docv_ocr_texto|default:"(vacío)" }}</pre></details>
+      {% elif d.docv_ocr_estado == "pendiente" or d.docv_ocr_estado == "error" %}
+        <p class="small text-muted"><i class="bi bi-hourglass-split" aria-hidden="true"></i> {{ d.get_docv_ocr_estado_display }}. {{ d.docv_ocr_resultado.motivo }}</p>
+      {% elif d.docv_ocr_estado == "no_disponible" %}
+        <p class="small text-muted"><i class="bi bi-person-check" aria-hidden="true"></i> Revisión manual: la lectura automática no está disponible{% if d.docv_ocr_resultado.motivo %} ({{ d.docv_ocr_resultado.motivo }}){% endif %}.</p>
+      {% else %}
+        <p class="small text-muted"><i class="bi bi-person-check" aria-hidden="true"></i> Este documento se revisa manualmente.</p>
+      {% endif %}
+      {% if d.docv_estado == 'cargado' or d.docv_estado == 'rechazado' or d.docv_verif_auto and d.docv_estado == 'aprobado' %}
+      <form class="row g-2 mt-1" method="post" action="{% url 'usuarios:revisar_documento' d.pk %}">{% csrf_token %}
+        {% if siguiente %}<input type="hidden" name="siguiente" value="{{ siguiente }}">{% endif %}
+        <div class="col-12"><label class="visually-hidden" for="obs-{{ d.pk }}">Observación</label><input id="obs-{{ d.pk }}" class="form-control form-control-sm" name="observacion" placeholder="{% if d.discrepancias and d.docv_estado == 'cargado' %}Ej.: No coincide {% for c in d.discrepancias %}{{ c.etiqueta|lower }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Observación (obligatoria al rechazar){% endif %}"></div>
+        <div class="col-12 d-flex gap-2">
+          {% if d.docv_estado != 'aprobado' %}<button class="btn btn-sm btn-success flex-fill" name="decision" value="aprobar"><i class="bi bi-check-lg" aria-hidden="true"></i> Aprobar</button>{% endif %}
+          <button class="btn btn-sm btn-danger flex-fill" name="decision" value="rechazar"><i class="bi bi-x-lg" aria-hidden="true"></i> {% if d.docv_estado == 'aprobado' %}Revertir y rechazar{% else %}Rechazar{% endif %}</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  </div>
 </div>

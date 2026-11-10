@@ -107,7 +107,20 @@ Como `beneficiario@sysfood.local`:
 - [ ] Como donante o beneficiario, abra `/reportes/mapa/` → *Acceso denegado*.
 - [ ] Registre un beneficiario con una dirección real de Facatativá: en unos segundos (con internet) su ficha muestra «Ubicado automáticamente». Cambie la dirección por `xyz inexistente 000`: queda «Falló, se reintentará». Con `geo_max_intentos` en 1, la tarea horaria (o **Ejecutar ahora** en *Tareas automáticas*) lo pasa a «Requiere revisión» y llega un aviso. En la ficha, haga clic en el mapa y guarde: «Ubicado por el administrador».
 
-## 12. Pruebas automáticas
+## 12. Carga y verificación de documentos (mejora 3)
+
+Con `nuevo@sysfood.local` en *Documentos*:
+
+- [ ] Pulse **Cargar documento** sin archivo → «Elija un archivo o tome una foto antes de cargar».
+- [ ] Arrastre una imagen sobre la zona punteada: aparece la vista previa con el nombre y el peso. La **×** la quita.
+- [ ] Cargue una foto movida o desenfocada → al instante: «No pudimos aceptar la foto: la imagen está borrosa…».
+- [ ] Cargue una foto nítida: se ve la barra de progreso y luego el mensaje con la decisión. En el celular, **Tomar foto con la cámara** abre la cámara trasera y una foto de más de 5 MB se reduce sola.
+- [ ] **Sin Tesseract** (instalación local): el documento queda *Cargado* y el administrador lo revisa como siempre. En la cola dice «Revisión manual: la lectura automática no está disponible».
+- [ ] **Con Docker** (incluye Tesseract): cargue una foto clara de una cédula cuyos datos coincidan con el registro → *Aprobado* con «Aprobado automáticamente». Una cédula de otra persona o una foto de cualquier otra cosa → *Rechazado* con el motivo. Si coinciden solo algunos datos, queda en la cola con las filas en amarillo.
+- [ ] Como administrador, en *Documentos por revisar*: junto a la imagen está «Lo que el sistema leyó» (confianza, tabla registrado/leído, calidad y texto). **Revertir y rechazar** una pre-aprobación funciona. En *Bitácora* filtre por «Verificación automática de documento».
+- [ ] *Parámetros › Verificación automática*: con `ocr_auto_aprobar` en `no`, los de confianza alta también van a la cola. Un umbral bajo mayor que el alto se rechaza.
+
+## 13. Pruebas automáticas
 
 ```bash
 python manage.py test

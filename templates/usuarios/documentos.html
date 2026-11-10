@@ -1,31 +1,48 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}Mis documentos{% endblock %}
 {% block contenido %}
 <h1 class="h3">Documentos de validación</h1>
 {% if perfil %}
-<div class="alert {% if perfil.ben_estado_verif == 'verificado' %}alert-success{% elif perfil.ben_estado_verif == 'rechazado' %}alert-danger{% elif perfil.ben_estado_verif == 'en_revision' %}alert-warning{% else %}alert-info{% endif %}">
+<div class="alert {% if perfil.ben_estado_verif == 'verificado' %}alert-success{% elif perfil.ben_estado_verif == 'rechazado' %}alert-danger{% elif perfil.ben_estado_verif == 'en_revision' %}alert-warning{% else %}alert-info{% endif %}" role="status">
   Estado de su cuenta: <strong>{{ perfil.get_ben_estado_verif_display }}</strong>.
-  {% if perfil.ben_estado_verif == 'pendiente' %}Cargue todos los documentos obligatorios para que el administrador los revise.
+  {% if perfil.ben_estado_verif == 'pendiente' %}Cargue todos los documentos obligatorios. El sistema los lee al instante y, si todo coincide, los aprueba solo.
   {% elif perfil.ben_estado_verif == 'en_revision' %}El administrador está revisando sus documentos. Le avisaremos por correo y en Notificaciones.
-  {% elif perfil.ben_estado_verif == 'rechazado' %}Uno o más documentos fueron rechazados. Revise la observación y vuelva a cargarlos.
+  {% elif perfil.ben_estado_verif == 'rechazado' %}Uno o más documentos fueron rechazados. Revise el motivo y vuelva a cargarlos.
   {% else %}Ya puede <a href="{% url 'solicitudes:catalogo' %}" class="alert-link">consultar el catálogo</a> y enviar solicitudes.{% endif %}
 </div>
+{% if obligatorios_total %}
+<div class="mb-3" aria-label="Avance de sus documentos">
+  <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold">Paso {% if obligatorios_aprobados == obligatorios_total %}3{% elif obligatorios_listos == obligatorios_total %}2{% else %}1{% endif %} de 3: {% if obligatorios_aprobados == obligatorios_total %}cuenta verificada{% elif obligatorios_listos == obligatorios_total %}revisión{% else %}cargar documentos{% endif %}</span><span>{{ obligatorios_listos }} de {{ obligatorios_total }} cargados · {{ obligatorios_aprobados }} aprobados</span></div>
+  <div class="progress" role="progressbar" aria-label="Documentos aprobados" aria-valuenow="{{ obligatorios_aprobados }}" aria-valuemin="0" aria-valuemax="{{ obligatorios_total }}" style="height:.5rem">
+    <div class="progress-bar sf-barra" style="width:{% widthratio obligatorios_aprobados obligatorios_total 100 %}%"></div>
+  </div>
+</div>
+{% endif %}
 {% endif %}
 <div class="row g-4">
   <div class="col-lg-7">
+    <div class="sf-pasos-docs mb-3">
+      {% for r in resumen %}
+      <a class="paso-doc text-decoration-none text-body {% if r.doc.docv_estado == 'aprobado' %}listo{% elif r.doc.docv_estado == 'rechazado' or r.doc.docv_estado == 'vencido' %}rechazado{% endif %}" href="?tipo={{ r.tipo }}#cargar">
+        {% if r.doc.docv_estado == 'aprobado' %}<i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>{% elif r.doc.docv_estado == 'cargado' %}<i class="bi bi-hourglass-split text-warning" aria-hidden="true"></i>{% elif r.doc %}<i class="bi bi-x-circle-fill text-danger" aria-hidden="true"></i>{% else %}<i class="bi bi-circle" aria-hidden="true"></i>{% endif %}
+        {{ r.nombre }}{% if r.obligatorio %}<span class="text-danger" title="Obligatorio"> *</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
     <div class="table-responsive"><table class="table bg-white align-middle">
-      <thead><tr><th>Documento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th scope="col">Documento</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
       <tbody>
       {% for r in resumen %}
       <tr>
         <td>{{ r.nombre }}{% if r.obligatorio %} <span class="text-danger" title="Obligatorio">*</span>{% endif %}
           {% if r.doc %}<div class="small text-muted">{{ r.doc.docv_nom_archivo }} · {{ r.doc.docv_tam_bytes|filesizeformat }} · {{ r.doc.docv_fec_carga|date:"d/m/Y" }}</div>{% endif %}
-          {% if r.doc.docv_obs %}<div class="small text-danger">Observación: {{ r.doc.docv_obs }}</div>{% endif %}
+          {% if r.doc.docv_estado == 'aprobado' and r.doc.docv_verif_auto %}<div class="small text-success"><i class="bi bi-robot" aria-hidden="true"></i> Aprobado automáticamente: el sistema confirmó sus datos.</div>
+          {% elif r.doc.docv_obs %}<div class="small {% if r.doc.docv_estado == 'rechazado' %}text-danger{% else %}text-muted{% endif %}">Observación: {{ r.doc.docv_obs }}</div>{% endif %}
         </td>
         <td>{% if r.doc %}{% include "parciales/estado.html" with valor=r.doc.docv_estado texto=r.doc.get_docv_estado_display %}{% else %}<span class="badge bg-light text-dark border">Sin cargar</span>{% endif %}</td>
         <td class="text-nowrap">
           {% if r.doc %}
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'usuarios:ver_documento' r.doc.pk %}" target="_blank">Ver</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'usuarios:ver_documento' r.doc.pk %}" target="_blank" rel="noopener">Ver</a>
             {% if r.doc.docv_estado != 'aprobado' %}
             <a class="btn btn-sm btn-outline-primary" href="?tipo={{ r.tipo }}#cargar">Reemplazar</a>
             <form class="d-inline" method="post" action="{% url 'usuarios:eliminar_documento' r.doc.pk %}" data-confirmar="¿Eliminar este documento?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
@@ -43,20 +60,36 @@
   <div class="col-lg-5" id="cargar">
     <div class="card shadow-sm"><div class="card-body">
       <h2 class="h5">Cargar o reemplazar un documento</h2>
-      <p class="small text-muted">Formatos: {{ formatos }}. Tamaño máximo: {{ max_mb }} MB.</p>
-      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+      <p class="small text-muted mb-2">Formatos: {{ formatos }}. Tamaño máximo: {{ max_mb }} MB. Las fotos grandes se reducen solas antes de enviarlas.</p>
+      <form method="post" enctype="multipart/form-data" novalidate id="form-carga"
+            data-formatos="{{ formatos_lista|join:',' }}" data-max-mb="{{ max_mb }}">{% csrf_token %}
         {% for e in form.non_field_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
         {% with campo=form.docv_tipo %}{% include "parciales/campo.html" %}{% endwith %}
-        {% with campo=form.archivo %}{% include "parciales/campo.html" %}{% endwith %}
-        <div class="mb-3">
-          <label class="btn btn-outline-secondary btn-sm" for="archivo-camara"><i class="bi bi-camera"></i> Tomar foto con la cámara</label>
-          <input class="d-none" type="file" id="archivo-camara" accept="image/*" capture="environment">
-          <span class="small text-muted ms-1" id="aviso-camara">Disponible en celulares y tabletas.</span>
+        <div class="mb-2">
+          <span class="form-label d-block">Archivo <span class="text-danger">*</span></span>
+          <div class="sf-zona-carga" id="zona-carga">
+            <input type="file" name="archivo" id="id_archivo" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-describedby="ayuda-archivo">
+            <i class="bi bi-cloud-upload" aria-hidden="true"></i>
+            <div class="fw-semibold">Arrastre el archivo aquí o haga clic para elegirlo</div>
+            <div class="small text-muted" id="ayuda-archivo">PDF, JPG o PNG. Que se lea completo y sin reflejos.</div>
+          </div>
+          {% for e in form.archivo.errors %}<div class="invalid-feedback d-block" role="alert">{{ e }}</div>{% endfor %}
         </div>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <label class="btn btn-outline-secondary btn-sm mb-0" for="archivo-camara"><i class="bi bi-camera" aria-hidden="true"></i> Tomar foto con la cámara</label>
+          <input class="visually-hidden" type="file" name="archivo" id="archivo-camara" accept="image/*" capture="environment">
+          <span class="small text-muted" id="aviso-camara">En celulares abre la cámara trasera.</span>
+        </div>
+        <div id="previa" class="sf-previa mb-3" hidden></div>
+        <div class="progress mb-2" id="progreso" hidden role="progressbar" aria-label="Progreso de la carga" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:.7rem">
+          <div class="progress-bar progress-bar-striped progress-bar-animated sf-barra" style="width:0%"></div>
+        </div>
+        <div id="mensaje-carga" class="small mb-2" role="status" aria-live="polite"></div>
         {% with campo=form.docv_fec_venc %}{% include "parciales/campo.html" %}{% endwith %}
-        <button class="btn btn-sysfood w-100">Cargar documento</button>
+        <button class="btn btn-sysfood w-100" id="boton-carga" data-cargando="Cargando y verificando…"><i class="bi bi-upload" aria-hidden="true"></i> Cargar documento</button>
       </form>
     </div></div>
   </div>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{% static 'js/carga.js' %}"></script>{% endblock %}

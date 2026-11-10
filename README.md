@@ -215,6 +215,43 @@ En el **panel del administrador** hay un mapa de calor y en **Sistema › Mapa d
 
 ---
 
+## 3.3 Carga y verificación automática de documentos
+
+**Carga (celular y escritorio).** En *Documentos* el beneficiario arrastra y suelta el archivo, lo elige o toma una foto con la cámara trasera. Antes de enviar ve una **vista previa** y el sistema valida el formato y el tamaño. Las fotos grandes del celular se reducen solas a JPEG de máximo 2.200 px, porque antes superaban los 5 MB y se rechazaban. Durante el envío hay una **barra de progreso** y al final un mensaje claro con lo que decidió el sistema. Un indicador muestra el avance: «Paso 1 de 3: cargar documentos», con cuántos están cargados y aprobados. Sin JavaScript el formulario sigue funcionando como antes.
+
+Correcciones al flujo anterior: la cámara copiaba el archivo con `DataTransfer`, que falla en Safari para iOS antiguos. Ahora la foto se envía directamente, y sin JavaScript la cámara también funciona. Las imágenes dañadas que solo tenían la firma correcta ahora se rechazan.
+
+**Calidad de imagen (inmediata).** Al recibir una foto, el sistema mide la **nitidez** (magnitud del laplaciano en el percentil 99,8, de 0 a 256), la resolución, el brillo y el contraste. Si la imagen está borrosa, es muy pequeña o está oscura, la rechaza al instante y pide repetirla con el motivo, por ejemplo: «la imagen está borrosa; sostenga el celular firme y enfoque el documento». Esta revisión solo usa Pillow y funciona siempre.
+
+**Lectura con OCR y semáforo.** Si Tesseract está disponible (incluido en Docker con `tesseract-ocr-spa` y `poppler-utils`), el sistema lee el documento (las dos primeras páginas en los PDF) y compara lo leído con los datos registrados:
+
+| Documento | Qué compara (peso) |
+| --- | --- |
+| Identidad | número de documento (3), nombres y apellidos (2), fecha de expedición (1) |
+| Sisbén | número (3), nombres (2), grupo de Sisbén A/B/C/D (1) |
+| Residencia | nombres (2), dirección (2), estrato (1) |
+| Discapacidad | número (3), nombres (2) |
+
+Las búsquedas toleran errores típicos del OCR: puntos en el número, letras confundidas y meses escritos en texto.
+
+```
+confianza = 100 × Σ(peso × coincidencia) ÷ Σ peso × (0,7 + 0,3 × legibilidad_OCR ÷ 100)
+```
+
+| Semáforo | Condición (parámetros) | Acción automática |
+| --- | --- | --- |
+| 🟢 Alta | confianza ≥ `ocr_umbral_alto` (85) | **Pre-aprobado**: se aprueba, se marca como «Decisión automática» y se avisa al titular |
+| 🟡 Media | entre los umbrales | Queda en la **cola del administrador**, primero que los demás, con las discrepancias resaltadas |
+| 🔴 Baja o ilegible | confianza < `ocr_umbral_bajo` (40), o sin texto legible | **Rechazado** con el motivo (qué no coincidió o por qué es ilegible); el titular puede recargarlo |
+
+En *Documentos por revisar* el administrador ve, junto a la imagen, **lo que el sistema leyó**: la confianza, una tabla con lo registrado, lo leído y si coincide, la calidad y el texto completo. Puede **revertir** cualquier decisión automática, también una pre-aprobación. Debajo aparecen las decisiones automáticas de los últimos 30 días para auditarlas. El resultado y la confianza se guardan en el documento, y cada decisión queda en la bitácora («Verificación automática de documento»).
+
+**El flujo manual siempre funciona.** Si el OCR está desactivado (`ocr_activo`), Tesseract no está instalado, la lectura falla o el resultado no es concluyente, el documento queda *Cargado* y el administrador aprueba o rechaza como siempre. La tarea horaria *Lectura automática de documentos* reintenta las lecturas fallidas, hasta 3 intentos. Los documentos de donantes se revisan siempre a mano.
+
+> Sin Docker: instale Tesseract ([Windows](https://github.com/UB-Mannheim/tesseract/wiki) o `apt install tesseract-ocr tesseract-ocr-spa poppler-utils`) para activar la lectura. Sin él, todo funciona con revisión manual.
+
+---
+
 ## 4. Pruebas automáticas
 
 El proyecto incluye **119 pruebas** que cubren los 22 requerimientos: funcionales, seguridad, rendimiento, integridad y respaldo.
@@ -244,6 +281,7 @@ El sistema decide y actúa solo. Todas las tareas están en un único registro (
 | `control_vencimientos` | diaria | Vigencia del inventario, documentos vencidos y avisos (Actividad 12) |
 | `recalculo_puntajes` | diaria (nocturna) | Recalcula el puntaje y el grupo de todos los beneficiarios |
 | `geocodificacion` | horaria | Ubica a los beneficiarios pendientes y reintenta los fallidos |
+| `verificacion_documentos` | horaria | Lee con OCR los documentos que quedaron sin leer y aplica el semáforo |
 
 Cada tarea corre **una sola vez por periodo**, aunque varias fuentes intenten lanzarla. Se ejecutan de tres formas:
 

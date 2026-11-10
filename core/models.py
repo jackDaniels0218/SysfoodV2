@@ -68,6 +68,7 @@ class Bitacora(_SoloInsercion):
         ("geocodificacion", "Geocodificación automática"),
         ("consulta_mapa", "Consulta del mapa de beneficiarios"),
         ("exportacion_mapa", "Exportación del mapa de beneficiarios"),
+        ("verificacion_auto", "Verificación automática de documento"),
     ]
 
     bit_id = models.BigAutoField(primary_key=True)

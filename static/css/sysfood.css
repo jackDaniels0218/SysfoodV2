@@ -455,3 +455,33 @@ section[id] { scroll-margin-top: 6rem; }
 [data-bs-theme="dark"] .sf-mapa .leaflet-tile-pane { filter: brightness(.75) invert(1) contrast(.85) hue-rotate(190deg) saturate(.35); }
 [data-bs-theme="dark"] .leaflet-popup-content-wrapper, [data-bs-theme="dark"] .leaflet-popup-tip { background: var(--sf-surface); color: var(--sf-ink); }
 [data-bs-theme="dark"] .leaflet-control-layers, [data-bs-theme="dark"] .leaflet-bar a { background: var(--sf-surface); color: var(--sf-ink); }
+
+/* ---------- Verificación automática (semáforo) ---------- */
+.sf-semaforo { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+.sf-semaforo-verde { background: #2b8a3e; }
+.sf-semaforo-amarillo { background: #e0a800; }
+.sf-semaforo-rojo { background: #c92a2a; }
+.card.sf-borde-amarillo { border-left: 4px solid #e0a800; }
+.card.sf-borde-rojo { border-left: 4px solid #c92a2a; }
+.card.sf-borde-verde { border-left: 4px solid #2b8a3e; }
+.sf-conf-verde { background: #2b8a3e; } .sf-conf-amarillo { background: #e0a800; } .sf-conf-rojo { background: #c92a2a; } .sf-conf- { background: var(--sf-muted); }
+.table > tbody > tr.sf-discrepancia > * { background: rgba(224, 168, 0, .16); }
+.sf-ocr-texto { white-space: pre-wrap; max-height: 14rem; overflow: auto; background: var(--sf-surface-2); border: 1px solid var(--sf-line); border-radius: .6rem; padding: .6rem; font-size: .78rem; color: var(--sf-ink); }
+
+/* ---------- Estados vacíos ---------- */
+.sf-vacio { padding: 2.5rem 1rem; border: 2px dashed var(--sf-line); border-radius: 1.2rem; background: var(--sf-surface-2); }
+.sf-vacio-ico { font-size: 2.4rem; color: var(--sf-green-2); margin-bottom: .4rem; }
+
+/* ---------- Carga de documentos ---------- */
+.sf-zona-carga { position: relative; border: 2px dashed var(--sf-line); border-radius: 1.1rem; padding: 1.4rem 1rem; text-align: center; background: var(--sf-surface-2); transition: border-color .2s, background .2s; }
+.sf-zona-carga:hover, .sf-zona-carga:focus-within, .sf-zona-carga.sobre { border-color: var(--sf-green-2); background: rgba(94, 194, 138, .12); }
+.sf-zona-carga input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.sf-zona-carga .bi-cloud-upload { font-size: 2rem; color: var(--sf-green-2); }
+.sf-previa { display: flex; gap: .8rem; align-items: center; padding: .6rem; border: 1px solid var(--sf-line); border-radius: .9rem; background: var(--sf-surface); }
+.sf-previa img { width: 72px; height: 72px; object-fit: cover; border-radius: .6rem; }
+.sf-previa .sf-previa-pdf { width: 72px; height: 72px; display: grid; place-items: center; border-radius: .6rem; background: #fde8e8; color: #c92a2a; font-size: 2rem; flex: none; }
+.sf-pasos-docs { display: flex; gap: .4rem; flex-wrap: wrap; }
+.sf-pasos-docs .paso-doc { flex: 1 1 9rem; padding: .5rem .7rem; border-radius: .8rem; border: 1px solid var(--sf-line); background: var(--sf-surface); font-size: .82rem; }
+.sf-pasos-docs .paso-doc.listo { border-color: var(--sf-green-3); background: rgba(94, 194, 138, .14); }
+.sf-pasos-docs .paso-doc.rechazado { border-color: #f1a5a5; background: rgba(201, 42, 42, .08); }
+.sf-pasos-docs .paso-doc .bi { margin-right: .25rem; }

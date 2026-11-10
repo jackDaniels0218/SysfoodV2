@@ -58,20 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Captura con cámara: copia el archivo tomado al campo principal.
-  var camara = document.getElementById("archivo-camara");
-  var principal = document.getElementById("id_archivo");
-  if (camara && principal) {
-    camara.addEventListener("change", function () {
-      if (camara.files.length) {
-        var dt = new DataTransfer();
-        dt.items.add(camara.files[0]);
-        principal.files = dt.files;
-        var aviso = document.getElementById("aviso-camara");
-        if (aviso) { aviso.textContent = "Foto lista: " + camara.files[0].name; }
-      }
-    });
-  }
+  // La carga de documentos (cámara, arrastrar y soltar, progreso) está en js/carga.js.
 });
 
 /* ==========================================================================

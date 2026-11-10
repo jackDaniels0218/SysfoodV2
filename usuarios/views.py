@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, ProtectedError, Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -18,7 +18,7 @@ from core import parametros
 from core.permisos import solo_admin
 from core.servicios import auditar, enviar_correo
 
-from . import puntaje, servicios, ubicacion
+from . import puntaje, servicios, ubicacion, verificacion
 from .forms import (
     AdminUsuarioForm, DocumentoForm, LoginForm, NuevaPasswordForm, PerfilBeneficiarioForm,
     PerfilDonanteForm, PerfilUsuarioForm, RecuperarForm, RegistroForm, RevisionDocumentoForm,
@@ -210,25 +210,53 @@ def documentos(request):
     if not tipos:
         raise PermissionDenied("Su cuenta no requiere documentos de validación.")
     form = DocumentoForm(tipos, request.POST or None, request.FILES or None, initial={"docv_tipo": request.GET.get("tipo")})
-    if request.method == "POST" and form.is_valid():
-        try:
-            doc = servicios.cargar_documento(
-                usuario, form.cleaned_data["docv_tipo"], form.cleaned_data["archivo"], form.cleaned_data["docv_fec_venc"],
-            )
-        except ValidationError as error:
-            form.add_error("archivo", error)
-        else:
-            auditar(request, "crear", "documento_validacion", doc.pk, f"Carga de {doc.get_docv_tipo_display()}")
-            messages.success(request, f"{doc.get_docv_tipo_display()} cargado correctamente.")
-            return redirect("usuarios:documentos")
+    quiere_json = "application/json" in request.headers.get("Accept", "")
+    if request.method == "POST":
+        if form.is_valid():
+            try:
+                doc = servicios.cargar_documento(
+                    usuario, form.cleaned_data["docv_tipo"], form.cleaned_data["archivo"], form.cleaned_data["docv_fec_venc"],
+                )
+            except ValidationError as error:
+                form.add_error("archivo", error)
+            else:
+                auditar(request, "crear", "documento_validacion", doc.pk, f"Carga de {doc.get_docv_tipo_display()}")
+                verificacion.verificar(doc)
+                doc.refresh_from_db()
+                nivel, mensaje = _mensaje_carga(doc)
+                getattr(messages, nivel)(request, mensaje)
+                if quiere_json:
+                    return JsonResponse({"ok": True, "nivel": nivel, "mensaje": mensaje, "destino": reverse("usuarios:documentos")})
+                return redirect("usuarios:documentos")
+        if quiere_json:
+            errores = [e for lista in form.errors.values() for e in lista]
+            return JsonResponse({"ok": False, "mensaje": " ".join(errores) or "Revise el archivo."}, status=400)
+    resumen = servicios.resumen_documentos(usuario)
+    obligatorios = [r for r in resumen if r["obligatorio"]]
     contexto = {
         "form": form,
-        "resumen": servicios.resumen_documentos(usuario),
+        "resumen": resumen,
         "perfil": getattr(usuario, "perfil_beneficiario", None),
         "max_mb": parametros.entero("tam_max_archivo_mb"),
         "formatos": ", ".join(f.upper() for f in parametros.lista("formatos_permitidos")),
+        "formatos_lista": parametros.lista("formatos_permitidos"),
+        "obligatorios_total": len(obligatorios),
+        "obligatorios_listos": sum(1 for r in obligatorios if r["doc"] and r["doc"].docv_estado in ("cargado", "aprobado")),
+        "obligatorios_aprobados": sum(1 for r in obligatorios if r["doc"] and r["doc"].docv_estado == "aprobado"),
     }
     return render(request, "usuarios/documentos.html", contexto)
+
+
+def _mensaje_carga(doc):
+    """Mensaje claro para el titular según lo que decidió el sistema."""
+    nombre = doc.get_docv_tipo_display()
+    if doc.docv_estado == DocumentoValidacion.APROBADO and doc.docv_verif_auto:
+        return "success", f"{nombre} cargado y pre-aprobado automáticamente: el sistema confirmó sus datos."
+    if doc.docv_estado == DocumentoValidacion.RECHAZADO and doc.docv_verif_auto:
+        return "warning", f"{nombre} no fue aceptado. {doc.docv_obs.replace('Rechazado automáticamente. ', '')}"
+    if doc.docv_decision_auto == DocumentoValidacion.MEDIA:
+        return "success", f"{nombre} cargado. El administrador lo revisará porque algunos datos no se leyeron con claridad."
+    return "success", f"{nombre} cargado correctamente. El administrador lo revisará."
 
 
 @login_required
@@ -451,11 +479,20 @@ def ayuda_puntaje(request):
 
 @solo_admin
 def documentos_pendientes(request):
-    docs = DocumentoValidacion.objects.filter(docv_estado=DocumentoValidacion.CARGADO).select_related("usuario").order_by("docv_fec_carga")
+    """Cola del administrador: primero los de confianza media (con discrepancias), luego los de revisión manual."""
+    docs = (DocumentoValidacion.objects.filter(docv_estado=DocumentoValidacion.CARGADO)
+            .select_related("usuario__perfil_beneficiario").order_by("docv_fec_carga"))
+    orden = {DocumentoValidacion.MEDIA: 0, "": 1}
+    docs = sorted(docs, key=lambda d: (orden.get(d.docv_decision_auto, 2), d.docv_fec_carga))
     usuarios = {}
     for d in docs:
         usuarios.setdefault(d.usuario, []).append(d)
-    return render(request, "usuarios/admin_documentos.html", {"usuarios": usuarios.items(), "total": docs.count()})
+    automaticos = (DocumentoValidacion.objects.filter(docv_verif_auto=True, docv_fec_revision__gte=timezone.now() - timedelta(days=30))
+                   .select_related("usuario").order_by("-docv_fec_revision")[:30])
+    return render(request, "usuarios/admin_documentos.html", {
+        "usuarios": usuarios.items(), "total": len(docs), "automaticos": automaticos,
+        "media": sum(1 for d in docs if d.docv_decision_auto == DocumentoValidacion.MEDIA),
+    })
 
 
 @solo_admin

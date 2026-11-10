@@ -281,6 +281,23 @@ class DocumentoValidacion(models.Model):
     docv_fec_carga = models.DateTimeField("fecha de carga", auto_now_add=True)
     docv_fec_revision = models.DateTimeField("fecha de revisión", null=True, blank=True)
     docv_fec_venc = models.DateField("fecha de vencimiento", null=True, blank=True)
+    # Verificación automática (usuarios/verificacion.py)
+    OCR_PENDIENTE, OCR_PROCESADO, OCR_NO_DISPONIBLE, OCR_ERROR, OCR_NO_APLICA = "pendiente", "procesado", "no_disponible", "error", "no_aplica"
+    ESTADOS_OCR = [
+        (OCR_PENDIENTE, "Pendiente de lectura"), (OCR_PROCESADO, "Leído automáticamente"),
+        (OCR_NO_DISPONIBLE, "Lectura automática no disponible"), (OCR_ERROR, "Error de lectura (se reintentará)"),
+        (OCR_NO_APLICA, "Revisión manual"),
+    ]
+    ALTA, MEDIA, BAJA, ILEGIBLE = "alta", "media", "baja", "ilegible"
+    DECISIONES = [(ALTA, "Confianza alta"), (MEDIA, "Confianza media"), (BAJA, "Confianza baja"), (ILEGIBLE, "Ilegible")]
+    docv_ocr_estado = models.CharField("lectura automática", max_length=14, choices=ESTADOS_OCR, default=OCR_NO_APLICA, db_index=True)
+    docv_ocr_texto = models.TextField("texto leído", blank=True)
+    docv_ocr_confianza = models.DecimalField("confianza de la verificación", max_digits=5, decimal_places=1, null=True, blank=True)
+    docv_ocr_resultado = models.JSONField("resultado de la comparación", default=dict, blank=True)
+    docv_decision_auto = models.CharField("decisión automática", max_length=10, choices=DECISIONES, blank=True, db_index=True)
+    docv_verif_auto = models.BooleanField("resuelto automáticamente", default=False, db_index=True)
+    docv_ocr_intentos = models.PositiveSmallIntegerField("intentos de lectura", default=0)
+    docv_fec_ocr = models.DateTimeField("fecha de lectura", null=True, blank=True)
 
     class Meta:
         db_table = "documento_validacion"
@@ -296,3 +313,12 @@ class DocumentoValidacion(models.Model):
     @property
     def es_imagen(self):
         return self.docv_mime.startswith("image/")
+
+    @property
+    def semaforo(self):
+        """verde, amarillo o rojo según la decisión automática (vacío si no hubo)."""
+        return {self.ALTA: "verde", self.MEDIA: "amarillo", self.BAJA: "rojo", self.ILEGIBLE: "rojo"}.get(self.docv_decision_auto, "")
+
+    @property
+    def discrepancias(self):
+        return [c for c in (self.docv_ocr_resultado or {}).get("campos", []) if c.get("coincide", 0) < 1]

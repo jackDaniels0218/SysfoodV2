@@ -29,6 +29,7 @@ GRUPOS = OrderedDict([
     ("Puntaje de necesidad", "Pesos y escalas del puntaje automático de beneficiarios"),
     ("Grupos de necesidad", "Clasificación automática según el puntaje"),
     ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
+    ("Verificación automática", "Lectura de documentos con OCR, calidad de imagen y decisión por semáforo"),
 ])
 
 # Valores permitidos de los parámetros de tipo «opcion».
@@ -105,6 +106,24 @@ DEFINICIONES = OrderedDict([
     ("calor_peso_solicitudes", _p("25", "Peso del número de solicitudes en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
     ("calor_peso_personas", _p("15", "Peso de las personas en el hogar en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
     ("calor_tope_solicitudes", _p("5", "Solicitudes a partir de las cuales ese componente del calor es máximo.", "entero", "Mapa y geocodificación", 1, 100)),
+    # --- Verificación automática de documentos (OCR)
+    ("ocr_activo", _p("si", "Leer automáticamente los documentos cargados (si) o dejar todo a la revisión manual (no).", "booleano", "Verificación automática")),
+    ("ocr_umbral_alto", _p(
+        "85", "Confianza (0-100) desde la cual el documento queda pre-aprobado automáticamente (semáforo verde).",
+        "entero", "Verificación automática", 1, 100,
+    )),
+    ("ocr_umbral_bajo", _p(
+        "40", "Confianza por debajo de la cual el documento se rechaza automáticamente (semáforo rojo). Entre ambos umbrales va a la cola del administrador.",
+        "entero", "Verificación automática", 0, 99,
+    )),
+    ("ocr_auto_aprobar", _p("si", "Pre-aprobar automáticamente los documentos de confianza alta.", "booleano", "Verificación automática")),
+    ("ocr_auto_rechazar", _p("si", "Rechazar automáticamente los documentos de confianza baja o ilegibles, con el motivo.", "booleano", "Verificación automática")),
+    ("ocr_nitidez_minima", _p(
+        "45", "Nitidez mínima (0-256) de una foto; por debajo se pide repetirla de inmediato por borrosa.", "entero", "Verificación automática", 0, 256,
+    )),
+    ("ocr_resolucion_minima", _p("500", "Lado menor mínimo de la imagen, en píxeles.", "entero", "Verificación automática", 100, 4000)),
+    ("ocr_idioma", _p("spa", "Idioma de Tesseract (spa = español).", "texto", "Verificación automática")),
+    ("ocr_tiempo_maximo", _p("40", "Segundos máximos de lectura por documento.", "entero", "Verificación automática", 5, 300)),
 ])
 
 TIPOS_AYUDA = {
@@ -272,6 +291,11 @@ def validar(clave, valor):
             raise ValidationError("El tamaño máximo permitido es 25 MB.")
         if d.maximo is not None and numero > d.maximo:
             raise ValidationError(f"Debe ser menor o igual a {d.maximo}.")
+        if clave in ("ocr_umbral_alto", "ocr_umbral_bajo"):
+            alto = numero if clave == "ocr_umbral_alto" else entero("ocr_umbral_alto")
+            bajo = numero if clave == "ocr_umbral_bajo" else entero("ocr_umbral_bajo")
+            if bajo >= alto:
+                raise ValidationError("El umbral bajo debe ser menor que el umbral alto.")
         if clave.startswith("puntaje_peso_") and numero == 0:
             otros = sum(entero(c) for c in DEFINICIONES if c.startswith("puntaje_peso_") and c != clave)
             if otros == 0:

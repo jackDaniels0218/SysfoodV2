@@ -31,9 +31,28 @@ def pdf(marca=None, nombre="doc.pdf", relleno=0):
     return SimpleUploadedFile(nombre, contenido, content_type="application/pdf")
 
 
-def png(marca=None, nombre="foto.png"):
+def imagen_documento(lineas, borrosa=0, tamano=(1200, 760), formato="PNG"):
+    """Imagen real de un documento con texto nítido (o desenfocado con `borrosa` > 0)."""
+    import io
+
+    from PIL import Image, ImageDraw, ImageFilter
+
+    img = Image.new("RGB", tamano, "white")
+    dibujo = ImageDraw.Draw(img)
+    for i, linea in enumerate(lineas):
+        for dx in range(3):  # Trazo grueso para que la prueba de nitidez sea estable con la fuente por defecto.
+            dibujo.text((60 + dx, 60 + i * 60), linea, fill="black")
+        dibujo.rectangle((40, 40 + i * 60, 1150, 42 + i * 60), fill="black")
+    if borrosa:
+        img = img.filter(ImageFilter.GaussianBlur(borrosa))
+    salida = io.BytesIO()
+    img.save(salida, formato)
+    return salida.getvalue()
+
+
+def png(marca=None, nombre="foto.png", borrosa=0):
     marca = marca or f"png-{siguiente()}"
-    return SimpleUploadedFile(nombre, b"\x89PNG\r\n\x1a\n" + marca.encode(), content_type="image/png")
+    return SimpleUploadedFile(nombre, imagen_documento(["DOCUMENTO DE PRUEBA", marca], borrosa), content_type="image/png")
 
 
 def crear_usuario(rol, correo=None, **extra):

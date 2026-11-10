@@ -32,6 +32,8 @@ REGISTRO = OrderedDict((t.nombre, t) for t in [
           "Recalcula el puntaje de necesidad de todos los beneficiarios (el tiempo sin ayuda cambia cada día) y reasigna su grupo."),
     Tarea("geocodificacion", "Geocodificación de direcciones", "horaria", "usuarios.ubicacion.tarea_geocodificacion",
           "Ubica en el mapa a los beneficiarios pendientes y reintenta los fallidos; tras varios fallos los marca para revisión."),
+    Tarea("verificacion_documentos", "Lectura automática de documentos", "horaria", "usuarios.verificacion.tarea_pendientes",
+          "Lee con OCR los documentos que quedaron sin leer (por ejemplo, si el servicio no estaba disponible) y aplica el semáforo."),
 ])
 
 PERIODOS = {"diaria": timedelta(days=1), "horaria": timedelta(hours=1)}

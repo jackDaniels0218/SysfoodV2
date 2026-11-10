@@ -1,11 +1,28 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Documentos por revisar{% endblock %}
 {% block contenido %}
 <h1 class="h3">Documentos por revisar <span class="badge bg-warning text-dark">{{ total }}</span></h1>
+<p class="small text-muted">El sistema lee cada documento y decide por semáforo:
+  <span class="sf-semaforo sf-semaforo-verde" aria-hidden="true"></span> pre-aprueba los de confianza alta,
+  <span class="sf-semaforo sf-semaforo-amarillo" aria-hidden="true"></span> deja aquí los dudosos con las discrepancias resaltadas y
+  <span class="sf-semaforo sf-semaforo-rojo" aria-hidden="true"></span> rechaza los ilegibles o que no coinciden, con el motivo.
+  Usted puede revertir cualquier decisión. Umbrales en <a href="{% url 'core:parametros' %}#verificacion-automatica">Parámetros</a>.</p>
+{% if media %}<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ media }} documento(s) con confianza media aparecen primero.</div>{% endif %}
 {% for usuario, docs in usuarios %}
-  <h2 class="h5 mt-4"><a href="{% url 'usuarios:revisar_usuario' usuario.pk %}">{{ usuario.nombre_completo }}</a> <small class="text-muted">{{ usuario.get_usu_rol_display }}</small></h2>
+  <h2 class="h5 mt-4"><a href="{% url 'usuarios:revisar_usuario' usuario.pk %}">{{ usuario.nombre_completo }}</a> <small class="text-muted">{{ usuario.get_usu_rol_display }}</small> {% if usuario.es_beneficiario %}{% grupo_badge usuario.perfil_beneficiario %}{% endif %}</h2>
   {% for d in docs %}{% include "usuarios/_revision_doc.html" with siguiente="pendientes" %}{% endfor %}
 {% empty %}
-  <div class="alert alert-success">No hay documentos pendientes de revisión.</div>
+  {% include "parciales/vacio.html" with icono="check2-circle" titulo="No hay documentos pendientes de revisión" texto="El sistema resolvió los demás automáticamente. Abajo puede auditar sus decisiones recientes." %}
 {% endfor %}
+{% if automaticos %}
+<h2 class="h5 mt-5"><i class="bi bi-robot" aria-hidden="true"></i> Decisiones automáticas de los últimos 30 días</h2>
+<div class="table-responsive"><table class="table table-sm bg-white small align-middle">
+<thead><tr><th scope="col">Fecha</th><th scope="col">Titular</th><th scope="col">Documento</th><th scope="col">Confianza</th><th scope="col">Resultado</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+<tbody>{% for d in automaticos %}
+<tr><td>{{ d.docv_fec_revision|date:"d/m/Y H:i" }}</td><td>{{ d.usuario.nombre_completo }}</td><td>{{ d.get_docv_tipo_display }}</td>
+<td><span class="sf-semaforo sf-semaforo-{{ d.semaforo }}" aria-hidden="true"></span> {{ d.docv_ocr_confianza|numero }} %</td>
+<td>{% include "parciales/estado.html" with valor=d.docv_estado texto=d.get_docv_estado_display %}</td>
+<td><a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:revisar_usuario' d.usuario_id %}">Revisar</a></td></tr>
+{% endfor %}</tbody></table></div>
+{% endif %}
 {% endblock %}

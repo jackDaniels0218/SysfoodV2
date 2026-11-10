@@ -101,6 +101,14 @@ erDiagram
         datetime docv_fec_carga
         datetime docv_fec_revision
         date docv_fec_venc
+        varchar docv_ocr_estado "pendiente|procesado|no_disponible|error|no_aplica"
+        text docv_ocr_texto
+        decimal docv_ocr_confianza "0 a 100"
+        json docv_ocr_resultado "campos comparados y calidad"
+        varchar docv_decision_auto "alta|media|baja|ilegible"
+        bool docv_verif_auto
+        int docv_ocr_intentos
+        datetime docv_fec_ocr
     }
     categoria {
         int cat_id PK
@@ -266,6 +274,24 @@ erDiagram
         varchar tar_resultado
         int tar_duracion_ms
     }
+```
+
+## Verificación automática de un documento
+
+```mermaid
+flowchart TD
+    carga[Carga del archivo] --> calidad{¿Foto nítida y legible?}
+    calidad -- no --> repetir[Se pide repetirla de inmediato]
+    calidad -- sí --> guardado[(documento «Cargado»)]
+    guardado --> ocr{¿OCR activo y disponible?}
+    ocr -- no --> manual[Revisión manual del administrador]
+    ocr -- sí --> lectura[Lectura y comparación con los datos registrados]
+    lectura --> conf{Confianza}
+    conf -- "≥ umbral alto" --> verde[Pre-aprobado automáticamente]
+    conf -- entre umbrales --> amarillo[Cola del administrador con discrepancias]
+    conf -- "< umbral bajo o ilegible" --> rojo[Rechazado con motivo]
+    verde & amarillo & rojo --> bit[(bitácora: verificacion_auto)]
+    verde -. el administrador puede revertir .-> manual
 ```
 
 ## Ubicación del beneficiario

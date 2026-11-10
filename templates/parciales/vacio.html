@@ -1,0 +1,7 @@
+{# Estado vacío útil: icono, título, texto y una acción opcional (url + accion). #}
+<div class="sf-vacio text-center">
+  <div class="sf-vacio-ico" aria-hidden="true"><i class="bi bi-{{ icono|default:'inbox' }}"></i></div>
+  <p class="h5 mb-1">{{ titulo }}</p>
+  {% if texto %}<p class="text-muted mb-3">{{ texto }}</p>{% endif %}
+  {% if url %}<a class="btn btn-sysfood" href="{{ url }}">{{ accion }}</a>{% endif %}
+</div>

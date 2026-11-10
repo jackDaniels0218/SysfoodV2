@@ -85,6 +85,9 @@ def cargar_documento(usuario, tipo, archivo, fec_venc=None):
     if fec_venc and fec_venc < timezone.localdate():
         raise ValidationError("La fecha de vencimiento del documento ya pasó.")
     ext, mime, huella, contenido = validar_archivo(archivo, usuario)
+    from . import verificacion
+
+    calidad = verificacion.revisar_calidad(contenido, mime)  # Pide repetir de inmediato una foto borrosa.
     doc = Doc.objects.select_for_update().filter(usuario=usuario, docv_tipo=tipo).first()
     if doc and doc.docv_estado == Doc.APROBADO:
         raise ValidationError("El documento ya fue aprobado y no puede reemplazarse.")
@@ -104,6 +107,10 @@ def cargar_documento(usuario, tipo, archivo, fec_venc=None):
     doc.docv_fec_revision = None
     doc.docv_fec_venc = fec_venc
     doc.docv_fec_carga = timezone.now()
+    doc.docv_ocr_estado = Doc.OCR_PENDIENTE if verificacion.aplica(usuario, tipo) else Doc.OCR_NO_APLICA
+    doc.docv_ocr_texto, doc.docv_ocr_confianza, doc.docv_decision_auto = "", None, ""
+    doc.docv_ocr_resultado = {"calidad": calidad} if calidad else {}
+    doc.docv_verif_auto, doc.docv_ocr_intentos, doc.docv_fec_ocr = False, 0, None
     doc.save()
     if anterior:
         transaction.on_commit(lambda: _borrar_archivo(anterior))
@@ -166,12 +173,25 @@ def recalcular_verificacion(usuario):
 
 @transaction.atomic
 def revisar_documento(doc, admin, aprobar, observacion=""):
-    if doc.docv_estado == Doc.APROBADO:
+    """Decisión del administrador. Puede confirmar o revertir una decisión automática."""
+    if doc.docv_estado == Doc.APROBADO and not (doc.docv_verif_auto and not aprobar):
         raise ValidationError("El documento ya está aprobado.")
     if not aprobar and not observacion.strip():
         raise ValidationError("Indique el motivo del rechazo.")
+    doc.docv_verif_auto = False
+    return _resolver(doc, aprobar, observacion.strip(), admin)
+
+
+@transaction.atomic
+def resolver_automaticamente(doc, aprobar, observacion):
+    """Decisión del sistema (semáforo verde o rojo). Queda marcada como automática."""
+    doc.docv_verif_auto = True
+    return _resolver(doc, aprobar, observacion, None)
+
+
+def _resolver(doc, aprobar, observacion, admin):
     doc.docv_estado = Doc.APROBADO if aprobar else Doc.RECHAZADO
-    doc.docv_obs = observacion.strip()
+    doc.docv_obs = observacion
     doc.revisor = admin
     doc.docv_fec_revision = timezone.now()
     doc.save()
@@ -180,7 +200,8 @@ def revisar_documento(doc, admin, aprobar, observacion=""):
     nuevo = recalcular_verificacion(usuario)
     url = reverse("usuarios:documentos")
     if aprobar:
-        notificar(usuario, "documento", "Documento aprobado", f"Su {doc.get_docv_tipo_display().lower()} fue aprobado.", url)
+        texto = "fue pre-aprobado automáticamente" if admin is None else "fue aprobado"
+        notificar(usuario, "documento", "Documento aprobado", f"Su {doc.get_docv_tipo_display().lower()} {texto}.", url)
     else:
         notificar(
             usuario, "documento", "Documento rechazado",

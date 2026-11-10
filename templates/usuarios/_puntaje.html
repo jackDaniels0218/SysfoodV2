@@ -15,7 +15,7 @@
     {% for d in p.ben_puntaje_detalle %}
     <li>
       <div class="d-flex justify-content-between small"><span class="fw-semibold">{{ d.nombre }}</span><span>{{ d.puntos|numero }} de {{ d.maximo|numero }} pts</span></div>
-      <div class="progress" role="progressbar" aria-label="{{ d.nombre }}" aria-valuenow="{{ d.puntos }}" aria-valuemin="0" aria-valuemax="{{ d.maximo }}" style="height:.55rem">
+      <div class="progress" role="progressbar" aria-label="{{ d.nombre }}" aria-valuenow="{{ d.puntos|stringformat:"s" }}" aria-valuemin="0" aria-valuemax="{{ d.maximo|stringformat:"s" }}" style="height:.55rem">
         <div class="progress-bar sf-barra" style="width:{{ d.puntos|porcentaje:d.maximo }}%"></div>
       </div>
       <div class="small text-muted">{{ d.valor }} · escala {{ d.escala|numero }}/100 · peso {{ d.peso }}</div>

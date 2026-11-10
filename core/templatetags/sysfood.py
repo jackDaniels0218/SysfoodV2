@@ -32,10 +32,12 @@ def numero(valor, decimales=None):
 
 @register.filter
 def porcentaje(parte, total):
+    """Porcentaje 0-100 como texto con punto decimal (apto para CSS: width:…%). Un float se localizaría a «76,1»."""
     try:
-        return max(0, min(100, round(float(parte) / float(total) * 100, 1))) if float(total) else 0
+        valor = max(0.0, min(100.0, float(parte) / float(total) * 100)) if float(total) else 0.0
     except (TypeError, ValueError, ZeroDivisionError):
-        return 0
+        valor = 0.0
+    return f"{valor:.1f}".rstrip("0").rstrip(".")
 
 
 def texto_sobre(color):

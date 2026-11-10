@@ -195,6 +195,15 @@ class InterfazPuntajeTests(PruebaBase):
             self.assertEqual(r.status_code, 200)
             self.assertTrue(r.content)
 
+    def test_barras_con_ancho_css_valido(self):
+        from core.templatetags.sysfood import porcentaje
+
+        self.assertEqual(porcentaje(1.25, 5), "25")
+        self.assertEqual(porcentaje("76.1", 100), "76.1")
+        self.assertEqual(porcentaje(3, 0), "0")
+        r = self.client.get(reverse("usuarios:revisar_usuario", args=[self.alto.pk]))
+        self.assertNotRegex(r.content.decode(), r"width:\d+,\d+%")
+
     def test_beneficiario_no_puede_fijar_su_puntaje_ni_ubicacion(self):
         from usuarios.forms import PerfilBeneficiarioForm
 
