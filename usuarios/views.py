@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import ProtectedError, Q
+from django.db.models import F, ProtectedError, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -18,7 +18,7 @@ from core import parametros
 from core.permisos import solo_admin
 from core.servicios import auditar, enviar_correo
 
-from . import servicios
+from . import puntaje, servicios
 from .forms import (
     AdminUsuarioForm, DocumentoForm, LoginForm, NuevaPasswordForm, PerfilBeneficiarioForm,
     PerfilDonanteForm, PerfilUsuarioForm, RecuperarForm, RegistroForm, RevisionDocumentoForm,
@@ -273,14 +273,17 @@ def lista(request):
             | Q(perfil_donante__don_doc_nit__icontains=q) | Q(perfil_beneficiario__ben_num_doc__icontains=q)
             | Q(perfil_donante__don_raz_soc__icontains=q)
         )
-    for campo, filtro in (("rol", "usu_rol"), ("estado", "usu_estado"), ("verif", "perfil_beneficiario__ben_estado_verif")):
+    for campo, filtro in (("rol", "usu_rol"), ("estado", "usu_estado"), ("verif", "perfil_beneficiario__ben_estado_verif"),
+                          ("grupo", "perfil_beneficiario__ben_grupo")):
         valor = request.GET.get(campo)
         if valor:
             usuarios = usuarios.filter(**{filtro: valor})
+    if request.GET.get("orden") == "puntaje":
+        usuarios = usuarios.order_by(F("perfil_beneficiario__ben_puntaje").desc(nulls_last=True), "usu_nom")
     pagina = Paginator(usuarios, 20).get_page(request.GET.get("page"))
     return render(request, "usuarios/admin_lista.html", {
         "pagina": pagina, "roles": Usuario.ROLES, "estados": Usuario.ESTADOS,
-        "verifs": PerfilBeneficiario.ESTADOS_VERIF,
+        "verifs": PerfilBeneficiario.ESTADOS_VERIF, "grupos": parametros.grupos(),
     })
 
 
@@ -387,6 +390,38 @@ def revisar_usuario(request, pk):
         "resumen": servicios.resumen_documentos(usuario),
         "documentos": usuario.documentos.select_related("revisor"),
         "estados": Usuario.ESTADOS,
+    })
+
+
+@solo_admin
+@require_POST
+def recalcular_puntaje(request, pk):
+    perfil = get_object_or_404(PerfilBeneficiario, pk=pk)
+    with transaction.atomic():
+        cambio_puntaje, cambio_grupo = puntaje.recalcular(perfil, "Recálculo solicitado por el administrador", request=request)
+    if cambio_puntaje or cambio_grupo:
+        messages.success(request, "Puntaje recalculado. El cambio quedó registrado en la bitácora.")
+    else:
+        messages.info(request, "Puntaje recalculado: no hubo cambios.")
+    return redirect(reverse("usuarios:revisar_usuario", args=[pk]) + "#puntaje")
+
+
+@login_required
+def ayuda_puntaje(request):
+    """Explicación del algoritmo con los parámetros vigentes y ejemplos calculados en vivo."""
+    cfg = puntaje.Config()
+    suma = cfg.suma_pesos or 1
+    criterios = [
+        {"clave": c, "nombre": nombre, "peso": cfg.pesos[c], "maximo": round(cfg.pesos[c] * 100 / suma, 2)}
+        for c, (nombre, _) in puntaje.CRITERIOS.items()
+    ]
+    grupos = cfg.grupos
+    rangos = []
+    for i, g in enumerate(grupos):
+        rangos.append({**g, "hasta": 100 if i == 0 else grupos[i - 1]["minimo"]})
+    return render(request, "usuarios/ayuda_puntaje.html", {
+        "cfg": cfg, "criterios": criterios, "suma": cfg.suma_pesos, "grupos": rangos,
+        "ejemplos": puntaje.ejemplos(cfg), "nombres_sisben": puntaje.NOMBRES_SISBEN,
     })
 
 

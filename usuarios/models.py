@@ -179,6 +179,13 @@ class PerfilBeneficiario(models.Model):
         "estado de verificación", max_length=12, choices=ESTADOS_VERIF, default=PENDIENTE, db_index=True,
     )
     ben_fec_verif = models.DateTimeField("fecha de verificación", null=True, blank=True)
+    # Puntaje automático de necesidad (usuarios/puntaje.py). Lo calcula el sistema, nunca el usuario.
+    ben_puntaje = models.DecimalField("puntaje de necesidad", max_digits=5, decimal_places=2, null=True, blank=True, db_index=True)
+    ben_grupo = models.CharField("grupo de necesidad", max_length=30, blank=True, db_index=True)
+    ben_puntaje_detalle = models.JSONField("desglose del puntaje", default=list, blank=True)
+    ben_fec_puntaje = models.DateTimeField("fecha del cálculo", null=True, blank=True)
+
+    CAMPOS_AUTOMATICOS = {"ben_estado_verif", "ben_fec_verif", "ben_puntaje", "ben_grupo", "ben_puntaje_detalle", "ben_fec_puntaje"}
 
     class Meta:
         db_table = "beneficiario"
@@ -190,6 +197,9 @@ class PerfilBeneficiario(models.Model):
             ),
             models.CheckConstraint(condition=models.Q(ben_estrato__gte=1, ben_estrato__lte=6), name="ben_estrato_rango"),
             models.CheckConstraint(condition=models.Q(ben_num_personas__gte=1), name="ben_personas_minimo"),
+            models.CheckConstraint(
+                condition=models.Q(ben_puntaje__isnull=True) | models.Q(ben_puntaje__gte=0, ben_puntaje__lte=100), name="ben_puntaje_rango",
+            ),
         ]
 
     def clean(self):
@@ -199,6 +209,13 @@ class PerfilBeneficiario(models.Model):
     @property
     def verificado(self):
         return self.ben_estado_verif == self.VERIFICADO
+
+    @property
+    def grupo(self):
+        """Grupo de necesidad vigente {clave, nombre, minimo, color} según los parámetros."""
+        from . import puntaje
+
+        return puntaje.grupo_por_clave(self.ben_grupo)
 
 
 def ruta_documento(instancia, nombre):

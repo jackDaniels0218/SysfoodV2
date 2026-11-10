@@ -2,14 +2,17 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from entregas.models import HistorialEntrega
 from inventario.models import Kardex
 from usuarios.models import Usuario
 
-from . import parametros
+from . import parametros, tareas
 from .fechas import filtrar_rango
 from .forms import ParametroForm
 from .models import Bitacora, Notificacion, Parametro
@@ -61,8 +64,16 @@ def notificaciones_leer_todas(request):
 
 @solo_admin
 def parametros_lista(request):
-    lista = Parametro.objects.select_related("usuario_mod")
-    return render(request, "core/parametros.html", {"lista": lista})
+    por_clave = {p.par_clave: p for p in Parametro.objects.select_related("usuario_mod")}
+    secciones = []
+    for grupo, descripcion in parametros.GRUPOS.items():
+        items = [por_clave[c] for c, d in parametros.DEFINICIONES.items() if d.grupo == grupo and c in por_clave]
+        if items:
+            secciones.append({"nombre": grupo, "descripcion": descripcion, "items": items})
+    otros = [p for c, p in por_clave.items() if c not in parametros.DEFINICIONES]
+    if otros:
+        secciones.append({"nombre": "Otros", "descripcion": "", "items": otros})
+    return render(request, "core/parametros.html", {"secciones": secciones})
 
 
 @solo_admin
@@ -76,8 +87,30 @@ def parametro_editar(request, pk):
         parametro.save()
         auditar(request, "cambio_parametro", "parametro", parametro.par_clave, f"«{anterior}» → «{parametro.par_valor}»")
         messages.success(request, f"Parámetro «{parametro.par_clave}» actualizado.")
-        return redirect("core:parametros")
-    return render(request, "core/parametro_form.html", {"form": form, "p": parametro})
+        if anterior != parametro.par_valor:
+            for resumen in parametros.notificar_cambio(parametro.par_clave, request.user):
+                messages.info(request, resumen)
+        return redirect(reverse("core:parametros") + f"#{slugify(parametros.definicion(parametro.par_clave).grupo)}")
+    return render(request, "core/parametro_form.html", {"form": form, "p": parametro, "definicion": parametros.definicion(parametro.par_clave)})
+
+
+# ---------------------------------------------------------------- Tareas automáticas
+
+@solo_admin
+def tareas_lista(request):
+    if request.method == "POST":
+        nombre = request.POST.get("tarea")
+        if nombre not in tareas.REGISTRO:
+            raise Http404
+        try:
+            resultado = tareas.ejecutar(nombre, forzar=True)
+        except Exception as error:  # Se informa al administrador sin romper la página.
+            messages.error(request, f"La tarea falló: {error}")
+        else:
+            auditar(request, "tarea_programada", "tarea", nombre, f"Ejecución manual: {tareas._resumen(resultado)}")
+            messages.success(request, f"«{tareas.REGISTRO[nombre].titulo}» ejecutada: {tareas._resumen(resultado)}.")
+        return redirect("core:tareas")
+    return render(request, "core/tareas.html", {"filas": tareas.estado()})
 
 
 # ---------------------------------------------------------------- Trazabilidad (solo consulta)

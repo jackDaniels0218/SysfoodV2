@@ -1,19 +1,20 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Usuarios{% endblock %}
 {% block contenido %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h1 class="h3 mb-0">Usuarios</h1>
   <a class="btn btn-sysfood" href="{% url 'usuarios:crear' %}"><i class="bi bi-person-plus"></i> Nuevo usuario</a>
 </div>
-<form class="row g-2 mb-3" method="get">
-  <div class="col-12 col-md-4"><input name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Nombre, correo o documento"></div>
-  <div class="col-4 col-md-2"><select name="rol" class="form-select"><option value="">Rol</option>{% for k, v in roles %}<option value="{{ k }}" {% if request.GET.rol == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-4 col-md-2"><select name="estado" class="form-select"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-4 col-md-2"><select name="verif" class="form-select"><option value="">Verificación</option>{% for k, v in verifs %}<option value="{{ k }}" {% if request.GET.verif == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
+<form class="row g-2 mb-3" method="get" role="search" aria-label="Filtrar usuarios">
+  <div class="col-12 col-md-3"><label class="visually-hidden" for="f-q">Buscar</label><input id="f-q" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Nombre, correo o documento"></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-rol">Rol</label><select id="f-rol" name="rol" class="form-select"><option value="">Rol</option>{% for k, v in roles %}<option value="{{ k }}" {% if request.GET.rol == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-estado">Estado</label><select id="f-estado" name="estado" class="form-select"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-verif">Verificación</label><select id="f-verif" name="verif" class="form-select"><option value="">Verificación</option>{% for k, v in verifs %}<option value="{{ k }}" {% if request.GET.verif == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-grupo">Grupo de necesidad</label><select id="f-grupo" name="grupo" class="form-select"><option value="">Grupo de necesidad</option>{% for g in grupos %}<option value="{{ g.clave }}" {% if request.GET.grupo == g.clave %}selected{% endif %}>{{ g.nombre }}</option>{% endfor %}</select></div>
+  <div class="col-12 col-md-1"><input type="hidden" name="orden" value="{{ request.GET.orden }}"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
 </form>
 <div class="table-responsive"><table class="table table-hover bg-white">
-<thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Verificación</th><th>Registro</th><th></th></tr></thead>
+<thead><tr><th scope="col">Nombre</th><th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Verificación</th><th scope="col"><a href="?{% for k, v in request.GET.items %}{% if k != 'orden' and k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}orden={% if request.GET.orden != 'puntaje' %}puntaje{% endif %}" title="Ordenar por puntaje de necesidad">Necesidad {% if request.GET.orden == 'puntaje' %}<i class="bi bi-sort-down" aria-hidden="true"></i>{% else %}<i class="bi bi-arrow-down-up" aria-hidden="true"></i>{% endif %}</a></th><th scope="col">Registro</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
 <tbody>
 {% for u in pagina %}
 <tr>
@@ -22,10 +23,11 @@
   <td>{{ u.get_usu_rol_display }}</td>
   <td>{% include "parciales/estado.html" with valor=u.usu_estado texto=u.get_usu_estado_display %}</td>
   <td>{% if u.es_beneficiario %}{% include "parciales/estado.html" with valor=u.perfil_beneficiario.ben_estado_verif texto=u.perfil_beneficiario.get_ben_estado_verif_display %}{% else %}—{% endif %}</td>
+  <td>{% if u.es_beneficiario %}{% grupo_badge u.perfil_beneficiario %}{% else %}—{% endif %}</td>
   <td class="small">{{ u.usu_fec_reg|date:"d/m/Y" }}</td>
   <td><a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:revisar_usuario' u.pk %}">Ver</a></td>
 </tr>
-{% empty %}<tr><td colspan="7" class="text-muted">No hay usuarios con esos filtros.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8" class="text-muted">No hay usuarios con esos filtros.</td></tr>{% endfor %}
 </tbody></table></div>
 {% include "parciales/paginacion.html" %}
 {% endblock %}

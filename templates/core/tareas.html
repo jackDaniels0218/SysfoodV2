@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Tareas automáticas{% endblock %}
+{% block contenido %}
+<h1 class="h3">Tareas automáticas</h1>
+<p class="text-muted">El sistema ejecuta estos procesos por sí solo: desde el contenedor Docker cada hora, con <code>python manage.py ejecutar_tareas</code> si lo programa en el sistema operativo, y como respaldo cuando alguien navega. Cada tarea corre una sola vez por periodo.</p>
+<div class="table-responsive"><table class="table bg-white align-middle">
+<thead><tr><th scope="col">Tarea</th><th scope="col">Frecuencia</th><th scope="col">Última ejecución</th><th scope="col">Resultado</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+<tbody>
+{% for f in filas %}
+<tr>
+  <td><strong>{{ f.tarea.titulo }}</strong><div class="small text-muted">{{ f.tarea.descripcion }}</div><code class="small">{{ f.tarea.nombre }}</code></td>
+  <td>{{ f.tarea.frecuencia|capfirst }}</td>
+  <td class="text-nowrap small">{{ f.ultima|date:"d/m/Y h:i a"|default:"Nunca" }}{% if f.duracion is not None %}<br><span class="text-muted">{{ f.duracion }} ms</span>{% endif %}</td>
+  <td class="small text-break">{{ f.resultado|default:"—" }}</td>
+  <td><form method="post">{% csrf_token %}<input type="hidden" name="tarea" value="{{ f.tarea.nombre }}"><button class="btn btn-sm btn-outline-primary" data-cargando="Ejecutando…"><i class="bi bi-play-fill"></i> Ejecutar ahora</button></form></td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% endblock %}

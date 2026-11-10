@@ -1,0 +1,27 @@
+{% load sysfood %}
+{# Desglose explicable del puntaje: p = PerfilBeneficiario #}
+<div class="sf-puntaje" id="puntaje">
+  <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+    <div class="sf-puntaje-total" aria-label="Puntaje de necesidad {{ p.ben_puntaje|numero:1 }} de 100">
+      <span class="sf-puntaje-num">{{ p.ben_puntaje|numero:1|default:"—" }}</span><small>/100</small>
+    </div>
+    <div>
+      <div>{% grupo_badge p False %}</div>
+      <div class="small text-muted mt-1">Calculado {{ p.ben_fec_puntaje|date:"d/m/Y h:i a"|default:"—" }}</div>
+    </div>
+  </div>
+  {% if p.ben_puntaje_detalle %}
+  <ul class="list-unstyled mb-2 sf-barras">
+    {% for d in p.ben_puntaje_detalle %}
+    <li>
+      <div class="d-flex justify-content-between small"><span class="fw-semibold">{{ d.nombre }}</span><span>{{ d.puntos|numero }} de {{ d.maximo|numero }} pts</span></div>
+      <div class="progress" role="progressbar" aria-label="{{ d.nombre }}" aria-valuenow="{{ d.puntos }}" aria-valuemin="0" aria-valuemax="{{ d.maximo }}" style="height:.55rem">
+        <div class="progress-bar sf-barra" style="width:{{ d.puntos|porcentaje:d.maximo }}%"></div>
+      </div>
+      <div class="small text-muted">{{ d.valor }} · escala {{ d.escala|numero }}/100 · peso {{ d.peso }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <p class="small text-muted mb-0"><i class="bi bi-info-circle"></i> El puntaje apoya la decisión del administrador; no la reemplaza. <a href="{% url 'usuarios:ayuda_puntaje' %}">¿Cómo se calcula?</a></p>
+</div>

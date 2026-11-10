@@ -20,6 +20,8 @@ urlpatterns = [
     path("admin/<int:pk>/editar/", views.editar, name="editar"),
     path("admin/<int:pk>/estado/", views.cambiar_estado, name="cambiar_estado"),
     path("admin/<int:pk>/eliminar/", views.eliminar, name="eliminar"),
+    path("admin/<int:pk>/puntaje/", views.recalcular_puntaje, name="recalcular_puntaje"),
+    path("ayuda/puntaje/", views.ayuda_puntaje, name="ayuda_puntaje"),
     path("admin/documentos/", views.documentos_pendientes, name="documentos_pendientes"),
     path("admin/documentos/<int:pk>/revisar/", views.revisar_documento, name="revisar_documento"),
 ]

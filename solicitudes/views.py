@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -114,10 +114,20 @@ def lista_admin(request):
     if request.GET.get("q"):
         q = request.GET["q"].strip()
         qs = qs.filter(Q(beneficiario__usu_nom__icontains=q) | Q(beneficiario__usu_ape__icontains=q) | Q(pk__iexact=q if q.isdigit() else 0))
+    if request.GET.get("grupo"):
+        qs = qs.filter(beneficiario__perfil_beneficiario__ben_grupo=request.GET["grupo"])
     qs = filtrar_rango(qs, "sol_fec_envio", request.GET.get("desde"), request.GET.get("hasta"))
-    qs = qs.order_by("sol_fec_envio" if estado == "pendiente" else "-sol_fec_envio")
+    por_prioridad = estado == "pendiente" and parametros.booleano("solicitudes_orden_prioridad")
+    if por_prioridad:
+        # Orden prioritario: mayor puntaje de necesidad primero; a igual puntaje, la más antigua.
+        qs = qs.order_by(F("beneficiario__perfil_beneficiario__ben_puntaje").desc(nulls_last=True), "sol_fec_envio")
+    else:
+        qs = qs.order_by("sol_fec_envio" if estado == "pendiente" else "-sol_fec_envio")
+    qs = qs.select_related("beneficiario__perfil_beneficiario")
     pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
-    return render(request, "solicitudes/admin_lista.html", {"pagina": pagina, "estados": Solicitud.ESTADOS, "estado": estado})
+    return render(request, "solicitudes/admin_lista.html", {
+        "pagina": pagina, "estados": Solicitud.ESTADOS, "estado": estado, "grupos": parametros.grupos(), "por_prioridad": por_prioridad,
+    })
 
 
 @solo_admin

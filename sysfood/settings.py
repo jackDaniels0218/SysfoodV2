@@ -4,6 +4,7 @@ Los valores sensibles se leen de variables de entorno o de un archivo .env
 en la raíz del proyecto (ver .env.example).
 """
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,11 +115,19 @@ AUTH_USER_MODEL = "usuarios.Usuario"
 LOGIN_URL = "usuarios:login"
 LOGIN_REDIRECT_URL = "core:inicio"
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+
 # Contraseñas: PBKDF2 con sal (por defecto en Django).
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
 ]
+if TESTING:
+    # Mismo algoritmo (pbkdf2_sha256) con menos iteraciones: solo acelera las pruebas automáticas.
+    PASSWORD_HASHERS = ["core.hashers.PBKDF2Pruebas"] + PASSWORD_HASHERS
+
+# Procesos automáticos en segundo plano desde el middleware (ver core/tareas.py).
+TAREAS_AUTOMATICAS = env_bool("TAREAS_AUTOMATICAS", "1") and not TESTING
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
      "OPTIONS": {"user_attributes": ("usu_correo", "usu_nom", "usu_ape")}},
@@ -184,5 +193,5 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"sysfood": {"handlers": ["console"], "level": "INFO"}},
+    "loggers": {"sysfood": {"handlers": ["console"], "level": "WARNING" if TESTING else "INFO"}},
 }

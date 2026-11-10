@@ -31,8 +31,9 @@ def _dibujo_grafico(grafico, ancho=24 * cm, alto=7 * cm):
         pie.data = [max(v, 0) for v in datos]
         pie.labels = [f"{e} ({v})" for e, v in zip(etiquetas, datos)]
         pie.sideLabels = True
+        propios = grafico.get("colores") or []
         for i in range(len(datos)):
-            pie.slices[i].fillColor = colors.HexColor(PALETA[i % len(PALETA)])
+            pie.slices[i].fillColor = colors.HexColor(propios[i] if i < len(propios) else PALETA[i % len(PALETA)])
         d.add(pie)
     else:
         barras = VerticalBarChart()
@@ -43,6 +44,8 @@ def _dibujo_grafico(grafico, ancho=24 * cm, alto=7 * cm):
         barras.valueAxis.valueMin = 0
         barras.valueAxis.labels.fontSize = 7
         barras.bars[0].fillColor = VERDE
+        for i, color in enumerate(grafico.get("colores") or []):
+            barras.bars[(0, i)].fillColor = colors.HexColor(color)
         barras.barLabelFormat = "%d"
         barras.barLabels.fontSize = 7
         barras.barLabels.nudge = 6

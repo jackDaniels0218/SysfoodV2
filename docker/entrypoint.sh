@@ -22,5 +22,13 @@ if [ "${CARGAR_DEMO:-1}" = "1" ]; then
     python manage.py cargar_demo
 fi
 
+# Tareas automáticas (vencimientos, puntajes, geocodificación, OCR, reportes): cada hora, en segundo plano.
+(
+    while true; do
+        python manage.py ejecutar_tareas || echo "Falló la ejecución de tareas; se reintenta en una hora."
+        sleep "${INTERVALO_TAREAS:-3600}"
+    done
+) &
+
 echo "SysFood listo en http://localhost:${PUERTO:-8000}"
 exec waitress-serve --listen=0.0.0.0:8000 --threads=24 sysfood.wsgi:application

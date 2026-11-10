@@ -157,6 +157,48 @@ La guía completa, requerimiento por requerimiento, está en **[docs/GUIA_DE_PRU
 
 ---
 
+## 3.1 ¿Cómo se calcula el puntaje de necesidad?
+
+Cada beneficiario tiene un **puntaje de 0 a 100** que el sistema calcula solo. Es una **suma ponderada** de seis criterios: un algoritmo transparente que cualquiera puede repetir con lápiz y papel. El mismo texto, con los parámetros vigentes y ejemplos calculados en vivo, está dentro del sistema en **Usuarios › (beneficiario) › ¿Cómo se calcula?** (`/cuentas/ayuda/puntaje/`).
+
+> **Nota de equidad.** El puntaje **apoya** la decisión del administrador y **no la reemplaza**. Sirve para ordenar la atención y detectar casos urgentes, pero cada solicitud la revisa una persona, que puede aprobar o rechazar con su criterio y deja el motivo. Solo se usan datos que el beneficiario declaró y documentó; nunca sexo, etnia, religión ni opiniones.
+
+**Fórmula**
+
+```
+puntaje = Σ (peso_i × valor_i) ÷ Σ peso_i          valor_i ∈ [0, 100]
+puntos del criterio i = peso_i × valor_i ÷ Σ peso_i   (los puntos suman el puntaje)
+```
+
+| Criterio | Peso por defecto | Cómo se convierte en 0–100 (parámetro) |
+| --- | --- | --- |
+| Nivel de Sisbén | 25 | A: 100, B: 70, C: 35, D: 10, no registrado: 50 (`puntaje_escala_sisben`) |
+| Estrato social | 20 | 1: 100, 2: 80, 3: 50, 4: 25, 5 y 6: 0 (`puntaje_escala_estrato`) |
+| Personas en el hogar | 20 | personas ÷ 8 × 100, con tope en 100 (`puntaje_personas_tope`) |
+| Discapacidad | 15 | No: 0; sí con certificado aprobado: 100; sí sin certificado aprobado: 50 (`puntaje_discapacidad_sin_soporte`) |
+| Solicitudes recientes | 5 | solicitudes de los últimos 90 días ÷ 4 × 100, sin contar canceladas (necesidad activa) |
+| Tiempo sin recibir ayuda | 15 | días desde la última entrega ÷ 60 × 100; si nunca ha recibido, 100 (equilibra para no concentrar la ayuda) |
+
+Los pesos suman 100, pero no es obligatorio: el sistema divide por su suma. Todos los pesos y escalas se editan en **Sistema › Parámetros › Puntaje de necesidad**.
+
+**Ejemplos (parámetros por defecto)**
+
+| Caso | Sisbén | Estrato | Personas | Discapacidad | Solicitudes | Sin ayuda | Puntaje | Grupo |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Hogar de 6 personas, Sisbén A, estrato 1, discapacidad certificada, 1 solicitud, nunca ha recibido | 25×100 | 20×100 | 20×75 | 15×100 | 5×25 | 15×100 | (2500+2000+1500+1500+125+1500) ÷ 100 = **91,25** | Prioridad crítica |
+| Familia de 4, Sisbén C, estrato 2, 2 solicitudes, última entrega hace 20 días | 25×35 | 20×80 | 20×50 | 15×0 | 5×50 | 15×33,3 | (875+1600+1000+0+250+500) ÷ 100 = **42,25** | Prioridad media |
+| Persona sola, Sisbén D, estrato 3, 3 solicitudes, atendida hace 5 días | 25×10 | 20×50 | 20×12,5 | 15×0 | 5×75 | 15×8,3 | (250+1000+250+0+375+125) ÷ 100 = **20,0** | Prioridad baja |
+
+**Grupos.** Según el puntaje, el beneficiario queda en un grupo (`grupos_necesidad`, formato `Nombre|mínimo|#color`): *Prioridad crítica* desde 75, *Alta* desde 55, *Media* desde 35 y *Baja* desde 0, cada uno con su color. El grupo se reasigna solo cuando cambia el puntaje. Se usa para:
+
+- filtrar en **Usuarios** y en **Solicitudes**, y ordenar la lista de usuarios por necesidad;
+- ordenar las **solicitudes pendientes**: mayor puntaje primero y, a igual puntaje, la más antigua (`solicitudes_orden_prioridad`);
+- el reporte **Beneficiarios por grupo de necesidad**, exportable a PDF y Excel.
+
+**Cuándo se recalcula.** Al registrarse el beneficiario; al cambiar sus datos o sus documentos (por ejemplo, cuando se aprueba el certificado de discapacidad); al enviar una solicitud o recibir una entrega; cada noche con la tarea *Recálculo nocturno de puntajes*; y al cambiar cualquier peso, escala o grupo en Parámetros. Cada cambio de puntaje queda en la **bitácora** («Cálculo automático de puntaje») con el valor anterior, el nuevo, el motivo, la fecha y el desglose. Cada cambio de grupo queda como «Clasificación automática por grupo».
+
+---
+
 ## 4. Pruebas automáticas
 
 El proyecto incluye **119 pruebas** que cubren los 22 requerimientos: funcionales, seguridad, rendimiento, integridad y respaldo.
@@ -177,12 +219,24 @@ Además se verificó:
 
 ## 5. Tareas programadas
 
-### Control de vencimientos (Actividad 12)
+### Procesos automáticos
 
-El sistema lo ejecuta **automáticamente una vez al día**, con la primera visita del día. Si además quiere programarlo en el sistema operativo:
+El sistema decide y actúa solo. Todas las tareas están en un único registro (`core/tareas.py`) y se ven en **Sistema › Tareas automáticas**, con su última ejecución, su resultado y un botón **Ejecutar ahora**:
 
-- **Linux / macOS** (`crontab -e`): `5 0 * * * cd /ruta/SysfoodV2 && .venv/bin/python manage.py actualizar_vencimientos`
-- **Windows:** Programador de tareas → Crear tarea básica → Diaria → Programa: `C:\ruta\SysfoodV2\.venv\Scripts\python.exe`, Argumentos: `manage.py actualizar_vencimientos`, Iniciar en: `C:\ruta\SysfoodV2`
+| Tarea | Frecuencia | Qué hace |
+| --- | --- | --- |
+| `control_vencimientos` | diaria | Vigencia del inventario, documentos vencidos y avisos (Actividad 12) |
+| `recalculo_puntajes` | diaria (nocturna) | Recalcula el puntaje y el grupo de todos los beneficiarios |
+
+Cada tarea corre **una sola vez por periodo**, aunque varias fuentes intenten lanzarla. Se ejecutan de tres formas:
+
+1. **Docker:** el contenedor ejecuta `python manage.py ejecutar_tareas` cada hora. No hay que configurar nada.
+2. **Sistema operativo** (recomendado sin Docker), cada hora:
+   - **Linux / macOS** (`crontab -e`): `0 * * * * cd /ruta/SysfoodV2 && .venv/bin/python manage.py ejecutar_tareas`
+   - **Windows:** Programador de tareas → Crear tarea → Desencadenador diario, repetir cada 1 hora → Programa: `C:\ruta\SysfoodV2\.venv\Scripts\python.exe`, Argumentos: `manage.py ejecutar_tareas`, Iniciar en: `C:\ruta\SysfoodV2`
+3. **Respaldo:** si no se programó nada, el control de vencimientos corre con la primera visita del día y las demás tareas en segundo plano mientras alguien navega (`TAREAS_AUTOMATICAS=1`).
+
+Opciones: `ejecutar_tareas --listar` muestra el estado; `--tarea recalculo_puntajes --forzar` ejecuta una sola aunque ya haya corrido. `actualizar_vencimientos` sigue funcionando como antes.
 
 ### Respaldo y restauración (Actividad 22)
 

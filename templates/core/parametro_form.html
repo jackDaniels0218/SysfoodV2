@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 {% block titulo %}Editar parámetro{% endblock %}
 {% block contenido %}
-<div class="row justify-content-center"><div class="col-lg-6">
+<div class="row justify-content-center"><div class="col-lg-7">
 <div class="card"><div class="card-body">
   <h1 class="h4">Editar parámetro</h1>
-  <p><code>{{ p.par_clave }}</code><br><span class="text-muted">{{ p.par_desc }}</span></p>
+  <p><code>{{ p.par_clave }}</code> <span class="badge bg-light text-dark border">{{ definicion.grupo }}</span><br><span class="text-muted">{{ p.par_desc }}</span></p>
+  {% if p.par_clave|slice:":8" == "puntaje_" or p.par_clave == "grupos_necesidad" %}
+  <div class="alert alert-info small">Al guardar, el sistema recalcula automáticamente el puntaje y el grupo de todos los beneficiarios y deja constancia en la bitácora. <a class="alert-link" href="{% url 'usuarios:ayuda_puntaje' %}">¿Cómo se calcula el puntaje?</a></div>
+  {% endif %}
   <form method="post" novalidate>{% csrf_token %}
     {% include "parciales/form.html" %}
     <button class="btn btn-sysfood">Guardar</button>
-    <a class="btn btn-link" href="{% url 'core:parametros' %}">Volver</a>
+    <a class="btn btn-link" href="{% url 'core:parametros' %}#{{ definicion.grupo|slugify }}">Volver</a>
   </form>
 </div></div>
 </div></div>

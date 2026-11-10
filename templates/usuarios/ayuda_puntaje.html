@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% load sysfood %}
+{% block titulo %}¿Cómo se calcula el puntaje?{% endblock %}
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-xl-10">
+<h1 class="h3">¿Cómo se calcula el puntaje de necesidad?</h1>
+<p class="lead">El sistema asigna a cada beneficiario un <strong>puntaje de 0 a 100</strong> que resume qué tan urgente es su necesidad. Es una <strong>suma ponderada</strong> de seis criterios: cualquiera puede repetir la cuenta con lápiz y papel.</p>
+
+<div class="alert alert-warning d-flex gap-2"><i class="bi bi-heart-pulse fs-4"></i><div><strong>Nota de equidad.</strong> El puntaje <em>apoya</em> la decisión del administrador, no la reemplaza. Sirve para ordenar la atención y detectar casos urgentes, pero cada solicitud la revisa una persona, que puede aprobar o rechazar con su criterio y debe dejar el motivo. Los criterios usan solo datos que el beneficiario declaró y documentó; no se usan sexo, etnia, religión ni opiniones. Si un beneficiario cree que su puntaje no refleja su situación, puede actualizar sus datos o pedir revisión al administrador.</div></div>
+
+<h2 class="h5 mt-4">1. La fórmula</h2>
+<div class="card mb-3"><div class="card-body">
+  <p class="font-monospace fs-6 mb-2">puntaje = Σ (peso<sub>i</sub> × valor<sub>i</sub>) ÷ Σ peso<sub>i</sub></p>
+  <ul class="mb-0 small">
+    <li><strong>valor<sub>i</sub></strong>: cada criterio se convierte en un número de 0 a 100 con las escalas de abajo.</li>
+    <li><strong>peso<sub>i</sub></strong>: la importancia del criterio, configurable en <em>Sistema › Parámetros › Puntaje de necesidad</em>. Hoy los pesos suman <strong>{{ suma }}</strong>; no es obligatorio que sumen 100 porque se dividen por su suma.</li>
+    <li><strong>Puntos de un criterio</strong> = peso × valor ÷ Σ pesos. La suma de los puntos es el puntaje, por eso el desglose siempre cuadra.</li>
+  </ul>
+</div></div>
+
+<h2 class="h5">2. Criterios, pesos y escalas vigentes</h2>
+<div class="table-responsive"><table class="table bg-white align-middle small">
+<thead><tr><th scope="col">Criterio</th><th scope="col">Peso</th><th scope="col">Aporta como máximo</th><th scope="col">Cómo se convierte en 0–100</th></tr></thead>
+<tbody>
+{% for c in criterios %}
+<tr><td class="fw-semibold">{{ c.nombre }}</td><td>{{ c.peso }}</td><td>{{ c.maximo|numero }} pts</td><td>
+{% if c.clave == "sisben" %}{% for k, v in cfg.escala_sisben.items %}<span class="badge bg-light text-dark border me-1">{{ nombres_sisben|obtener:k|default:k }}: {{ v|numero }}</span>{% endfor %}
+{% elif c.clave == "estrato" %}{% for k, v in cfg.escala_estrato.items %}<span class="badge bg-light text-dark border me-1">Estrato {{ k }}: {{ v|numero }}</span>{% endfor %}
+{% elif c.clave == "personas" %}Personas ÷ {{ cfg.personas_tope }} × 100 (vale 100 desde {{ cfg.personas_tope }} personas).
+{% elif c.clave == "discapacidad" %}No: 0 · Sí con certificado aprobado: 100 · Sí, certificado pendiente: {{ cfg.discapacidad_sin_soporte }}.
+{% elif c.clave == "solicitudes" %}Solicitudes de los últimos {{ cfg.dias_solicitudes }} días ÷ {{ cfg.solicitudes_tope }} × 100 (no cuenta las canceladas). Indica necesidad activa.
+{% else %}Días desde la última entrega recibida ÷ {{ cfg.dias_sin_ayuda_tope }} × 100. Si nunca ha recibido, vale 100. Equilibra para que la ayuda no se concentre en las mismas familias.{% endif %}
+</td></tr>
+{% endfor %}
+</tbody></table></div>
+
+<h2 class="h5">3. Grupos de necesidad</h2>
+<p class="small">Según el puntaje, el sistema clasifica al beneficiario en un grupo. El grupo se reasigna solo cada vez que cambia el puntaje.</p>
+<div class="d-flex flex-wrap gap-2 mb-3">
+{% for g in grupos %}<span class="badge sf-grupo fs-6" style="{% grupo_estilo g %}">{{ g.nombre }}: {{ g.minimo|numero }} a {{ g.hasta|numero }}</span>{% endfor %}
+</div>
+
+<h2 class="h5">4. Ejemplos con los parámetros vigentes</h2>
+<div class="row g-3 mb-3">
+{% for e in ejemplos %}
+<div class="col-lg-4"><div class="card h-100"><div class="card-body">
+  <h3 class="h6">{{ e.titulo }}</h3>
+  <table class="table table-sm small mb-2">
+    <thead><tr><th scope="col">Criterio</th><th scope="col">Valor</th><th scope="col" class="text-end">Puntos</th></tr></thead>
+    <tbody>{% for d in e.desglose %}<tr><td>{{ d.nombre }}<div class="text-muted">{{ d.valor }}</div><div class="font-monospace text-muted" style="font-size:.72rem">{{ d.peso }} × {{ d.escala|numero }} ÷ {{ suma }}</div></td><td>{{ d.escala|numero }}</td><td class="text-end"><strong>{{ d.puntos|numero }}</strong></td></tr>{% endfor %}</tbody>
+    <tfoot><tr><th colspan="2">Puntaje</th><th class="text-end">{{ e.puntaje|numero }}</th></tr></tfoot>
+  </table>
+  <span class="badge sf-grupo" style="{% grupo_estilo e.grupo %}">{{ e.grupo.nombre }}</span>
+</div></div></div>
+{% endfor %}
+</div>
+
+<h2 class="h5">5. Cuándo se recalcula y cómo se audita</h2>
+<ul class="small">
+  <li>Al registrarse el beneficiario y cada vez que cambian sus datos o sus documentos (por ejemplo, cuando se aprueba el certificado de discapacidad).</li>
+  <li>Al enviar una solicitud o recibir una entrega.</li>
+  <li>Cada noche, con la tarea programada «Recálculo nocturno de puntajes», porque el tiempo sin ayuda aumenta día a día.</li>
+  <li>Cuando el administrador cambia un peso, una escala o los grupos: se recalculan todos los beneficiarios.</li>
+  <li>Cada cambio de puntaje queda en la <em>bitácora</em> («Cálculo automático de puntaje») con el puntaje anterior, el nuevo, el motivo, la fecha y el desglose; cada cambio de grupo queda como «Clasificación automática por grupo».</li>
+</ul>
+</div></div>
+{% endblock %}

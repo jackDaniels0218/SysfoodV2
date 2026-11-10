@@ -207,3 +207,14 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 })();
+
+// Botones que muestran «cargando» al enviar su formulario (evita envíos dobles).
+document.addEventListener("submit", function (e) {
+  var boton = e.submitter || e.target.querySelector("[data-cargando]");
+  if (!boton || !boton.hasAttribute("data-cargando") || e.defaultPrevented) { return; }
+  setTimeout(function () {
+    boton.classList.add("sf-cargando");
+    boton.setAttribute("aria-busy", "true");
+    boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + boton.getAttribute("data-cargando");
+  }, 0);
+});

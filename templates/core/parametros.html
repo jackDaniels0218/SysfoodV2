@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 {% block titulo %}Parámetros{% endblock %}
 {% block contenido %}
-<h1 class="h3">Parámetros del sistema</h1>
-<p class="text-muted">Los parámetros no se crean ni se eliminan. Todo cambio queda en la bitácora de auditoría.</p>
-<div class="table-responsive"><table class="table table-hover bg-white">
-<thead><tr><th>Clave</th><th>Valor</th><th>Descripción</th><th>Modificado</th><th></th></tr></thead>
-<tbody>
-{% for p in lista %}
-<tr>
-  <td><code>{{ p.par_clave }}</code></td>
-  <td class="text-break">{{ p.par_valor|default:"—" }}</td>
-  <td class="small">{{ p.par_desc }}</td>
-  <td class="small text-muted">{{ p.par_fec_mod|date:"d/m/Y h:i a" }}{% if p.usuario_mod %}<br>{{ p.usuario_mod }}{% endif %}</td>
-  <td><a class="btn btn-sm btn-outline-primary" href="{% url 'core:parametro_editar' p.pk %}">Editar</a></td>
-</tr>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0">Parámetros del sistema</h1>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'core:tareas' %}"><i class="bi bi-clock-history"></i> Tareas automáticas</a>
+</div>
+<p class="text-muted">Los parámetros no se crean ni se eliminan. Todo cambio queda en la bitácora de auditoría y, si afecta un cálculo automático (por ejemplo, el puntaje de necesidad), el sistema lo recalcula solo.</p>
+<nav class="sf-secciones mb-3" aria-label="Secciones de parámetros">
+  {% for s in secciones %}<a class="btn btn-sm btn-outline-secondary" href="#{{ s.nombre|slugify }}">{{ s.nombre }}</a>{% endfor %}
+</nav>
+{% for s in secciones %}
+<section id="{{ s.nombre|slugify }}" class="mb-4">
+  <h2 class="h5 mb-0">{{ s.nombre }}</h2>
+  {% if s.descripcion %}<p class="small text-muted mb-2">{{ s.descripcion }}</p>{% endif %}
+  <div class="table-responsive"><table class="table table-hover bg-white align-middle">
+  <thead><tr><th scope="col">Clave</th><th scope="col">Valor</th><th scope="col">Descripción</th><th scope="col">Modificado</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+  <tbody>
+  {% for p in s.items %}
+  <tr>
+    <td><code>{{ p.par_clave }}</code></td>
+    <td class="text-break" style="max-width:22rem">{{ p.par_valor|default:"—" }}</td>
+    <td class="small">{{ p.par_desc }}</td>
+    <td class="small text-muted text-nowrap">{{ p.par_fec_mod|date:"d/m/Y h:i a" }}{% if p.usuario_mod %}<br>{{ p.usuario_mod }}{% endif %}</td>
+    <td><a class="btn btn-sm btn-outline-primary" href="{% url 'core:parametro_editar' p.pk %}" aria-label="Editar {{ p.par_clave }}">Editar</a></td>
+  </tr>
+  {% endfor %}
+  </tbody></table></div>
+</section>
 {% endfor %}
-</tbody></table></div>
 {% endblock %}

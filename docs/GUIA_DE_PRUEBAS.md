@@ -88,10 +88,19 @@ Como `beneficiario@sysfood.local`:
 - [ ] `python manage.py respaldo` → crea `backups/sysfood_<fecha>.zip`.
 - [ ] Registre una donación nueva y luego ejecute `python manage.py restaurar backups/sysfood_<fecha>.zip` (escriba `SI`) → la donación nueva desaparece y todo vuelve al estado del respaldo, incluidos los documentos.
 
-## 10. Pruebas automáticas
+## 10. Puntaje y grupos de necesidad (mejora 1)
+
+- [ ] Como administrador abra *Usuarios › María Rodríguez*: la tarjeta **Puntaje de necesidad** muestra el puntaje, el grupo con su color y una barra por criterio con sus puntos. El enlace **¿Cómo se calcula?** abre la ayuda con la fórmula, los pesos vigentes, tres ejemplos y la nota de equidad.
+- [ ] *Editar* el beneficiario y cambie el estrato a 6 → el puntaje baja. En *Trazabilidad › Bitácora*, filtre por «Cálculo automático de puntaje»: aparece el puntaje anterior, el nuevo, el motivo «Cambio en los datos del beneficiario» y el desglose.
+- [ ] *Sistema › Parámetros › Grupos de necesidad*: cambie `grupos_necesidad` a `Urgente|50|#b42318; Normal|0|#2b8a3e`. Al guardar, un aviso indica cuántos beneficiarios se recalcularon y la bitácora registra los cambios de grupo («Clasificación automática por grupo»). Pruebe un valor sin grupo de mínimo 0 → error.
+- [ ] *Usuarios*: filtre por grupo y ordene por la columna **Necesidad**. *Solicitudes*: las pendientes salen ordenadas por puntaje (mayor primero) y se pueden filtrar por grupo.
+- [ ] *Sistema › Reportes › Beneficiarios por grupo de necesidad*: gráfico con los colores de cada grupo; exporte a PDF y Excel.
+- [ ] *Sistema › Tareas automáticas* → **Ejecutar ahora** en «Recálculo nocturno de puntajes». También: `python manage.py ejecutar_tareas --listar`.
+
+## 11. Pruebas automáticas
 
 ```bash
 python manage.py test
 ```
 
-Deben pasar las 119 pruebas (`OK`).
+Deben pasar todas las pruebas (`OK`).

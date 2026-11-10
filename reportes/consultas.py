@@ -8,7 +8,9 @@ from collections import Counter, OrderedDict
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from core import parametros
 from core.fechas import filtrar_rango, inicio_dia, inicio_dia_siguiente
+from core.formato import numero
 from donaciones.models import ANONIMO, Donacion
 from entregas.models import Entrega
 from inventario.models import Inventario
@@ -21,6 +23,7 @@ TIPOS = OrderedDict([
     ("vencidos", "Productos vencidos y retirados"),
     ("solicitudes", "Solicitudes y entregas por estado"),
     ("beneficiarios", "Beneficiarios por estado de verificación"),
+    ("necesidad", "Beneficiarios por grupo de necesidad"),
 ])
 
 
@@ -189,12 +192,42 @@ def reporte_beneficiarios(f):
     }
 
 
+def reporte_necesidad(f):
+    grupos = parametros.grupos()
+    nombres = {g["clave"]: g["nombre"] for g in grupos}
+    qs = _rango(PerfilBeneficiario.objects.select_related("usuario"), f, "usuario__usu_fec_reg")
+    if f.get("estado"):
+        qs = qs.filter(ben_grupo=f["estado"])
+    verif = dict(PerfilBeneficiario.ESTADOS_VERIF)
+    filas, conteo, suma = [], Counter(), Counter()
+    for b in qs.order_by("-ben_puntaje", "usuario__usu_nom"):
+        u = b.usuario
+        filas.append([u.usu_id, u.nombre_completo, numero(b.ben_puntaje, 1), nombres.get(b.ben_grupo, "Sin grupo"), b.get_ben_sisben_display(),
+                      b.ben_estrato, b.ben_num_personas, "Sí" if b.ben_discapacidad else "No", verif[b.ben_estado_verif], _fecha(b.ben_fec_puntaje)])
+        conteo[b.ben_grupo] += 1
+        suma[b.ben_grupo] += float(b.ben_puntaje or 0)
+    grafico = _grafico("bar", OrderedDict((g["clave"], conteo[g["clave"]]) for g in grupos), nombres, "Beneficiarios por grupo de necesidad")
+    grafico["colores"] = [g["color"] for g in grupos]
+    return {
+        "titulo": TIPOS["necesidad"],
+        "columnas": ["ID", "Nombre", "Puntaje", "Grupo", "Sisbén", "Estrato", "Personas", "Discapacidad", "Verificación", "Calculado"],
+        "filas": filas,
+        "grafico": grafico,
+        "resumen": [("Beneficiarios", len(filas))] + [
+            (f"{g['nombre']} (puntaje promedio {numero(suma[g['clave']] / conteo[g['clave']], 1) if conteo[g['clave']] else '—'})", conteo[g["clave"]])
+            for g in grupos
+        ],
+        "estados": [(g["clave"], g["nombre"]) for g in grupos],
+    }
+
+
 GENERADORES = {
     "donaciones": reporte_donaciones,
     "inventario": reporte_inventario,
     "vencidos": reporte_vencidos,
     "solicitudes": reporte_solicitudes,
     "beneficiarios": reporte_beneficiarios,
+    "necesidad": reporte_necesidad,
 }
 
 

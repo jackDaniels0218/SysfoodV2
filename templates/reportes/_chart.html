@@ -20,14 +20,14 @@ window.sfGrafico = function (id, tipo, datos, opciones) {
   var semantico = { "vigente": "#1f9d68", "disponible": "#1f9d68", "verificado": "#1f9d68", "aprobada": "#1f9d68", "entregada": "#3b82c4", "entregado": "#3b82c4",
     "próximo a vencer": "#ff8a3d", "reservada": "#ff8a3d", "pendiente": "#ffc83d", "en revisión": "#ffc83d",
     "vencido": "#d64545", "vencida": "#d64545", "rechazado": "#d64545", "rechazada": "#d64545", "cancelada": "#8a9a91", "cancelado": "#8a9a91" };
-  var colores = circular ? datos.etiquetas.map(function (e, i) { return semantico[String(e).toLowerCase()] || SF_COLORES[i % SF_COLORES.length]; }) : null;
+  var colores = datos.colores ? datos.colores : (circular ? datos.etiquetas.map(function (e, i) { return semantico[String(e).toLowerCase()] || SF_COLORES[i % SF_COLORES.length]; }) : null);
   var ctx = el.getContext("2d");
   var degradado = ctx.createLinearGradient(0, 0, 0, el.height || 260);
   degradado.addColorStop(0, "#2fbf7f"); degradado.addColorStop(1, "#0f6b46");
   new Chart(el, {
     type: tipo,
     data: { labels: datos.etiquetas, datasets: [{ label: (opciones && opciones.titulo) || "Cantidad", data: datos.datos,
-      backgroundColor: circular ? colores : degradado, borderColor: tipo === "line" ? "#1f9d68" : "transparent",
+      backgroundColor: colores || degradado, borderColor: tipo === "line" ? "#1f9d68" : "transparent",
       borderWidth: circular ? 3 : 0, borderRadius: circular ? 6 : 10, borderSkipped: false, tension: 0.35, fill: tipo === "line",
       hoverOffset: circular ? 10 : 0, cutout: tipo === "doughnut" ? "62%" : undefined }] },
     options: { responsive: true, maintainAspectRatio: false,

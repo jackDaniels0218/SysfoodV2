@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Solicitud #{{ s.pk }}{% endblock %}
 {% block contenido %}
 <h1 class="h3">Solicitud #{{ s.pk }} {% include "parciales/estado.html" with valor=s.sol_estado texto=s.get_sol_estado_display %}</h1>
@@ -17,6 +17,8 @@
       <dt class="col-6">Discapacidad</dt><dd class="col-6">{{ perfil.ben_discapacidad|yesno:"Sí,No" }}</dd>
       <dt class="col-6">Verificación</dt><dd class="col-6">{{ perfil.get_ben_estado_verif_display }}</dd>
     </dl>
+    <h3 class="h6 mt-3">Puntaje de necesidad</h3>
+    {% include "usuarios/_puntaje.html" with p=perfil %}
     {% if otras %}<h3 class="h6 mt-3">Solicitudes anteriores</h3><ul class="small mb-0">{% for o in otras %}<li><a href="{% url 'solicitudes:admin_detalle' o.pk %}">#{{ o.pk }}</a> {{ o.sol_fec_envio|date:"d/m/Y" }} · {{ o.get_sol_estado_display }}</li>{% endfor %}</ul>{% endif %}
   </div></div></div>
   <div class="col-lg-8">

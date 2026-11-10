@@ -55,6 +55,15 @@
       {% endwith %}
       {% endif %}
     </div></div>
+    {% if objeto.es_beneficiario %}
+    <div class="card mt-3"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <h2 class="h6 text-sysfood">Puntaje de necesidad</h2>
+        <form method="post" action="{% url 'usuarios:recalcular_puntaje' objeto.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" data-cargando="Recalculando…"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Recalcular</button></form>
+      </div>
+      {% include "usuarios/_puntaje.html" with p=objeto.perfil_beneficiario %}
+    </div></div>
+    {% endif %}
   </div>
   <div class="col-lg-7">
     {% if resumen %}

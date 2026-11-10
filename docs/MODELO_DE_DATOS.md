@@ -74,6 +74,10 @@ erDiagram
         bool ben_discapacidad
         varchar ben_estado_verif
         datetime ben_fec_verif
+        decimal ben_puntaje "0 a 100, automático"
+        varchar ben_grupo "grupo de necesidad"
+        json ben_puntaje_detalle "desglose por criterio"
+        datetime ben_fec_puntaje
     }
     documento_validacion {
         int docv_id PK
@@ -239,6 +243,26 @@ erDiagram
         int usu_id_mod FK
         datetime par_fec_mod
     }
+    tarea_programada {
+        varchar tar_nombre PK
+        datetime tar_ult_ejecucion
+        varchar tar_resultado
+        int tar_duracion_ms
+    }
+```
+
+## Puntaje y grupo de necesidad
+
+```mermaid
+flowchart LR
+    datos[Datos del beneficiario<br/>Sisbén, estrato, personas, discapacidad] --> calc
+    docs[Documentos aprobados<br/>certificado de discapacidad] --> calc
+    sol[Solicitudes recientes] --> calc
+    ent[Última entrega recibida] --> calc
+    par[(parametro<br/>pesos, escalas, grupos)] --> calc
+    calc{{Suma ponderada<br/>0 a 100}} --> ben[(beneficiario<br/>ben_puntaje, ben_grupo,<br/>ben_puntaje_detalle)]
+    calc --> bit[(bitacora<br/>calculo_puntaje / clasificacion)]
+    noche([Tarea nocturna]) --> calc
 ```
 
 ## Estados de la entrega

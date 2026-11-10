@@ -62,6 +62,9 @@ class Bitacora(_SoloInsercion):
         ("consulta_anonimo", "Consulta de identidad de donante anónimo"),
         ("recuperacion", "Recuperación de contraseña"),
         ("respaldo", "Respaldo"),
+        ("calculo_puntaje", "Cálculo automático de puntaje"),
+        ("clasificacion", "Clasificación automática por grupo"),
+        ("tarea_programada", "Tarea programada"),
     ]
 
     bit_id = models.BigAutoField(primary_key=True)
@@ -116,6 +119,8 @@ class TareaProgramada(models.Model):
 
     tar_nombre = models.CharField(max_length=60, primary_key=True)
     tar_ult_ejecucion = models.DateTimeField(null=True, blank=True)
+    tar_resultado = models.CharField("resultado", max_length=255, blank=True)
+    tar_duracion_ms = models.PositiveIntegerField("duración (ms)", null=True, blank=True)
 
     class Meta:
         db_table = "tarea_programada"

@@ -426,3 +426,16 @@ footer.sf-footer a:hover { color: var(--sf-green); }
   .card-body { padding: 1.1rem; }
 }
 @media print { .sf-header, .sf-aurora, #sf-progress, body::after { display: none !important; } body { background: #fff; } }
+
+/* ---------- Puntaje y grupos de necesidad ---------- */
+.badge.sf-grupo { font-weight: 700; letter-spacing: .01em; }
+.sf-badge-puntaje { display: inline-block; margin-left: .35em; padding: 0 .4em; border-radius: 999px; background: rgba(255,255,255,.28); font-variant-numeric: tabular-nums; }
+.sf-puntaje-total { display: flex; align-items: baseline; gap: .15rem; font-family: "Fraunces", serif; }
+.sf-puntaje-num { font-size: 2.6rem; font-weight: 700; line-height: 1; color: var(--sf-green); font-variant-numeric: tabular-nums; }
+.sf-puntaje-total small { color: var(--sf-muted); font-size: 1rem; }
+.sf-barras li { margin-bottom: .6rem; }
+.sf-barra { background: var(--sf-grad); transition: width .9s cubic-bezier(.2,.7,.2,1); }
+.sf-secciones { display: flex; flex-wrap: wrap; gap: .4rem; }
+section[id] { scroll-margin-top: 6rem; }
+.btn.sf-cargando { pointer-events: none; opacity: .75; }
+@media (prefers-reduced-motion: reduce) { .sf-barra { transition: none; } }
