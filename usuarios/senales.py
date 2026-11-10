@@ -1,15 +1,25 @@
-"""Recalculo automático del puntaje de necesidad cuando cambian sus datos de origen."""
-from django.db.models.signals import post_delete, post_save
+"""Reacciones automáticas a los cambios de datos:
+recálculo del puntaje de necesidad y geocodificación de la dirección."""
+from django.db.models.signals import post_delete, post_init, post_save
+
+
+def _recordar_direccion(sender, instance, **kwargs):
+    instance._dir_original = instance.__dict__.get("ben_dir")
 
 
 def _perfil(sender, instance, created, update_fields=None, raw=False, **kwargs):
     if raw:
         return
     if update_fields and set(update_fields) <= instance.CAMPOS_AUTOMATICOS:
-        return  # Cambios hechos por el propio sistema (verificación o puntaje): no afectan el cálculo.
-    from . import puntaje
+        return  # Cambios hechos por el propio sistema (verificación, puntaje, ubicación): no afectan el cálculo.
+    from . import puntaje, ubicacion
 
     puntaje.recalcular(instance, "Registro del beneficiario" if created else "Cambio en los datos del beneficiario")
+    if created and not instance.ubicado:
+        ubicacion.programar(instance.pk, "Registro del beneficiario")
+    elif not created and instance.ben_dir != getattr(instance, "_dir_original", instance.ben_dir):
+        ubicacion.marcar_cambio_direccion(instance, "Cambio de dirección")
+    instance._dir_original = instance.ben_dir
 
 
 def _documento(sender, instance, raw=False, **kwargs):
@@ -41,7 +51,9 @@ def _entrega(sender, instance, created, raw=False, **kwargs):
 def conectar():
     from django.apps import apps
 
-    post_save.connect(_perfil, sender=apps.get_model("usuarios", "PerfilBeneficiario"), dispatch_uid="puntaje_perfil")
+    Perfil = apps.get_model("usuarios", "PerfilBeneficiario")
+    post_init.connect(_recordar_direccion, sender=Perfil, dispatch_uid="geo_direccion_original")
+    post_save.connect(_perfil, sender=Perfil, dispatch_uid="puntaje_perfil")
     Documento = apps.get_model("usuarios", "DocumentoValidacion")
     post_save.connect(_documento, sender=Documento, dispatch_uid="puntaje_documento")
     post_delete.connect(_documento, sender=Documento, dispatch_uid="puntaje_documento_borrado")

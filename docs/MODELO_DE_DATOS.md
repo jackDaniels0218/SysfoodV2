@@ -78,6 +78,13 @@ erDiagram
         varchar ben_grupo "grupo de necesidad"
         json ben_puntaje_detalle "desglose por criterio"
         datetime ben_fec_puntaje
+        decimal ben_lat "solo admin"
+        decimal ben_lng "solo admin"
+        varchar ben_zona
+        varchar ben_geo_estado "pendiente|ubicado|reintentar|revision|manual"
+        int ben_geo_intentos
+        datetime ben_geo_fecha
+        varchar ben_geo_detalle
     }
     documento_validacion {
         int docv_id PK
@@ -243,12 +250,36 @@ erDiagram
         int usu_id_mod FK
         datetime par_fec_mod
     }
+    geo_cache {
+        bigint geo_id PK
+        varchar geo_direccion UK "normalizada"
+        bool geo_encontrada
+        decimal geo_lat
+        decimal geo_lng
+        varchar geo_zona
+        varchar geo_proveedor
+        datetime geo_fecha
+    }
     tarea_programada {
         varchar tar_nombre PK
         datetime tar_ult_ejecucion
         varchar tar_resultado
         int tar_duracion_ms
     }
+```
+
+## Ubicación del beneficiario
+
+```mermaid
+stateDiagram-v2
+    [*] --> pendiente : registro o cambio de dirección
+    pendiente --> ubicado : el proveedor (o la caché) la encuentra
+    pendiente --> reintentar : falla
+    reintentar --> ubicado : la tarea horaria reintenta
+    reintentar --> revision : supera geo_max_intentos (aviso al administrador)
+    revision --> manual : el administrador fija el punto
+    revision --> ubicado : el administrador corrige y pide «Ubicar de nuevo»
+    ubicado --> pendiente : cambia la dirección
 ```
 
 ## Puntaje y grupo de necesidad

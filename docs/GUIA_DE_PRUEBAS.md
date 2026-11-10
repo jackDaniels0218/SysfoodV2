@@ -97,7 +97,17 @@ Como `beneficiario@sysfood.local`:
 - [ ] *Sistema › Reportes › Beneficiarios por grupo de necesidad*: gráfico con los colores de cada grupo; exporte a PDF y Excel.
 - [ ] *Sistema › Tareas automáticas* → **Ejecutar ahora** en «Recálculo nocturno de puntajes». También: `python manage.py ejecutar_tareas --listar`.
 
-## 11. Pruebas automáticas
+## 11. Mapa de beneficiarios (mejora 2)
+
+- [ ] Como administrador, el **Panel** muestra el mapa de calor de Facatativá con los beneficiarios de demostración. **Abrir mapa completo** lleva a *Sistema › Mapa de beneficiarios*.
+- [ ] Use el control de capas (arriba a la derecha) para apagar y encender **Marcadores agrupados** y **Mapa de calor**. Al hacer clic en un punto se ven el grupo, el puntaje, las personas y las solicitudes.
+- [ ] Filtre por grupo, por verificación y por fechas: el número junto al título cambia.
+- [ ] **GeoJSON** y **CSV** descargan los puntos sin nombres; las coordenadas difieren de las reales (desplazamiento de hasta 300 m).
+- [ ] En *Trazabilidad › Bitácora* aparecen «Consulta del mapa de beneficiarios» y «Exportación del mapa de beneficiarios».
+- [ ] Como donante o beneficiario, abra `/reportes/mapa/` → *Acceso denegado*.
+- [ ] Registre un beneficiario con una dirección real de Facatativá: en unos segundos (con internet) su ficha muestra «Ubicado automáticamente». Cambie la dirección por `xyz inexistente 000`: queda «Falló, se reintentará». Con `geo_max_intentos` en 1, la tarea horaria (o **Ejecutar ahora** en *Tareas automáticas*) lo pasa a «Requiere revisión» y llega un aviso. En la ficha, haga clic en el mapa y guarde: «Ubicado por el administrador».
+
+## 12. Pruebas automáticas
 
 ```bash
 python manage.py test

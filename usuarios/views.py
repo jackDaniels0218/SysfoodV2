@@ -18,7 +18,7 @@ from core import parametros
 from core.permisos import solo_admin
 from core.servicios import auditar, enviar_correo
 
-from . import puntaje, servicios
+from . import puntaje, servicios, ubicacion
 from .forms import (
     AdminUsuarioForm, DocumentoForm, LoginForm, NuevaPasswordForm, PerfilBeneficiarioForm,
     PerfilDonanteForm, PerfilUsuarioForm, RecuperarForm, RegistroForm, RevisionDocumentoForm,
@@ -390,6 +390,7 @@ def revisar_usuario(request, pk):
         "resumen": servicios.resumen_documentos(usuario),
         "documentos": usuario.documentos.select_related("revisor"),
         "estados": Usuario.ESTADOS,
+        "mapa_config": ubicacion.configuracion_mapa() if usuario.es_beneficiario else None,
     })
 
 
@@ -404,6 +405,29 @@ def recalcular_puntaje(request, pk):
     else:
         messages.info(request, "Puntaje recalculado: no hubo cambios.")
     return redirect(reverse("usuarios:revisar_usuario", args=[pk]) + "#puntaje")
+
+
+@solo_admin
+@require_POST
+def ubicar(request, pk):
+    """El administrador corrige la ubicación (coordenadas) o pide reintentar la geocodificación."""
+    perfil = get_object_or_404(PerfilBeneficiario, pk=pk)
+    if request.POST.get("accion") == "reintentar":
+        PerfilBeneficiario.objects.filter(pk=pk).update(ben_geo_estado=PerfilBeneficiario.GEO_PENDIENTE, ben_geo_intentos=0)
+        estado = ubicacion.geocodificar_beneficiario(pk, "Reintento solicitado por el administrador")
+        if estado == PerfilBeneficiario.GEO_OK:
+            messages.success(request, "Dirección ubicada en el mapa.")
+        else:
+            messages.warning(request, "No se pudo ubicar la dirección. Corrija la dirección o indique las coordenadas.")
+    else:
+        lat = ubicacion.coordenada(request.POST.get("lat"), -90, 90)
+        lng = ubicacion.coordenada(request.POST.get("lng"), -180, 180)
+        if lat is None or lng is None:
+            messages.error(request, "Coordenadas inválidas. Use latitud entre -90 y 90 y longitud entre -180 y 180.")
+        else:
+            ubicacion.ubicar_manualmente(perfil, lat, lng, request.user, request)
+            messages.success(request, "Ubicación guardada.")
+    return redirect(reverse("usuarios:revisar_usuario", args=[pk]) + "#ubicacion")
 
 
 @login_required

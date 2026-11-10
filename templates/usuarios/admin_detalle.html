@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block titulo %}{{ objeto }}{% endblock %}
+{% block head %}{% if mapa_config %}{% include "parciales/leaflet.html" %}{% endif %}{% endblock %}
 {% block contenido %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h1 class="h3 mb-0">{{ objeto.nombre_completo }} <small class="text-muted fs-6">{{ objeto.get_usu_rol_display }}</small></h1>
@@ -63,6 +64,24 @@
       </div>
       {% include "usuarios/_puntaje.html" with p=objeto.perfil_beneficiario %}
     </div></div>
+    {% with p=objeto.perfil_beneficiario %}
+    <div class="card mt-3" id="ubicacion"><div class="card-body">
+      <h2 class="h6 text-sysfood">Ubicación en el mapa</h2>
+      <p class="small mb-1">{% include "parciales/estado.html" with valor=p.ben_geo_estado texto=p.get_ben_geo_estado_display %}
+        {% if p.ubicado %}<span class="text-muted">{{ p.ben_lat }}, {{ p.ben_lng }}{% if p.ben_zona %} · {{ p.ben_zona }}{% endif %}</span>{% endif %}</p>
+      {% if p.ben_geo_detalle %}<p class="small text-muted mb-2">{{ p.ben_geo_detalle }} · intento(s): {{ p.ben_geo_intentos }}{% if p.ben_geo_fecha %} · {{ p.ben_geo_fecha|date:"d/m/Y H:i" }}{% endif %}</p>{% endif %}
+      <div class="sf-mapa sf-mapa-mini mb-2" id="mapa-punto" role="region" aria-label="Ubicación del beneficiario"></div>
+      <form method="post" action="{% url 'usuarios:ubicar' objeto.pk %}" class="row g-2 align-items-end">{% csrf_token %}
+        <div class="col-5"><label class="form-label small" for="geo-lat">Latitud</label><input id="geo-lat" name="lat" class="form-control form-control-sm" inputmode="decimal" value="{{ p.ben_lat|default:'' }}"></div>
+        <div class="col-5"><label class="form-label small" for="geo-lng">Longitud</label><input id="geo-lng" name="lng" class="form-control form-control-sm" inputmode="decimal" value="{{ p.ben_lng|default:'' }}"></div>
+        <div class="col-2"><button class="btn btn-sm btn-sysfood w-100" aria-label="Guardar ubicación"><i class="bi bi-check-lg" aria-hidden="true"></i></button></div>
+      </form>
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <span class="small text-muted">Haga clic en el mapa para elegir el punto.</span>
+        <form method="post" action="{% url 'usuarios:ubicar' objeto.pk %}">{% csrf_token %}<input type="hidden" name="accion" value="reintentar"><button class="btn btn-sm btn-outline-secondary" data-cargando="Ubicando…"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Ubicar de nuevo</button></form>
+      </div>
+    </div></div>
+    {% endwith %}
     {% endif %}
   </div>
   <div class="col-lg-7">
@@ -75,4 +94,16 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+{% if mapa_config %}
+{{ mapa_config|json_script:"mapa-config" }}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  sfMapaPunto("mapa-punto", JSON.parse(document.getElementById("mapa-config").textContent),
+    {% if objeto.perfil_beneficiario.ubicado %}[{{ objeto.perfil_beneficiario.ben_lat|stringformat:"s" }}, {{ objeto.perfil_beneficiario.ben_lng|stringformat:"s" }}]{% else %}null{% endif %},
+    { lat: "geo-lat", lng: "geo-lng" });
+});
+</script>
+{% endif %}
 {% endblock %}

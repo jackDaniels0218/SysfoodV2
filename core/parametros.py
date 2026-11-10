@@ -28,7 +28,13 @@ GRUPOS = OrderedDict([
     ("Inventario", "Unidades, bodegas y vencimientos"),
     ("Puntaje de necesidad", "Pesos y escalas del puntaje automático de beneficiarios"),
     ("Grupos de necesidad", "Clasificación automática según el puntaje"),
+    ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
 ])
+
+# Valores permitidos de los parámetros de tipo «opcion».
+OPCIONES = {
+    "geo_proveedor": [("nominatim", "Nominatim (OpenStreetMap, gratuito)"), ("desactivado", "Desactivado")],
+}
 
 DEFINICIONES = OrderedDict([
     # --- General
@@ -81,6 +87,24 @@ DEFINICIONES = OrderedDict([
     ("solicitudes_orden_prioridad", _p(
         "si", "Ordenar las solicitudes pendientes por puntaje de necesidad (si) o solo por fecha de envío (no).", "booleano", "Grupos de necesidad",
     )),
+    # --- Mapa y geocodificación
+    ("geo_proveedor", _p("nominatim", "Servicio que convierte direcciones en coordenadas.", "opcion", "Mapa y geocodificación")),
+    ("geo_url", _p("https://nominatim.openstreetmap.org/search", "Dirección del servicio de geocodificación (compatible con Nominatim).", "url", "Mapa y geocodificación")),
+    ("geo_contexto", _p("Facatativá, Cundinamarca, Colombia", "Municipio, departamento y país que se agregan a las direcciones para ubicarlas.", "texto", "Mapa y geocodificación")),
+    ("geo_pais", _p("co", "Códigos de país (ISO) donde se buscan las direcciones, separados por comas.", "texto", "Mapa y geocodificación")),
+    ("geo_max_intentos", _p("5", "Intentos automáticos de geocodificación antes de marcar el caso para revisión.", "entero", "Mapa y geocodificación", 1, 20)),
+    ("mapa_tiles_url", _p("https://tile.openstreetmap.org/{z}/{x}/{y}.png", "Plantilla de las teselas del mapa base (proveedor gratuito).", "url", "Mapa y geocodificación")),
+    ("mapa_atribucion", _p("© colaboradores de OpenStreetMap", "Texto de atribución del mapa base.", "texto", "Mapa y geocodificación")),
+    ("mapa_centro", _p("4.8143,-74.3546", "Centro inicial del mapa (latitud,longitud).", "coordenadas", "Mapa y geocodificación")),
+    ("mapa_zoom", _p("13", "Acercamiento inicial del mapa (1 a 18).", "entero", "Mapa y geocodificación", 1, 18)),
+    ("mapa_desplazamiento_m", _p(
+        "300", "Desplazamiento aleatorio máximo, en metros, de los puntos al exportar el mapa (protege la ubicación exacta).",
+        "entero", "Mapa y geocodificación", 0, 5000,
+    )),
+    ("calor_peso_puntaje", _p("60", "Peso del puntaje de necesidad en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
+    ("calor_peso_solicitudes", _p("25", "Peso del número de solicitudes en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
+    ("calor_peso_personas", _p("15", "Peso de las personas en el hogar en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
+    ("calor_tope_solicitudes", _p("5", "Solicitudes a partir de las cuales ese componente del calor es máximo.", "entero", "Mapa y geocodificación", 1, 100)),
 ])
 
 TIPOS_AYUDA = {
@@ -88,6 +112,8 @@ TIPOS_AYUDA = {
     "grupos": "Formato: Nombre|mínimo|#color separados por punto y coma. Ejemplo: Alta|60|#d9480f; Baja|0|#2b8a3e.",
     "booleano": "Escriba si o no.",
     "lista": "Valores separados por comas.",
+    "coordenadas": "Formato: latitud,longitud con punto decimal. Ejemplo: 4.8143,-74.3546.",
+    "url": "Dirección completa que empieza por https://.",
 }
 
 
@@ -143,6 +169,23 @@ def escala(clave, cache=None):
         return _parse_escala(_valor(clave, cache))
     except ValidationError:
         return _parse_escala(DEFINICIONES[clave].valor)
+
+
+def coordenadas(clave, cache=None):
+    try:
+        return _parse_coordenadas(_valor(clave, cache))
+    except ValidationError:
+        return _parse_coordenadas(DEFINICIONES[clave].valor)
+
+
+def _parse_coordenadas(valor):
+    try:
+        lat, lng = (float(v) for v in (valor or "").split(","))
+    except ValueError:
+        raise ValidationError("Use el formato latitud,longitud. Ejemplo: 4.8143,-74.3546.")
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        raise ValidationError("Las coordenadas están fuera de rango.")
+    return lat, lng
 
 
 def grupos(clave="grupos_necesidad", cache=None):
@@ -272,6 +315,18 @@ def validar(clave, valor):
             if faltan:
                 raise ValidationError("Faltan los estratos: " + ", ".join(faltan) + ".")
         return ", ".join(f"{k}:{_numero(v)}" for k, v in escala_.items())
+    if tipo == "opcion":
+        permitidos = [k for k, _ in OPCIONES.get(clave, [])]
+        if valor not in permitidos:
+            raise ValidationError("Elija una de las opciones: " + ", ".join(permitidos) + ".")
+        return valor
+    if tipo == "coordenadas":
+        lat, lng = _parse_coordenadas(valor)
+        return f"{lat},{lng}"
+    if tipo == "url":
+        if not re.match(r"^https?://[^\s]+$", valor):
+            raise ValidationError("Escriba una dirección completa que empiece por http:// o https://.")
+        return valor
     if tipo == "grupos":
         grupos_ = _parse_grupos(valor)
         return "; ".join(f"{g['nombre']}|{_numero(g['minimo'])}|{g['color']}" for g in grupos_)

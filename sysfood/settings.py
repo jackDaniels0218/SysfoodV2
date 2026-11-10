@@ -128,6 +128,8 @@ if TESTING:
 
 # Procesos automáticos en segundo plano desde el middleware (ver core/tareas.py).
 TAREAS_AUTOMATICAS = env_bool("TAREAS_AUTOMATICAS", "1") and not TESTING
+# Geocodificación en un hilo aparte para no demorar el registro (en las pruebas es inmediata).
+GEOCODIFICACION_EN_HILO = not TESTING
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
      "OPTIONS": {"user_attributes": ("usu_correo", "usu_nom", "usu_ape")}},

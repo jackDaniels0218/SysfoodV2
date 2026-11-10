@@ -133,7 +133,7 @@ class PerfilDonanteForm(BootstrapMixin, forms.ModelForm):
 class PerfilBeneficiarioForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = PerfilBeneficiario
-        exclude = ["usuario", "ben_estado_verif", "ben_fec_verif"]
+        exclude = ["usuario", *sorted(PerfilBeneficiario.CAMPOS_AUTOMATICOS)]  # Los calcula el sistema, nunca el usuario.
         widgets = {"ben_fec_exp_doc": Fecha()}
 
     def __init__(self, *args, **kwargs):

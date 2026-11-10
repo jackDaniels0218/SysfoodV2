@@ -1,13 +1,16 @@
+import csv
+import io
 import json
 from collections import OrderedDict
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 
 from catalogo.models import Bodega, Categoria
+from core import parametros
 from core.fechas import inicio_dia
 from core.permisos import solo_admin
 from core.servicios import auditar
@@ -16,6 +19,7 @@ from donaciones.models import Donacion
 from entregas.models import Entrega
 from inventario.models import Inventario
 from solicitudes.models import Solicitud
+from usuarios import ubicacion
 from usuarios.models import DocumentoValidacion, PerfilBeneficiario, Usuario
 
 from . import consultas, exportar
@@ -60,6 +64,8 @@ def _dashboard_admin(request):
         "entregas": _conteo(Entrega.objects.all(), "ent_estado", Entrega.ESTADOS),
         "proximos": activo.filter(inv_est_venc=Inventario.PROXIMO).select_related("categoria").order_by("inv_fec_venc")[:8],
         "ultima_ejecucion": ultima_ejecucion(),
+        "mapa_config": ubicacion.configuracion_mapa(),
+        "geo_revision": PerfilBeneficiario.objects.filter(ben_geo_estado=PerfilBeneficiario.GEO_REVISION).count(),
     }
     contexto["g_donaciones"] = _grafico(contexto["donaciones"])
     contexto["g_entregas"] = _grafico(contexto["entregas"])
@@ -161,4 +167,75 @@ def exportar_reporte(request, formato):
         respuesta = HttpResponse(exportar.a_excel(datos, texto), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     respuesta["Content-Disposition"] = f'attachment; filename="{nombre}.{formato}"'
     auditar(request, "crear", "reporte", tipo, f"Exportación {formato.upper()}. {texto}")
+    return respuesta
+
+
+# ---------------------------------------------------------------- Mapa de beneficiarios (solo administrador)
+
+def _texto_filtros_mapa(filtros):
+    if not filtros:
+        return "sin filtros"
+    nombres = {g["clave"]: g["nombre"] for g in parametros.grupos()}
+    partes = []
+    if "grupo" in filtros:
+        partes.append(f"grupo {nombres.get(filtros['grupo'], filtros['grupo'])}")
+    if "verif" in filtros:
+        partes.append(f"verificación {dict(PerfilBeneficiario.ESTADOS_VERIF)[filtros['verif']]}")
+    if "desde" in filtros:
+        partes.append(f"desde {filtros['desde']}")
+    if "hasta" in filtros:
+        partes.append(f"hasta {filtros['hasta']}")
+    return ", ".join(partes)
+
+
+@solo_admin
+def mapa(request):
+    return render(request, "reportes/mapa.html", {
+        "grupos": parametros.grupos(), "verifs": PerfilBeneficiario.ESTADOS_VERIF,
+        "config": ubicacion.configuracion_mapa(), "resumen_geo": ubicacion.resumen_geo(),
+        "revision": PerfilBeneficiario.objects.filter(
+            ben_geo_estado__in=[PerfilBeneficiario.GEO_REVISION, PerfilBeneficiario.GEO_REINTENTAR]).select_related("usuario")[:20],
+        "desplazamiento": parametros.entero("mapa_desplazamiento_m"),
+    })
+
+
+@solo_admin
+def mapa_datos(request):
+    puntos, filtros = ubicacion.puntos(request.GET)
+    origen = "panel" if request.GET.get("origen") == "panel" else "mapa"
+    auditar(request, "consulta_mapa", "mapa", "",
+            f"Consulta del mapa ({origen}): {len(puntos)} punto(s), {_texto_filtros_mapa(filtros)}.")
+    respuesta = JsonResponse({"puntos": puntos, "total": len(puntos)})
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
+
+
+@solo_admin
+def mapa_exportar(request, formato):
+    if formato not in ("geojson", "csv"):
+        raise Http404
+    puntos, filtros = ubicacion.puntos(request.GET)
+    anonimos, metros = ubicacion.puntos_para_exportar(puntos)
+    nombre = f"sysfood_mapa_{timezone.localtime():%Y%m%d_%H%M}"
+    if formato == "geojson":
+        contenido = json.dumps({
+            "type": "FeatureCollection",
+            "properties": {"aviso": f"Ubicaciones desplazadas al azar hasta {metros} m para proteger la privacidad.",
+                           "filtros": _texto_filtros_mapa(filtros)},
+            "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [p["lng"], p["lat"]]},
+                          "properties": {k: v for k, v in p.items() if k not in ("lat", "lng")}} for p in anonimos],
+        }, ensure_ascii=False)
+        respuesta = HttpResponse(contenido, content_type="application/geo+json; charset=utf-8")
+    else:
+        salida = io.StringIO()
+        salida.write("﻿")
+        escritor = csv.writer(salida)
+        escritor.writerow(["latitud", "longitud", "grupo", "puntaje", "zona", "solicitudes", "personas", "peso_calor"])
+        for p in anonimos:
+            escritor.writerow([p["lat"], p["lng"], p["grupo"], p["puntaje"], p["zona"], p["solicitudes"], p["personas"], p["peso_calor"]])
+        respuesta = HttpResponse(salida.getvalue(), content_type="text/csv; charset=utf-8")
+    respuesta["Content-Disposition"] = f'attachment; filename="{nombre}.{formato}"'
+    auditar(request, "exportacion_mapa", "mapa", formato,
+            f"Exportación {formato.upper()} de {len(anonimos)} punto(s) desplazados hasta {metros} m, sin nombres. "
+            f"Filtros: {_texto_filtros_mapa(filtros)}.")
     return respuesta

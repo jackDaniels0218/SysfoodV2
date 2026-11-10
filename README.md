@@ -135,6 +135,7 @@ Todas usan la contraseña **`Sysfood2025*`**.
 | `empresa@sysfood.local` | Donante (persona jurídica) | Una donación **anónima** con 3 productos |
 | `beneficiario@sysfood.local` | Beneficiario **verificado** | Una solicitud pendiente |
 | `nuevo@sysfood.local` | Beneficiario **en revisión** | Documentos cargados esperando aprobación |
+| `vecino1@sysfood.local` … `vecino12@sysfood.local` | Beneficiarios ubicados en barrios de Facatativá | Alimentan el mapa de calor; varios con solicitudes |
 
 Si solo quiere el administrador, sin datos de prueba: `python manage.py cargar_demo --solo-admin`.
 
@@ -199,6 +200,21 @@ Los pesos suman 100, pero no es obligatorio: el sistema divide por su suma. Todo
 
 ---
 
+## 3.2 Mapa de beneficiarios y mapa de calor
+
+En el **panel del administrador** hay un mapa de calor y en **Sistema › Mapa de beneficiarios** (`/reportes/mapa/`) está el mapa completo:
+
+- **Geocodificación automática.** Al registrarse un beneficiario o cambiar su dirección, el sistema obtiene sus coordenadas sin que nadie intervenga: usa [Nominatim](https://nominatim.org/) (OpenStreetMap, gratuito) en segundo plano y guarda cada dirección en una **caché** (`geo_cache`) para no repetir consultas. Respeta la política de uso del servicio: una consulta por segundo y un agente de usuario propio. Solo envía la dirección.
+- **Si falla**, la tarea horaria *Geocodificación de direcciones* reintenta. Tras `geo_max_intentos` intentos el caso queda **en revisión**, los administradores reciben un aviso y el beneficiario aparece en «Direcciones por revisar». El administrador puede corregir la dirección, pulsar **Ubicar de nuevo** o hacer clic en el mapa para fijar el punto a mano.
+- **Capas conmutables:** marcadores agrupados (clusters) con el color del grupo de necesidad, y mapa de calor.
+- **Calor ponderado por la concurrencia de necesidad:** `peso = (60·puntaje/100 + 25·min(solicitudes/5, 1) + 15·min(personas/8, 1)) ÷ 100`. Pesos y topes en *Parámetros › Mapa y geocodificación*.
+- **Filtros:** grupo de necesidad, estado de verificación y fechas. Las fechas cuentan solo las solicitudes enviadas en ese periodo, y con un rango solo aparecen los beneficiarios que solicitaron en él.
+- **Librerías locales:** Leaflet 1.9.4, Leaflet.markercluster 1.5.3 y Leaflet.heat 0.2.0 en `static/vendor/leaflet`. Las teselas del mapa base vienen de OpenStreetMap (`mapa_tiles_url`), así que necesitan internet; sin conexión los puntos se siguen viendo sobre un fondo vacío.
+
+**Privacidad.** Solo el administrador ve el mapa: donantes y beneficiarios reciben *Acceso denegado*, y los datos se sirven con `Cache-Control: private, no-store`. Cada consulta queda en la bitácora («Consulta del mapa de beneficiarios»), con el número de puntos y los filtros. Las exportaciones (**GeoJSON** y **CSV**) **no incluyen nombres, documentos ni enlaces**. Además, cada punto se **desplaza al azar** hasta `mapa_desplazamiento_m` metros (300 por defecto), de manera uniforme dentro de un círculo. Cada exportación también queda en la bitácora.
+
+---
+
 ## 4. Pruebas automáticas
 
 El proyecto incluye **119 pruebas** que cubren los 22 requerimientos: funcionales, seguridad, rendimiento, integridad y respaldo.
@@ -227,6 +243,7 @@ El sistema decide y actúa solo. Todas las tareas están en un único registro (
 | --- | --- | --- |
 | `control_vencimientos` | diaria | Vigencia del inventario, documentos vencidos y avisos (Actividad 12) |
 | `recalculo_puntajes` | diaria (nocturna) | Recalcula el puntaje y el grupo de todos los beneficiarios |
+| `geocodificacion` | horaria | Ubica a los beneficiarios pendientes y reintenta los fallidos |
 
 Cada tarea corre **una sola vez por periodo**, aunque varias fuentes intenten lanzarla. Se ejecutan de tres formas:
 

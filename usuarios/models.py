@@ -184,8 +184,24 @@ class PerfilBeneficiario(models.Model):
     ben_grupo = models.CharField("grupo de necesidad", max_length=30, blank=True, db_index=True)
     ben_puntaje_detalle = models.JSONField("desglose del puntaje", default=list, blank=True)
     ben_fec_puntaje = models.DateTimeField("fecha del cálculo", null=True, blank=True)
+    # Ubicación automática (usuarios/ubicacion.py). Solo la ve el administrador.
+    GEO_PENDIENTE, GEO_OK, GEO_REINTENTAR, GEO_REVISION, GEO_MANUAL = "pendiente", "ubicado", "reintentar", "revision", "manual"
+    ESTADOS_GEO = [
+        (GEO_PENDIENTE, "Pendiente"), (GEO_OK, "Ubicado automáticamente"), (GEO_REINTENTAR, "Falló, se reintentará"),
+        (GEO_REVISION, "Requiere revisión"), (GEO_MANUAL, "Ubicado por el administrador"),
+    ]
+    ben_lat = models.DecimalField("latitud", max_digits=9, decimal_places=6, null=True, blank=True)
+    ben_lng = models.DecimalField("longitud", max_digits=9, decimal_places=6, null=True, blank=True)
+    ben_zona = models.CharField("zona o barrio", max_length=80, blank=True, db_index=True)
+    ben_geo_estado = models.CharField("estado de la ubicación", max_length=12, choices=ESTADOS_GEO, default=GEO_PENDIENTE, db_index=True)
+    ben_geo_intentos = models.PositiveSmallIntegerField("intentos de geocodificación", default=0)
+    ben_geo_fecha = models.DateTimeField("último intento de geocodificación", null=True, blank=True)
+    ben_geo_detalle = models.CharField("resultado de la geocodificación", max_length=255, blank=True)
 
-    CAMPOS_AUTOMATICOS = {"ben_estado_verif", "ben_fec_verif", "ben_puntaje", "ben_grupo", "ben_puntaje_detalle", "ben_fec_puntaje"}
+    CAMPOS_AUTOMATICOS = {
+        "ben_estado_verif", "ben_fec_verif", "ben_puntaje", "ben_grupo", "ben_puntaje_detalle", "ben_fec_puntaje",
+        "ben_lat", "ben_lng", "ben_zona", "ben_geo_estado", "ben_geo_intentos", "ben_geo_fecha", "ben_geo_detalle",
+    }
 
     class Meta:
         db_table = "beneficiario"
@@ -200,6 +216,10 @@ class PerfilBeneficiario(models.Model):
             models.CheckConstraint(
                 condition=models.Q(ben_puntaje__isnull=True) | models.Q(ben_puntaje__gte=0, ben_puntaje__lte=100), name="ben_puntaje_rango",
             ),
+            models.CheckConstraint(
+                condition=models.Q(ben_lat__isnull=True) | models.Q(ben_lat__gte=-90, ben_lat__lte=90, ben_lng__gte=-180, ben_lng__lte=180),
+                name="ben_coordenadas_rango",
+            ),
         ]
 
     def clean(self):
@@ -209,6 +229,10 @@ class PerfilBeneficiario(models.Model):
     @property
     def verificado(self):
         return self.ben_estado_verif == self.VERIFICADO
+
+    @property
+    def ubicado(self):
+        return self.ben_lat is not None and self.ben_lng is not None
 
     @property
     def grupo(self):

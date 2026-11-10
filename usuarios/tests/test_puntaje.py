@@ -195,6 +195,12 @@ class InterfazPuntajeTests(PruebaBase):
             self.assertEqual(r.status_code, 200)
             self.assertTrue(r.content)
 
+    def test_beneficiario_no_puede_fijar_su_puntaje_ni_ubicacion(self):
+        from usuarios.forms import PerfilBeneficiarioForm
+
+        campos = set(PerfilBeneficiarioForm().fields)
+        self.assertFalse(campos & PerfilBeneficiario.CAMPOS_AUTOMATICOS)
+
     def test_beneficiario_no_ve_detalle_de_otros(self):
         self.ingresar(self.alto)
         r = self.client.get(reverse("usuarios:revisar_usuario", args=[self.bajo.pk]))

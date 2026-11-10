@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% load sysfood %}
+{% block titulo %}Mapa de beneficiarios{% endblock %}
+{% block head %}{% include "parciales/leaflet.html" %}{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <h1 class="h3 mb-0"><i class="bi bi-geo-alt" aria-hidden="true"></i> Mapa de beneficiarios <span class="badge bg-light text-dark border" id="total-puntos" aria-label="Puntos en el mapa">…</span></h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" data-exportar-mapa data-base="{% url 'reportes:mapa_exportar' 'geojson' %}" href="{% url 'reportes:mapa_exportar' 'geojson' %}"><i class="bi bi-download" aria-hidden="true"></i> GeoJSON</a>
+    <a class="btn btn-outline-success btn-sm" data-exportar-mapa data-base="{% url 'reportes:mapa_exportar' 'csv' %}" href="{% url 'reportes:mapa_exportar' 'csv' %}"><i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</a>
+  </div>
+</div>
+<p class="small text-muted"><i class="bi bi-shield-lock" aria-hidden="true"></i> Solo el administrador ve este mapa; cada consulta queda en la bitácora. Las exportaciones no incluyen nombres y desplazan cada punto al azar hasta {{ desplazamiento }} m. El calor combina puntaje de necesidad, número de solicitudes y personas en el hogar.</p>
+<form id="filtros-mapa" class="row g-2 mb-3" aria-label="Filtrar el mapa">
+  <div class="col-6 col-md-3"><label class="form-label small" for="m-grupo">Grupo de necesidad</label><select id="m-grupo" name="grupo" class="form-select form-select-sm"><option value="">Todos</option>{% for g in grupos %}<option value="{{ g.clave }}" {% if request.GET.grupo == g.clave %}selected{% endif %}>{{ g.nombre }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-3"><label class="form-label small" for="m-verif">Verificación</label><select id="m-verif" name="verif" class="form-select form-select-sm"><option value="">Todas</option>{% for k, v in verifs %}<option value="{{ k }}" {% if request.GET.verif == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="form-label small" for="m-desde">Solicitudes desde</label><input id="m-desde" type="date" name="desde" value="{{ request.GET.desde }}" class="form-control form-control-sm"></div>
+  <div class="col-6 col-md-2"><label class="form-label small" for="m-hasta">Hasta</label><input id="m-hasta" type="date" name="hasta" value="{{ request.GET.hasta }}" class="form-control form-control-sm"></div>
+  <div class="col-12 col-md-2 d-flex align-items-end"><button class="btn btn-sm btn-sysfood w-100">Aplicar</button></div>
+</form>
+<div class="row g-3">
+  <div class="col-xl-9"><div class="sf-mapa sf-mapa-grande" id="mapa" role="region" aria-label="Mapa de beneficiarios"></div></div>
+  <div class="col-xl-3">
+    <div class="card mb-3"><div class="card-body small">
+      <h2 class="h6">Geocodificación automática</h2>
+      {% for clave, nombre, n in resumen_geo %}<div class="d-flex justify-content-between border-bottom py-1"><span>{{ nombre }}</span><strong>{{ n }}</strong></div>{% endfor %}
+      <a class="d-inline-block mt-2" href="{% url 'core:tareas' %}">Ver tarea programada</a>
+    </div></div>
+    <div class="card"><div class="card-body small">
+      <h2 class="h6">Direcciones por revisar</h2>
+      {% for p in revision %}<div class="py-1 border-bottom"><a href="{% url 'usuarios:revisar_usuario' p.pk %}#ubicacion">{{ p.usuario.nombre_completo }}</a><div class="text-muted">{{ p.get_ben_geo_estado_display }} · {{ p.ben_geo_detalle|truncatechars:60 }}</div></div>
+      {% empty %}<p class="text-muted mb-0">Ninguna. Todas las direcciones se ubicaron solas.</p>{% endfor %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ config|json_script:"mapa-config" }}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  sfMapa("mapa", {
+    config: JSON.parse(document.getElementById("mapa-config").textContent),
+    datosUrl: "{% url 'reportes:mapa_datos' %}", formulario: "filtros-mapa",
+    total: document.getElementById("total-puntos"),
+    leyenda: [{% for g in grupos %}{nombre: "{{ g.nombre|escapejs }}", color: "{{ g.color }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+  });
+});
+</script>
+{% endblock %}

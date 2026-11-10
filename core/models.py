@@ -65,6 +65,9 @@ class Bitacora(_SoloInsercion):
         ("calculo_puntaje", "Cálculo automático de puntaje"),
         ("clasificacion", "Clasificación automática por grupo"),
         ("tarea_programada", "Tarea programada"),
+        ("geocodificacion", "Geocodificación automática"),
+        ("consulta_mapa", "Consulta del mapa de beneficiarios"),
+        ("exportacion_mapa", "Exportación del mapa de beneficiarios"),
     ]
 
     bit_id = models.BigAutoField(primary_key=True)
@@ -124,3 +127,20 @@ class TareaProgramada(models.Model):
 
     class Meta:
         db_table = "tarea_programada"
+
+
+class GeoCache(models.Model):
+    """Caché de geocodificación: una dirección normalizada se consulta al proveedor una sola vez."""
+
+    geo_id = models.BigAutoField(primary_key=True)
+    geo_direccion = models.CharField("dirección normalizada", max_length=255, unique=True)
+    geo_encontrada = models.BooleanField("encontrada", default=True)
+    geo_lat = models.DecimalField("latitud", max_digits=9, decimal_places=6, null=True, blank=True)
+    geo_lng = models.DecimalField("longitud", max_digits=9, decimal_places=6, null=True, blank=True)
+    geo_zona = models.CharField("zona o barrio", max_length=80, blank=True)
+    geo_proveedor = models.CharField("proveedor", max_length=30)
+    geo_fecha = models.DateTimeField("fecha", auto_now=True)
+
+    class Meta:
+        db_table = "geo_cache"
+        verbose_name = "dirección geocodificada"

@@ -1,8 +1,10 @@
 """Fábricas de datos para las pruebas."""
+import hashlib
 import shutil
 import tempfile
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -97,6 +99,22 @@ def crear_donacion(donante, productos=None, anonima=False, categoria=None):
     return don_srv.registrar(Donacion(donante=donante, dona_anonima=anonima), detalles, donante)
 
 
+def geocodificador_falso(consulta):
+    """Proveedor de mapas de prueba: nunca sale a internet.
+    «inexistente» → no se encuentra; «sin servicio» → fallo temporal; lo demás → punto estable cerca de Facatativá."""
+    from core.geocodificacion import ErrorGeocodificacion, Resultado
+
+    texto = consulta.lower()
+    if "inexistente" in texto:
+        return Resultado(False, fuente="prueba")
+    if "sin servicio" in texto:
+        raise ErrorGeocodificacion("Servicio de prueba caído")
+    h = int(hashlib.sha256(texto.encode()).hexdigest()[:8], 16)
+    lat = Decimal("4.81") + Decimal(h % 1000) / Decimal(100000)
+    lng = Decimal("-74.35") - Decimal((h // 1000) % 1000) / Decimal(100000)
+    return Resultado(True, lat.quantize(Decimal("0.000001")), lng.quantize(Decimal("0.000001")), "Centro", "prueba")
+
+
 class _ConAlmacenamientoTemporal:
     """Usa una carpeta temporal como almacenamiento protegido."""
 
@@ -110,11 +128,14 @@ class _ConAlmacenamientoTemporal:
             ALLOWED_HOSTS=["testserver", "localhost"],
         )
         cls._override.enable()
+        cls._geo = mock.patch.dict("core.geocodificacion.PROVEEDORES", {"nominatim": geocodificador_falso})
+        cls._geo.start()
         super().setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
+        cls._geo.stop()
         cls._override.disable()
         shutil.rmtree(cls._tmp, ignore_errors=True)
 
