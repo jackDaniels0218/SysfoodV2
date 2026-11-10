@@ -73,3 +73,137 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+/* ==========================================================================
+   Experiencia visual: tema, progreso de lectura, animaciones de entrada,
+   contadores, brillo que sigue al cursor y ondas en los botones.
+   Todo respeta «reducir movimiento» del sistema.
+   ========================================================================== */
+(function () {
+  "use strict";
+  var sinMovimiento = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var raiz = document.documentElement;
+
+  // --- Modo claro / oscuro ---
+  var botonTema = document.getElementById("sf-tema");
+  if (botonTema) {
+    botonTema.addEventListener("click", function () {
+      var nuevo = raiz.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
+      raiz.setAttribute("data-bs-theme", nuevo);
+      try { localStorage.setItem("sf-tema", nuevo); } catch (e) {}
+      document.dispatchEvent(new CustomEvent("sf-tema", { detail: nuevo }));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // --- Barra de progreso de lectura ---
+    var barra = document.getElementById("sf-progress");
+    if (barra) {
+      var pendiente = false;
+      var actualizar = function () {
+        var alto = document.documentElement.scrollHeight - window.innerHeight;
+        barra.style.width = (alto > 0 ? Math.min(100, (window.scrollY / alto) * 100) : 0) + "%";
+        pendiente = false;
+      };
+      window.addEventListener("scroll", function () { if (!pendiente) { pendiente = true; requestAnimationFrame(actualizar); } }, { passive: true });
+      actualizar();
+    }
+
+    // --- Enlace activo en el menú ---
+    var ruta = location.pathname;
+    var mejor = null;
+    document.querySelectorAll(".sf-nav a.nav-link[href], .sf-nav a.dropdown-item[href]").forEach(function (a) {
+      var h = a.getAttribute("href");
+      if (!h || h === "#" || h === "/") { return; }
+      if (ruta === h || ruta.indexOf(h) === 0) {
+        if (!mejor || h.length > mejor.getAttribute("href").length) { mejor = a; }
+      }
+    });
+    if (mejor) {
+      var objetivo = mejor.classList.contains("dropdown-item") ? mejor.closest(".dropdown").querySelector(".dropdown-toggle") : mejor;
+      if (objetivo) { objetivo.classList.add("activo"); }
+    }
+
+    // --- Aparición escalonada al hacer scroll ---
+    var candidatos = document.querySelectorAll("main .card, main .table-responsive, main .list-group, main .pasos, main .alert-info, main .ruta-item, main .marquee, main h1, main .tarjeta-indicador, main .producto-card");
+    var elementos = [];
+    candidatos.forEach(function (el) {
+      if (el.closest(".reveal") && el.closest(".reveal") !== el) { return; }
+      if (el.closest("[data-formset], template, .seccion-rol")) { return; }
+      el.classList.add("reveal");
+      elementos.push(el);
+    });
+    if (!("IntersectionObserver" in window) || sinMovimiento) {
+      elementos.forEach(function (el) { el.classList.add("in"); });
+    } else {
+      var lote = 0, temporizador = null;
+      var io = new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (e) {
+          if (!e.isIntersecting) { return; }
+          e.target.style.setProperty("--d", Math.min(lote * 0.07, 0.5) + "s");
+          lote += 1;
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+          // Terminada la entrada, se libera el elemento para que el hover sea ágil.
+          (function (el) { setTimeout(function () { el.classList.remove("reveal", "in"); el.style.removeProperty("--d"); }, 1400); })(e.target);
+        });
+        clearTimeout(temporizador);
+        temporizador = setTimeout(function () { lote = 0; }, 120);
+      }, { threshold: 0.08, rootMargin: "0px 0px -4% 0px" });
+      elementos.forEach(function (el) { io.observe(el); });
+    }
+
+    // --- Contadores animados ---
+    document.querySelectorAll(".numero").forEach(function (el) {
+      var texto = el.textContent.trim();
+      if (!/^\d+$/.test(texto)) { return; }
+      var meta = parseInt(texto, 10);
+      if (sinMovimiento || meta === 0) { return; }
+      el.textContent = "0";
+      var iniciado = false;
+      var correr = function () {
+        if (iniciado) { return; }
+        iniciado = true;
+        var t0 = performance.now(), dur = 900 + Math.min(meta, 500) * 1.2;
+        (function paso(t) {
+          var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(meta * e);
+          if (p < 1) { requestAnimationFrame(paso); } else { el.textContent = meta; }
+        })(t0);
+      };
+      if ("IntersectionObserver" in window) {
+        var o = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { correr(); o.disconnect(); } }, { threshold: 0.4 });
+        o.observe(el);
+      } else { correr(); }
+    });
+
+    // --- Brillo que sigue al cursor en las tarjetas ---
+    document.querySelectorAll(".tarjeta-indicador, .producto-card, .feature-card").forEach(function (c) {
+      c.addEventListener("pointermove", function (e) {
+        var r = c.getBoundingClientRect();
+        c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+        c.style.setProperty("--my", (e.clientY - r.top) + "px");
+      });
+    });
+
+    // --- Onda al pulsar botones ---
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest(".btn-sysfood, .btn-warm, .btn-success, .btn-light");
+      if (!b || sinMovimiento) { return; }
+      var r = b.getBoundingClientRect(), d = Math.max(r.width, r.height);
+      var s = document.createElement("span");
+      s.className = "sf-ripple";
+      s.style.cssText = "width:" + d + "px;height:" + d + "px;left:" + (e.clientX - r.left - d / 2) + "px;top:" + (e.clientY - r.top - d / 2) + "px";
+      b.appendChild(s);
+      setTimeout(function () { s.remove(); }, 650);
+    });
+
+    // --- Los avisos de éxito se retiran solos ---
+    document.querySelectorAll(".alert-success.alert-dismissible, .alert-info.alert-dismissible").forEach(function (a) {
+      setTimeout(function () {
+        a.classList.add("sf-saliendo");
+        setTimeout(function () { a.remove(); }, 520);
+      }, 7000);
+    });
+  });
+})();

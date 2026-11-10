@@ -80,6 +80,9 @@ Como `beneficiario@sysfood.local`:
 - [ ] Abra el sistema en Chrome, Edge y Firefox.
 - [ ] Con las herramientas de desarrollador (F12 → modo dispositivo) o en un celular real: el menú se convierte en botón ☰, las tablas se desplazan horizontalmente y los formularios ocupan todo el ancho.
 
+- [ ] **Modo oscuro:** el botón de sol/luna de la barra cambia el tema; al recargar la página se conserva.
+- [ ] **Animaciones:** al abrir el panel del administrador los números suben desde 0, las tarjetas aparecen escalonadas y los gráficos se dibujan. Con «reducir movimiento» activado en el sistema operativo todo aparece de inmediato.
+
 ## 9. Respaldo (Actividad 22)
 
 - [ ] `python manage.py respaldo` → crea `backups/sysfood_<fecha>.zip`.

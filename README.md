@@ -7,7 +7,20 @@ Conecta a **donantes** (personas naturales o jurídicas, públicos o anónimos) 
 - **Funciona en:** Windows, Linux y macOS · Chrome, Edge y Firefox · computador, tableta y celular
 - **Interfaz:** en español
 
-![Panel del administrador](docs/capturas/panel_admin.png)
+![Página de bienvenida](docs/capturas/bienvenida.png)
+
+| Panel del administrador (modo claro) | Panel del administrador (modo oscuro) |
+| --- | --- |
+| ![Panel claro](docs/capturas/panel_admin.png) | ![Panel oscuro](docs/capturas/panel_admin_oscuro.png) |
+
+### Diseño de la interfaz
+
+Estilo propio «Cosecha»: crema cálido, verde bosque y naranja cítrico, con tipografía editorial (Fraunces y Plus Jakarta Sans, incluidas en el proyecto: no necesita internet).
+
+- **Modo claro y oscuro** con un botón en la barra; recuerda su elección y respeta la preferencia del sistema.
+- **Animaciones:** fondo aurora en movimiento, barra de navegación de cristal flotante, aparición escalonada de las tarjetas al hacer scroll, contadores que suben hasta su valor, gráficos que se dibujan, brillo que sigue al cursor, ondas en los botones, avisos que entran y se retiran solos, y pasos de entrega con pulso.
+- **Accesible:** si el sistema operativo tiene activado «reducir movimiento», las animaciones se desactivan.
+- Funciona en computador, tableta y celular.
 
 ---
 

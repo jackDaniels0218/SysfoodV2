@@ -1,24 +1,63 @@
 {% extends "base.html" %}
 {% block titulo %}Bienvenido{% endblock %}
 {% block contenido %}
-<section class="hero p-4 p-md-5 mb-4">
-  <h1 class="display-6 fw-bold">Donaciones de alimentos transparentes y trazables</h1>
-  <p class="lead mb-4">SysFood conecta a donantes con familias en condición de vulnerabilidad, bajo la supervisión de un administrador que verifica cada paso.</p>
-  <a class="btn btn-light btn-lg me-2 mb-2" href="{% url 'usuarios:registro' %}">Crear una cuenta</a>
-  <a class="btn btn-outline-light btn-lg mb-2" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
+<section class="hero-sf mb-5">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <span class="hero-chip sf-entra mb-3"><i class="bi bi-stars"></i> Donaciones transparentes y trazables</span>
+      <h1 class="sf-entra" style="animation-delay:.1s">Que ningún alimento se pierda y <em>ninguna familia</em> se quede sin mesa.</h1>
+      <p class="lead mt-3 mb-4 sf-entra" style="animation-delay:.2s">SysFood conecta a quienes donan con quienes lo necesitan, y un administrador verifica cada paso: del estante a la puerta de casa.</p>
+      <div class="d-flex flex-wrap gap-2 sf-entra" style="animation-delay:.3s">
+        <a class="btn btn-light btn-lg" href="{% url 'usuarios:registro' %}"><i class="bi bi-rocket-takeoff"></i> Crear una cuenta</a>
+        <a class="btn btn-outline-light btn-lg" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="hero-flota" aria-hidden="true">
+        <div class="flota f1"><span class="ico"><i class="bi bi-gift-fill"></i></span><div>Nueva donación<small>Arroz · 50 kg · vence en 240 días</small></div></div>
+        <div class="flota f2"><span class="ico"><i class="bi bi-hourglass-split"></i></span><div>Próximo a vencer<small>Entrega prioritaria</small></div></div>
+        <div class="flota f3"><span class="ico"><i class="bi bi-truck"></i></span><div>Entrega en camino<small>Código SF-8KQ2M7XA</small></div></div>
+      </div>
+    </div>
+  </div>
 </section>
-<div class="row g-3">
-  <div class="col-md-4"><div class="card h-100"><div class="card-body">
-    <h2 class="h5"><i class="bi bi-gift text-sysfood"></i> Donantes</h2>
-    <p class="mb-0">Personas o empresas registran sus productos, de forma pública o anónima, y siguen su recorrido hasta la entrega.</p>
+
+<div class="marquee mb-5" aria-hidden="true">
+  <div class="marquee-track">
+    {% for _ in "12" %}
+    <span><i class="bi bi-circle-fill"></i>Donantes públicos o anónimos</span>
+    <span><i class="bi bi-circle-fill"></i>Verificación con documentos</span>
+    <span><i class="bi bi-circle-fill"></i>Control de vencimientos</span>
+    <span><i class="bi bi-circle-fill"></i>Kardex de inventario</span>
+    <span><i class="bi bi-circle-fill"></i>Seguimiento con código</span>
+    <span><i class="bi bi-circle-fill"></i>Reportes en PDF y Excel</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="row g-4 mb-5">
+  <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body">
+    <div class="feature-ico"><i class="bi bi-gift"></i></div>
+    <h2 class="h5">Donantes</h2>
+    <p class="mb-0 text-muted">Personas o empresas registran sus productos, de forma pública o anónima, y siguen su recorrido hasta la entrega sin ver datos del beneficiario.</p>
   </div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body">
-    <h2 class="h5"><i class="bi bi-people text-sysfood"></i> Beneficiarios</h2>
-    <p class="mb-0">Verifican su cuenta con documentos, arman un carrito de hasta 5 productos y siguen la entrega con un código.</p>
+  <div class="col-md-4"><div class="card feature-card calido h-100"><div class="card-body">
+    <div class="feature-ico"><i class="bi bi-people"></i></div>
+    <h2 class="h5">Beneficiarios</h2>
+    <p class="mb-0 text-muted">Verifican su cuenta con documentos, arman un carrito de hasta 5 productos y consultan su entrega con un código de seguimiento.</p>
   </div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body">
-    <h2 class="h5"><i class="bi bi-shield-check text-sysfood"></i> Administración</h2>
-    <p class="mb-0">Control de inventario y vencimientos, aprobación de solicitudes, trazabilidad completa y reportes.</p>
+  <div class="col-md-4"><div class="card feature-card azul h-100"><div class="card-body">
+    <div class="feature-ico"><i class="bi bi-shield-check"></i></div>
+    <h2 class="h5">Administración</h2>
+    <p class="mb-0 text-muted">Controla el inventario y sus vencimientos, aprueba solicitudes, consulta la trazabilidad completa y genera reportes.</p>
   </div></div></div>
+</div>
+
+<h2 class="h3 text-center mb-4">Así funciona</h2>
+<div class="ruta mb-4 pt-2">
+  <div class="ruta-item"><h3>Se dona</h3><p>El donante registra productos con su fecha de vencimiento y entran solos al inventario.</p></div>
+  <div class="ruta-item"><h3>Se verifica</h3><p>El beneficiario carga sus documentos y el administrador los aprueba.</p></div>
+  <div class="ruta-item"><h3>Se solicita</h3><p>Arma su carrito y envía la solicitud. El administrador la aprueba y se reservan las cantidades.</p></div>
+  <div class="ruta-item"><h3>Se entrega</h3><p>La entrega avanza por estados hasta llegar, y todo queda registrado.</p></div>
 </div>
 {% endblock %}

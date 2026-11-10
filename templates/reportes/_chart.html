@@ -1,17 +1,40 @@
 {% load static %}
 <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
-window.SF_COLORES = ["#1f7a4d", "#2f6fb0", "#d08a1e", "#b23b3b", "#6b5ca5", "#3c8d8d", "#8a8a8a"];
+window.SF_COLORES = ["#1f9d68", "#ff8a3d", "#3b82c4", "#d64545", "#7b61c9", "#ffc83d", "#8a9a91"];
+(function () {
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+  function aplicarTema() {
+    Chart.defaults.font.family = '"Plus Jakarta Sans", system-ui, sans-serif';
+    Chart.defaults.color = css("--sf-muted");
+    Chart.defaults.borderColor = css("--sf-line");
+    Object.values(Chart.instances).forEach(function (c) { c.update(); });
+  }
+  aplicarTema();
+  document.addEventListener("sf-tema", function () { setTimeout(aplicarTema, 60); });
+})();
 window.sfGrafico = function (id, tipo, datos, opciones) {
   var el = document.getElementById(id);
   if (!el || !datos) { return; }
   var circular = tipo === "pie" || tipo === "doughnut";
+  var semantico = { "vigente": "#1f9d68", "disponible": "#1f9d68", "verificado": "#1f9d68", "aprobada": "#1f9d68", "entregada": "#3b82c4", "entregado": "#3b82c4",
+    "próximo a vencer": "#ff8a3d", "reservada": "#ff8a3d", "pendiente": "#ffc83d", "en revisión": "#ffc83d",
+    "vencido": "#d64545", "vencida": "#d64545", "rechazado": "#d64545", "rechazada": "#d64545", "cancelada": "#8a9a91", "cancelado": "#8a9a91" };
+  var colores = circular ? datos.etiquetas.map(function (e, i) { return semantico[String(e).toLowerCase()] || SF_COLORES[i % SF_COLORES.length]; }) : null;
+  var ctx = el.getContext("2d");
+  var degradado = ctx.createLinearGradient(0, 0, 0, el.height || 260);
+  degradado.addColorStop(0, "#2fbf7f"); degradado.addColorStop(1, "#0f6b46");
   new Chart(el, {
     type: tipo,
     data: { labels: datos.etiquetas, datasets: [{ label: (opciones && opciones.titulo) || "Cantidad", data: datos.datos,
-      backgroundColor: circular ? SF_COLORES : "#1f7a4d", borderColor: tipo === "line" ? "#1f7a4d" : undefined, tension: 0.3 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: circular } },
-      scales: circular ? {} : { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      backgroundColor: circular ? colores : degradado, borderColor: tipo === "line" ? "#1f9d68" : "transparent",
+      borderWidth: circular ? 3 : 0, borderRadius: circular ? 6 : 10, borderSkipped: false, tension: 0.35, fill: tipo === "line",
+      hoverOffset: circular ? 10 : 0, cutout: tipo === "doughnut" ? "62%" : undefined }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      animation: { duration: 1100, easing: "easeOutQuart", delay: function (c) { return c.type === "data" ? c.dataIndex * 90 : 0; } },
+      plugins: { legend: { display: circular, position: "bottom", labels: { usePointStyle: true, boxWidth: 8, padding: 14 } },
+                 tooltip: { cornerRadius: 12, padding: 10, boxPadding: 4 } },
+      scales: circular ? {} : { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { drawBorder: false } }, x: { grid: { display: false } } } }
   });
 };
 </script>

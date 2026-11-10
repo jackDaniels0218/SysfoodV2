@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titulo %}SysFood V2{% endblock %} · SysFood</title>
+  <meta name="theme-color" content="#0f6b46">
+  <script>
+    /* Aplica el tema guardado antes de pintar, para evitar parpadeos. */
+    (function () {
+      var t = "light";
+      try { t = localStorage.getItem("sf-tema") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+      document.documentElement.setAttribute("data-bs-theme", t);
+      document.documentElement.classList.add("js");
+    })();
+  </script>
+  <link rel="preload" href="{% static 'vendor/fuentes/plus-jakarta-sans-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'vendor/fuentes/fraunces-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/sysfood.css' %}">
@@ -11,13 +23,24 @@
   {% block head %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
-<nav class="navbar navbar-expand-lg navbar-dark bg-sysfood sticky-top shadow-sm">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="{% url 'core:inicio' %}"><i class="bi bi-basket2-fill"></i> SysFood</a>
+<div id="sf-progress" aria-hidden="true"></div>
+<div class="sf-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+<header class="sf-header sticky-top">
+<nav class="navbar navbar-expand-lg sf-nav">
+  <div class="container-fluid px-1">
+    <a class="sf-brand" href="{% url 'core:inicio' %}"><span class="sf-logo"><i class="bi bi-basket2-fill"></i></span><b>SysFood</b><small>V2</small></a>
+    <div class="d-flex align-items-center gap-2 ms-auto order-lg-last">
+      <button class="sf-tema" type="button" id="sf-tema" aria-label="Cambiar entre modo claro y oscuro" title="Modo claro / oscuro"><i class="bi bi-sun-fill"></i><i class="bi bi-moon-stars-fill"></i></button>
+      {% if user.is_authenticated %}
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      {% else %}
+      <a class="btn btn-sm btn-outline-secondary d-none d-sm-inline-block" href="{% url 'usuarios:login' %}">Ingresar</a>
+      <a class="btn btn-sm btn-sysfood" href="{% url 'usuarios:registro' %}">Registrarse</a>
+      {% endif %}
+    </div>
     {% if user.is_authenticated %}
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
-      <span class="navbar-toggler-icon"></span>
-    </button>
     <div class="collapse navbar-collapse" id="menu">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="{% url 'reportes:dashboard' %}"><i class="bi bi-speedometer2"></i> Panel</a></li>
@@ -57,7 +80,7 @@
           {% endif %}
         {% elif user.es_beneficiario %}
           <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:catalogo' %}">Catálogo</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:carrito' %}"><i class="bi bi-cart3"></i> Carrito <span class="badge bg-light text-dark">{{ carrito_total }}</span></a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:carrito' %}"><i class="bi bi-cart3"></i> Carrito <span class="badge sf-badge-n">{{ carrito_total }}</span></a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'solicitudes:mis_solicitudes' %}">Mis solicitudes</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'entregas:seguimiento' %}">Seguimiento</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'usuarios:documentos' %}">Documentos</a></li>
@@ -67,7 +90,7 @@
         <li class="nav-item">
           <a class="nav-link position-relative" href="{% url 'core:notificaciones' %}" title="Notificaciones">
             <i class="bi bi-bell"></i><span class="d-lg-none"> Notificaciones</span>
-            {% if notificaciones_sin_leer %}<span class="badge rounded-pill bg-warning text-dark" id="contador-notificaciones">{{ notificaciones_sin_leer }}</span>{% endif %}
+            {% if notificaciones_sin_leer %}<span class="badge rounded-pill sf-badge-n" id="contador-notificaciones">{{ notificaciones_sin_leer }}</span>{% endif %}
           </a>
         </li>
         <li class="nav-item dropdown">
@@ -84,14 +107,10 @@
         </li>
       </ul>
     </div>
-    {% else %}
-    <div class="ms-auto">
-      <a class="btn btn-sm btn-outline-light" href="{% url 'usuarios:login' %}">Ingresar</a>
-      <a class="btn btn-sm btn-light" href="{% url 'usuarios:registro' %}">Registrarse</a>
-    </div>
     {% endif %}
   </div>
 </nav>
+</header>
 
 <main class="flex-grow-1 py-4">
   <div class="container-xl">
@@ -107,7 +126,7 @@
   </div>
 </main>
 
-<footer class="py-3 border-top bg-body-tertiary small text-muted">
+<footer class="sf-footer">
   <div class="container-xl d-flex flex-wrap justify-content-between gap-2">
     <span>SysFood V2 · Gestión de donaciones de alimentos · Universidad de Cundinamarca</span>
     <a href="{% url 'core:politica_datos' %}" class="text-muted">Política de tratamiento de datos (Ley 1581 de 2012)</a>
