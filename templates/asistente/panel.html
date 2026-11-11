@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}Consultas del asistente{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Consultas del asistente</h1>
+    <p class="text-muted mb-0">Lo que preguntan los usuarios al chat de ayuda. Las preguntas sin respuesta muestran qué falta en la base de conocimiento.</p>
+  </div>
+  <div class="small text-muted text-end">
+    Modo: <strong>{{ modo }}</strong> · WhatsApp: <strong>{{ whatsapp|default:"apagado" }}</strong><br>
+    <a href="{% url 'core:parametros' %}#asistente-de-ayuda">Configurar en Parámetros</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="small text-muted">Consultas (30 días)</div><div class="numero">{{ resumen.total }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="small text-muted">Sin respuesta</div><div class="numero">{{ resumen.sin_respuesta }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="small text-muted">Enviadas al administrador</div><div class="numero">{{ resumen.escaladas }}</div><div class="small text-muted">{{ resumen.pendientes }} por atender</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="small text-muted">Calificación</div><div class="numero"><i class="bi bi-hand-thumbs-up"></i> {{ resumen.utiles }} <i class="bi bi-hand-thumbs-down ms-2"></i> {{ resumen.no_utiles }}</div></div></div></div>
+</div>
+
+{% if por_fuente %}
+<p class="small text-muted">Cómo se respondió (30 días):
+  {% for nombre, n in por_fuente %}<span class="badge bg-light text-dark border me-1">{{ nombre }}: {{ n }}</span>{% endfor %}
+</p>
+{% endif %}
+
+<nav class="nav nav-pills mb-3 gap-1" aria-label="Filtros">
+  <a class="nav-link {% if not filtro %}active{% endif %}" href="?">Todas</a>
+  <a class="nav-link {% if filtro == 'pendientes' %}active{% endif %}" href="?filtro=pendientes">Por atender</a>
+  <a class="nav-link {% if filtro == 'escaladas' %}active{% endif %}" href="?filtro=escaladas">Enviadas al administrador</a>
+  <a class="nav-link {% if filtro == 'sin_respuesta' %}active{% endif %}" href="?filtro=sin_respuesta">Sin respuesta</a>
+  <a class="nav-link {% if filtro == 'no_util' %}active{% endif %}" href="?filtro=no_util">No les sirvió</a>
+</nav>
+
+{% if pagina.object_list %}
+<div class="table-responsive"><table class="table bg-white align-middle">
+<thead><tr><th scope="col">Fecha</th><th scope="col">Pregunta</th><th scope="col">Quién</th><th scope="col">Respuesta</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+<tbody>
+{% for c in pagina %}
+<tr id="c{{ c.pk }}">
+  <td class="small text-nowrap">{{ c.con_fecha|date:"d/m/Y h:i a" }}<br><span class="text-muted">{{ c.get_con_canal_display }}</span></td>
+  <td><strong>{{ c.con_pregunta }}</strong>{% if c.con_pagina %}<div class="small text-muted">desde {{ c.con_pagina }}</div>{% endif %}
+    {% if c.con_escalada %}<div class="alert alert-warning small py-1 px-2 mt-1 mb-0"><i class="bi bi-envelope"></i> {{ c.con_mensaje|default:"(sin mensaje)" }}<br>Responder a: <strong>{{ c.con_contacto }}</strong></div>{% endif %}
+  </td>
+  <td class="small">{% if c.usuario %}{{ c.usuario.nombre_completo }}<br><span class="text-muted">{{ c.con_rol|capfirst }}</span>{% elif c.con_canal == "whatsapp" %}WhatsApp{% else %}Visitante{% endif %}</td>
+  <td class="small"><span class="badge {% if c.con_fuente == 'sin_respuesta' %}bg-danger{% elif c.con_fuente == 'privacidad' %}bg-dark{% else %}bg-secondary{% endif %}">{{ c.get_con_fuente_display }}</span>
+    {% if c.con_similitud is not None %}<span class="text-muted">· similitud {{ c.con_similitud }}</span>{% endif %}
+    {% if c.con_util is True %}<i class="bi bi-hand-thumbs-up text-success" title="Le sirvió"></i>{% elif c.con_util is False %}<i class="bi bi-hand-thumbs-down text-danger" title="No le sirvió"></i>{% endif %}
+    <details><summary class="text-muted">Ver respuesta</summary><div class="text-break" style="white-space:pre-line">{{ c.con_respuesta }}</div></details>
+  </td>
+  <td>{% if c.con_escalada and not c.con_atendida %}
+    <form method="post" action="{% url 'asistente:atender' c.pk %}">{% csrf_token %}<input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+      <button class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i> Atendida</button></form>
+    {% elif c.con_atendida %}<span class="badge bg-success">Atendida</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% include "parciales/paginacion.html" %}
+{% else %}
+{% include "parciales/vacio.html" with icono="chat-dots" titulo="No hay consultas con este filtro" texto="Cuando los usuarios usen el asistente (el botón verde abajo a la derecha), sus preguntas aparecerán aquí." %}
+{% endif %}
+{% endblock %}

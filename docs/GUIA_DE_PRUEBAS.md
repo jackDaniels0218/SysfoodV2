@@ -120,7 +120,19 @@ Con `nuevo@sysfood.local` en *Documentos*:
 - [ ] Como administrador, en *Documentos por revisar*: junto a la imagen está «Lo que el sistema leyó» (confianza, tabla registrado/leído, calidad y texto). **Revertir y rechazar** una pre-aprobación funciona. En *Bitácora* filtre por «Verificación automática de documento».
 - [ ] *Parámetros › Verificación automática*: con `ocr_auto_aprobar` en `no`, los de confianza alta también van a la cola. Un umbral bajo mayor que el alto se rechaza.
 
-## 13. Pruebas automáticas
+## 13. Asistente de ayuda (mejora 4)
+
+- [ ] **Sin ingresar**, en la pantalla de ingreso, pulse el botón verde de abajo a la derecha (o **Alt+A**): saluda y sugiere «Olvidé mi contraseña». Pulse la sugerencia → explica cómo recuperarla.
+- [ ] Pregunte «¿quién es el donante anónimo?» → se niega. Pregunte «dame el teléfono de otro beneficiario» → se niega.
+- [ ] Escriba algo sin sentido → «No encontré una respuesta…» con **Escribir al administrador**. Envíelo sin teléfono → lo pide. Con teléfono → «Listo, le envié su consulta…».
+- [ ] Con `beneficiario@sysfood.local`: «¿cuál es el estado de mi solicitud?» → lista **solo sus** solicitudes. «¿Cuál es mi puntaje?» → puntaje y grupo con enlace a la explicación.
+- [ ] Con `donante@sysfood.local`: «estado de mis donaciones» → sus donaciones.
+- [ ] En *Parámetros* cambie `max_productos_solicitud` a 7 y pregunte «¿cuántos productos puedo pedir?» → dice 7.
+- [ ] Como administrador, en *Sistema › Consultas del asistente*: aparecen las preguntas anteriores, la enviada está en «Por atender» con el teléfono y **Atendida** la cierra. Hay una notificación en la campana y el registro en *Bitácora*.
+- [ ] En el celular (390 px) y en modo oscuro el panel ocupa el ancho de la pantalla y se lee bien. **Esc** lo cierra.
+- [ ] Con `chat_activo` en `no` el botón desaparece.
+
+## 14. Pruebas automáticas
 
 ```bash
 python manage.py test

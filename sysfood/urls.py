@@ -9,6 +9,7 @@ urlpatterns = [
     path("solicitudes/", include("solicitudes.urls")),
     path("entregas/", include("entregas.urls")),
     path("reportes/", include("reportes.urls")),
+    path("asistente/", include("asistente.urls")),
 ]
 
 handler403 = "core.errores.prohibido"

@@ -69,6 +69,7 @@ class Bitacora(_SoloInsercion):
         ("consulta_mapa", "Consulta del mapa de beneficiarios"),
         ("exportacion_mapa", "Exportación del mapa de beneficiarios"),
         ("verificacion_auto", "Verificación automática de documento"),
+        ("escalamiento_chat", "Consulta del asistente enviada al administrador"),
     ]
 
     bit_id = models.BigAutoField(primary_key=True)
@@ -99,6 +100,7 @@ class Notificacion(models.Model):
         ("vencimiento", "Vencimientos"),
         ("cuenta", "Cuenta"),
         ("donacion", "Donaciones"),
+        ("ayuda", "Consultas de ayuda"),
     ]
 
     not_id = models.BigAutoField(primary_key=True)

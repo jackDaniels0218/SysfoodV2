@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "solicitudes",
     "entregas",
     "reportes",
+    "asistente",
 ]
 
 MIDDLEWARE = [
@@ -186,6 +187,17 @@ if env("EMAIL_HOST"):
     EMAIL_TIMEOUT = 10
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Asistente de ayuda: modo opcional con la API de Claude (además, chat_modo = claude en Parámetros).
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
+CHAT_CLAUDE_MODELO = env("CHAT_CLAUDE_MODELO", "claude-opus-5-5")
+# Canal opcional de WhatsApp: "meta" (WhatsApp Cloud API) o "twilio". Vacío = apagado.
+WHATSAPP_PROVEEDOR = env("WHATSAPP_PROVEEDOR")
+WHATSAPP_VERIFY_TOKEN = env("WHATSAPP_VERIFY_TOKEN")
+WHATSAPP_APP_SECRET = env("WHATSAPP_APP_SECRET")
+WHATSAPP_TOKEN = env("WHATSAPP_TOKEN")
+WHATSAPP_PHONE_ID = env("WHATSAPP_PHONE_ID")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
+
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "SysFood <no-responder@sysfood.local>")
 SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
 

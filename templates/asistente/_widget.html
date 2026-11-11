@@ -1,0 +1,24 @@
+{% load static %}
+<div id="sf-chat" class="sf-chat" data-inicio="{% url 'asistente:inicio' %}" data-preguntar="{% url 'asistente:preguntar' %}"
+     data-base="{% url 'asistente:inicio' %}" data-anonimo="{{ user.is_authenticated|yesno:'0,1' }}">
+  <button type="button" class="sf-chat-boton" id="sf-chat-boton" aria-expanded="false" aria-controls="sf-chat-panel"
+          title="Asistente de ayuda (Alt+A)">
+    <i class="bi bi-chat-dots-fill" aria-hidden="true"></i><span class="visually-hidden">Abrir el asistente de ayuda</span>
+  </button>
+  <section class="sf-chat-panel" id="sf-chat-panel" role="dialog" aria-label="Asistente de ayuda" hidden>
+    <header class="sf-chat-cabeza">
+      <span class="sf-logo sf-logo-sm" aria-hidden="true"><i class="bi bi-basket2-fill"></i></span>
+      <div class="flex-grow-1"><strong>Asistente SysFood</strong><small class="d-block">Respuestas sobre cómo usar el sistema</small></div>
+      <button type="button" class="btn-close" id="sf-chat-cerrar" aria-label="Cerrar el asistente"></button>
+    </header>
+    <div class="sf-chat-mensajes" id="sf-chat-mensajes" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <div class="sf-chat-sugerencias" id="sf-chat-sugerencias"></div>
+    <form class="sf-chat-form" id="sf-chat-form" autocomplete="off">
+      <label for="sf-chat-texto" class="visually-hidden">Escriba su pregunta</label>
+      <input id="sf-chat-texto" class="form-control" maxlength="500" placeholder="Escriba su pregunta…" required>
+      <button class="btn btn-sysfood" type="submit" aria-label="Enviar pregunta"><i class="bi bi-send-fill" aria-hidden="true"></i></button>
+    </form>
+    <p class="sf-chat-pie">No escriba contraseñas ni números de documento. <a href="{% url 'core:politica_datos' %}">Política de datos</a></p>
+  </section>
+</div>
+<script src="{% static 'js/asistente.js' %}" defer></script>

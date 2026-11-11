@@ -9,3 +9,5 @@ Pillow>=10.0
 # Verificación automática de documentos (OCR). Requieren los programas tesseract-ocr y poppler (incluidos en Docker).
 pytesseract>=0.3.10
 pdf2image>=1.17
+# Opcional: modo del asistente con la API de Claude (solo se usa si hay ANTHROPIC_API_KEY)
+anthropic>=0.70

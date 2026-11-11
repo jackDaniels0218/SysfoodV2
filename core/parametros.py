@@ -30,11 +30,13 @@ GRUPOS = OrderedDict([
     ("Grupos de necesidad", "Clasificación automática según el puntaje"),
     ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
     ("Verificación automática", "Lectura de documentos con OCR, calidad de imagen y decisión por semáforo"),
+    ("Asistente de ayuda", "Chat de ayuda: modo de respuesta, umbral de búsqueda, límites y retención"),
 ])
 
 # Valores permitidos de los parámetros de tipo «opcion».
 OPCIONES = {
     "geo_proveedor": [("nominatim", "Nominatim (OpenStreetMap, gratuito)"), ("desactivado", "Desactivado")],
+    "chat_modo": [("reglas", "Reglas y búsqueda (gratuito, sin internet)"), ("claude", "API de Claude (requiere ANTHROPIC_API_KEY)")],
 }
 
 DEFINICIONES = OrderedDict([
@@ -123,6 +125,13 @@ DEFINICIONES = OrderedDict([
     )),
     ("ocr_resolucion_minima", _p("500", "Lado menor mínimo de la imagen, en píxeles.", "entero", "Verificación automática", 100, 4000)),
     ("ocr_idioma", _p("spa", "Idioma de Tesseract (spa = español).", "texto", "Verificación automática")),
+    # --- Asistente de ayuda (chat)
+    ("chat_activo", _p("si", "Mostrar el asistente de ayuda en todas las páginas, también antes de ingresar.", "booleano", "Asistente de ayuda")),
+    ("chat_modo", _p("reglas", "Cómo responde el asistente. Con «claude» usa la API de Claude si está configurada y, si falla, vuelve a reglas.", "opcion", "Asistente de ayuda")),
+    ("chat_umbral", _p("35", "Similitud mínima (0-100) para responder con un artículo; por debajo ofrece escribir al administrador.", "entero", "Asistente de ayuda", 5, 100)),
+    ("chat_max_por_hora", _p("40", "Preguntas máximas por sesión en una hora (evita abusos).", "entero", "Asistente de ayuda", 1, 1000)),
+    ("chat_retencion_dias", _p("180", "Días que se guardan las consultas del asistente antes de borrarse solas.", "entero", "Asistente de ayuda", 1, 3650)),
+    ("chat_bienvenida", _p("¡Hola{nombre}! Soy el asistente de SysFood. Pregúnteme cómo usar el sistema.", "Saludo inicial del asistente ({nombre} se reemplaza por el nombre de quien ingresó).", "texto", "Asistente de ayuda")),
     ("ocr_tiempo_maximo", _p("40", "Segundos máximos de lectura por documento.", "entero", "Verificación automática", 5, 300)),
 ])
 

@@ -28,6 +28,7 @@ erDiagram
     bodega ||--o{ entrega : "origen"
     entrega ||--|{ entrega_detalle : "lleva"
     inventario ||--o{ entrega_detalle : ""
+    usuario ||--o{ consulta_chat : "pregunta (opcional)"
     entrega ||--o{ historial_entrega : "estados"
     entrega ||--o{ kardex : ""
     usuario ||--o{ bitacora : "acciones"
@@ -274,6 +275,45 @@ erDiagram
         varchar tar_resultado
         int tar_duracion_ms
     }
+    consulta_chat {
+        bigint con_id PK
+        int usu_id FK "nulo si es visitante"
+        varchar con_sesion "huella SHA-256 de la sesión"
+        varchar con_canal "web|whatsapp"
+        varchar con_rol
+        varchar con_pagina
+        varchar con_pregunta "números y correos enmascarados"
+        text con_respuesta
+        varchar con_fuente "regla|busqueda|claude|contexto|privacidad|sin_respuesta|limite"
+        varchar con_articulo
+        smallint con_similitud "0 a 100"
+        bool con_util
+        bool con_escalada
+        varchar con_contacto
+        text con_mensaje
+        bool con_atendida
+        datetime con_fecha
+    }
+```
+
+## Respuesta del asistente de ayuda
+
+```mermaid
+flowchart TD
+    p[Pregunta] --> priv{¿Pide datos de otra persona o de un donante anónimo?}
+    priv -- sí --> neg[Se niega]
+    priv -- no --> reg{¿Saludo, «hablar con alguien» o «qué hago aquí»?}
+    reg -- sí --> r1[Respuesta por regla]
+    reg -- no --> mio{¿Pregunta por mis solicitudes, documentos, donaciones o puntaje?}
+    mio -- sí --> propio[Consulta solo los registros de quien pregunta]
+    mio -- no --> modo{¿chat_modo = claude y hay clave?}
+    modo -- sí --> claude[Claude redacta con los artículos encontrados]
+    claude -- falla --> busq
+    modo -- no --> busq[Búsqueda en la base de conocimiento]
+    busq --> umbral{¿Similitud ≥ chat_umbral?}
+    umbral -- sí --> art[Artículo con enlace]
+    umbral -- no --> esc[Ofrece escribir al administrador]
+    neg & r1 & propio & claude & art & esc --> log[(consulta_chat)]
 ```
 
 ## Verificación automática de un documento

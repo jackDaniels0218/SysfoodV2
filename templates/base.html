@@ -72,6 +72,7 @@
               <li><a class="dropdown-item" href="{% url 'core:trazabilidad' %}">Trazabilidad y auditoría</a></li>
               <li><a class="dropdown-item" href="{% url 'core:parametros' %}">Parámetros</a></li>
               <li><a class="dropdown-item" href="{% url 'core:tareas' %}">Tareas automáticas</a></li>
+              <li><a class="dropdown-item" href="{% url 'asistente:panel' %}">Consultas del asistente</a></li>
             </ul>
           </li>
         {% elif user.es_donante %}
@@ -136,6 +137,7 @@
 </footer>
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'js/sysfood.js' %}"></script>
+{% if chat_activo %}{% include "asistente/_widget.html" %}{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

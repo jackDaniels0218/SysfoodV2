@@ -485,3 +485,51 @@ section[id] { scroll-margin-top: 6rem; }
 .sf-pasos-docs .paso-doc.listo { border-color: var(--sf-green-3); background: rgba(94, 194, 138, .14); }
 .sf-pasos-docs .paso-doc.rechazado { border-color: #f1a5a5; background: rgba(201, 42, 42, .08); }
 .sf-pasos-docs .paso-doc .bi { margin-right: .25rem; }
+
+/* ---------------------------------------------------------------- Asistente de ayuda (chat) */
+.sf-chat { position: fixed; right: 18px; bottom: 18px; z-index: 1080; }
+.sf-chat-boton {
+  width: 56px; height: 56px; border-radius: 50%; border: 0; color: #fff; font-size: 1.45rem;
+  background: var(--sf-grad); box-shadow: var(--sf-shadow-lg); transition: transform .2s ease;
+}
+.sf-chat-boton:hover { transform: scale(1.07); }
+.sf-chat-boton:focus-visible { outline: 3px solid var(--sf-ring); outline-offset: 3px; }
+.sf-chat.abierto .sf-chat-boton { transform: scale(.9); }
+.sf-chat-panel {
+  position: absolute; right: 0; bottom: 70px; width: min(380px, calc(100vw - 32px)); height: min(560px, calc(100vh - 120px));
+  display: flex; flex-direction: column; background: var(--sf-surface); color: var(--sf-ink);
+  border: 1px solid var(--sf-line); border-radius: 18px; box-shadow: var(--sf-shadow-lg); overflow: hidden;
+  animation: sf-chat-entrar .18s ease-out;
+}
+.sf-chat-panel[hidden] { display: none; }
+@keyframes sf-chat-entrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.sf-chat-cabeza { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; background: var(--sf-surface-2); border-bottom: 1px solid var(--sf-line); }
+.sf-chat-cabeza small { color: var(--sf-muted); font-size: .75rem; }
+.sf-logo-sm { width: 32px; height: 32px; font-size: 1rem; }
+.sf-chat-mensajes { flex: 1; overflow-y: auto; padding: .9rem; display: flex; flex-direction: column; gap: .5rem; }
+.sf-chat-msg { max-width: 86%; padding: .55rem .8rem; border-radius: 14px; font-size: .92rem; line-height: 1.4; overflow-wrap: anywhere; }
+.sf-chat-bot { align-self: flex-start; background: var(--sf-surface-2); border: 1px solid var(--sf-line); border-bottom-left-radius: 4px; }
+.sf-chat-yo { align-self: flex-end; background: var(--sf-green); color: #fff; border-bottom-right-radius: 4px; }
+[data-bs-theme="dark"] .sf-chat-yo { color: #0a1511; }
+.sf-chat-enlace { display: block; margin-top: .35rem; font-weight: 600; color: var(--sf-green); }
+.sf-chat-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .45rem; }
+.sf-chat-voto { border: 1px solid var(--sf-line); background: transparent; color: var(--sf-muted); border-radius: 8px; padding: .1rem .45rem; }
+.sf-chat-voto:hover { color: var(--sf-green); border-color: var(--sf-green); }
+.sf-chat-contacto { align-self: stretch; padding: .6rem; border: 1px dashed var(--sf-line); border-radius: 12px; }
+.sf-chat-escribiendo { min-width: 54px; min-height: 30px; background-image: radial-gradient(circle, var(--sf-muted) 2.5px, transparent 3px); background-size: 12px 12px; background-repeat: repeat-x; background-position: 12px center; animation: sf-chat-puntos 1s steps(3) infinite; }
+@keyframes sf-chat-puntos { to { background-position: 48px center; } }
+.sf-chat-sugerencias { display: flex; flex-wrap: wrap; gap: .35rem; padding: 0 .9rem .5rem; }
+.sf-chat-sugerencias:empty { display: none; }
+.sf-chip { border: 1px solid var(--sf-green); background: transparent; color: var(--sf-green); border-radius: 999px; padding: .2rem .65rem; font-size: .8rem; }
+.sf-chip:hover, .sf-chip:focus-visible { background: var(--sf-green); color: var(--sf-surface); }
+.sf-chat-form { display: flex; gap: .4rem; padding: .6rem .9rem; border-top: 1px solid var(--sf-line); }
+.sf-chat-pie { margin: 0; padding: 0 .9rem .6rem; font-size: .7rem; color: var(--sf-muted); }
+@media (max-width: 575px) {
+  .sf-chat { right: 12px; bottom: 12px; }
+  .sf-chat-panel { position: fixed; inset: auto 8px 78px 8px; width: auto; height: min(70vh, calc(100vh - 100px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-chat-panel, .sf-chat-escribiendo { animation: none; }
+  .sf-chat-boton { transition: none; }
+}
+@media (max-width: 575px) { footer.sf-footer { padding-bottom: 5.5rem; } }

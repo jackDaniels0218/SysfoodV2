@@ -250,6 +250,34 @@ En *Documentos por revisar* el administrador ve, junto a la imagen, **lo que el 
 
 > Sin Docker: instale Tesseract ([Windows](https://github.com/UB-Mannheim/tesseract/wiki) o `apt install tesseract-ocr tesseract-ocr-spa poppler-utils`) para activar la lectura. Sin él, todo funciona con revisión manual.
 
+## 3.4 Asistente de ayuda (chat)
+
+En todas las páginas, también antes de ingresar, aparece un botón verde abajo a la derecha (atajo **Alt+A**) que abre el asistente. Responde preguntas sobre cómo usar SysFood y **sabe dónde está el usuario**: ofrece preguntas sugeridas según la página y el rol. Si el usuario ingresó, también responde sobre **sus propios datos**: el estado de sus solicitudes, entregas, documentos, donaciones o su puntaje.
+
+**Cómo decide la respuesta** (`asistente/motor.py`):
+
+1. **Privacidad primero.** Si la pregunta pide datos de otras personas, listados de usuarios o la identidad de un donante anónimo, se niega siempre, también en el modo con Claude y también para el administrador.
+2. **Reglas:** saludos, «hablar con una persona» y «¿qué hago en esta página?».
+3. **Datos propios:** solo consulta los registros del usuario que pregunta.
+4. **Búsqueda** en la base de conocimiento, con similitud ponderada por la rareza de cada palabra y tolerante a plurales y conjugaciones. Si la similitud no llega a `chat_umbral` (35), **ofrece enviar la pregunta al administrador**.
+
+**Base de conocimiento generada sola** (`asistente/conocimiento.py`): artículos de uso con los valores **vigentes** de los parámetros (si cambia el máximo de productos, la respuesta cambia), una ficha por cada parámetro (los públicos para todos y todos para el administrador) y la ayuda de cada pantalla. Cada artículo dice qué roles pueden verlo.
+
+**Escribir al administrador.** Cuando no sabe, o si la respuesta no le sirvió (👎), el usuario envía su consulta. A un visitante se le pide un correo o teléfono para responderle. Los administradores reciben una notificación y un correo, y la acción queda en la bitácora («Consulta del asistente enviada al administrador»). En **Sistema › Consultas del asistente** el administrador ve indicadores de 30 días (consultas, sin respuesta, enviadas, calificaciones) y filtra las pendientes, las que no tuvieron respuesta o las que no les sirvieron, para mejorar los artículos.
+
+**Datos mínimos.** Antes de guardar una pregunta se enmascaran los números largos y los correos. Las consultas se borran solas después de `chat_retencion_dias` (180) con la tarea diaria `limpieza_chat`. Hay un límite de `chat_max_por_hora` preguntas por sesión.
+
+**Modo opcional con la API de Claude.** Defina `ANTHROPIC_API_KEY` en `.env` (y opcionalmente `CHAT_CLAUDE_MODELO`, por defecto `claude-opus-5-5`), y ponga `chat_modo = claude` en *Parámetros › Asistente de ayuda*. Claude redacta la respuesta usando **solo** los artículos encontrados y el contexto de la página. Las reglas de privacidad y los datos propios se siguen resolviendo sin Claude. Si la API falla, no hay clave o se niega, el asistente responde con la búsqueda. El panel muestra qué modo está activo.
+
+**WhatsApp (opcional, sin probar con credenciales reales).** El webhook `/asistente/whatsapp/` acepta dos proveedores. Por WhatsApp el asistente responde como a un visitante: el teléfono no se asocia a ninguna cuenta, así que nunca entrega datos personales.
+
+| Proveedor | Variables de entorno | Configuración en el proveedor |
+| --- | --- | --- |
+| WhatsApp Cloud API (Meta) | `WHATSAPP_PROVEEDOR=meta`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` | URL de devolución `https://su-dominio/asistente/whatsapp/`, token de verificación igual a `WHATSAPP_VERIFY_TOKEN`, suscripción a `messages` |
+| Twilio | `WHATSAPP_PROVEEDOR=twilio`, `TWILIO_AUTH_TOKEN` | «When a message comes in»: `https://su-dominio/asistente/whatsapp/` (POST) |
+
+Se verifican las firmas de ambos proveedores (`X-Hub-Signature-256` y `X-Twilio-Signature`), y cualquier mensaje sin firma válida se rechaza. Las pruebas automáticas cubren la verificación del webhook, las firmas y el formato de los mensajes con datos simulados. **No se probó contra Meta ni Twilio reales**, porque eso requiere cuentas y un dominio público con HTTPS.
+
 ---
 
 ## 4. Pruebas automáticas
@@ -282,6 +310,7 @@ El sistema decide y actúa solo. Todas las tareas están en un único registro (
 | `recalculo_puntajes` | diaria (nocturna) | Recalcula el puntaje y el grupo de todos los beneficiarios |
 | `geocodificacion` | horaria | Ubica a los beneficiarios pendientes y reintenta los fallidos |
 | `verificacion_documentos` | horaria | Lee con OCR los documentos que quedaron sin leer y aplica el semáforo |
+| `limpieza_chat` | diaria | Borra las consultas del asistente más antiguas que `chat_retencion_dias` |
 
 Cada tarea corre **una sola vez por periodo**, aunque varias fuentes intenten lanzarla. Se ejecutan de tres formas:
 
@@ -342,7 +371,8 @@ donaciones/     Donaciones y sus productos
 inventario/     Inventario, kardex, ajustes, bajas y vencimientos
 solicitudes/    Catálogo, carrito y solicitudes
 entregas/       Entregas, estados, historial y seguimiento
-reportes/       Paneles por rol, reportes, exportación PDF/Excel
+reportes/       Paneles por rol, reportes, exportación PDF/Excel, mapa
+asistente/      Asistente de ayuda (chat): motor, base de conocimiento, WhatsApp
 templates/      Interfaz (Bootstrap 5)
 static/         CSS, JS y librerías locales (Bootstrap, iconos, Chart.js)
 protegido/      Documentos cargados (no público; excluido de Git)
