@@ -1,4 +1,5 @@
 """Mejora 3: carga de archivos y verificación automática de documentos (OCR y semáforo)."""
+
 from datetime import date
 from unittest import mock
 
@@ -21,8 +22,11 @@ def texto_de(usuario, numero=None, fecha="01/01/2015", nombre=None):
 
 def motor(texto, confianza=92):
     """Simula Tesseract instalado que devuelve `texto`."""
-    return mock.patch.multiple(ocr, disponible=mock.Mock(return_value=(True, "Tesseract prueba")),
-                               leer=mock.Mock(return_value=(texto, confianza)))
+    return mock.patch.multiple(
+        ocr,
+        disponible=mock.Mock(return_value=(True, "Tesseract prueba")),
+        leer=mock.Mock(return_value=(texto, confianza)),
+    )
 
 
 class FuncionesOCRTests(PruebaBase):
@@ -96,7 +100,9 @@ class CalidadAlCargarTests(PruebaBase):
         self.assertIsNone(verificacion.verificar(doc))  # En este equipo no hay Tesseract.
         doc.refresh_from_db()
         self.assertEqual((doc.docv_estado, doc.docv_ocr_estado), (Doc.CARGADO, Doc.OCR_NO_DISPONIBLE))
-        self.assertTrue(Bitacora.objects.filter(bit_accion="verificacion_auto", bit_detalle__contains="revisión manual").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="verificacion_auto", bit_detalle__contains="revisión manual").exists()
+        )
         servicios.revisar_documento(doc, crear_admin(), True)
         doc.refresh_from_db()
         self.assertEqual(doc.docv_estado, Doc.APROBADO)
@@ -157,7 +163,9 @@ class SemaforoTests(PruebaBase):
         self.assertIn("número de documento", doc.docv_obs)
         self.assertTrue(Notificacion.objects.filter(destinatario=self.b, not_titulo="Documento rechazado").exists())
         nuevo = self.cargar()
-        self.assertEqual((nuevo.docv_estado, nuevo.docv_ocr_estado, nuevo.docv_verif_auto), (Doc.CARGADO, Doc.OCR_PENDIENTE, False))
+        self.assertEqual(
+            (nuevo.docv_estado, nuevo.docv_ocr_estado, nuevo.docv_verif_auto), (Doc.CARGADO, Doc.OCR_PENDIENTE, False)
+        )
 
     def test_ilegible(self):
         doc = self.cargar()
@@ -172,7 +180,10 @@ class SemaforoTests(PruebaBase):
         with motor(texto_de(self.b)):
             verificacion.verificar(doc)
         self.ingresar(self.admin)
-        self.client.post(reverse("usuarios:revisar_documento", args=[doc.pk]), {"decision": "rechazar", "observacion": "Foto de otra persona"})
+        self.client.post(
+            reverse("usuarios:revisar_documento", args=[doc.pk]),
+            {"decision": "rechazar", "observacion": "Foto de otra persona"},
+        )
         doc.refresh_from_db()
         self.assertEqual((doc.docv_estado, doc.revisor, doc.docv_verif_auto), (Doc.RECHAZADO, self.admin, False))
 
@@ -190,8 +201,11 @@ class SemaforoTests(PruebaBase):
 
     def test_error_de_lectura_se_reintenta_con_la_tarea(self):
         doc = self.cargar()
-        with mock.patch.multiple(ocr, disponible=mock.Mock(return_value=(True, "x")),
-                                 leer=mock.Mock(side_effect=ocr.ErrorOCR("tiempo agotado"))):
+        with mock.patch.multiple(
+            ocr,
+            disponible=mock.Mock(return_value=(True, "x")),
+            leer=mock.Mock(side_effect=ocr.ErrorOCR("tiempo agotado")),
+        ):
             self.assertIsNone(verificacion.verificar(doc))
         doc.refresh_from_db()
         self.assertEqual((doc.docv_ocr_estado, doc.docv_ocr_intentos), (Doc.OCR_ERROR, 1))

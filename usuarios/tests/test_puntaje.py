@@ -1,4 +1,5 @@
 """Mejora 1: puntaje automático de necesidad, explicación y clasificación por grupos."""
+
 from decimal import Decimal
 from io import StringIO
 
@@ -18,8 +19,15 @@ from usuarios.models import DocumentoValidacion, PerfilBeneficiario
 
 
 def datos(**cambios):
-    base = {"sisben": "A", "estrato": 1, "personas": 6, "discapacidad": True, "soporte_discapacidad": True,
-            "solicitudes_recientes": 1, "dias_sin_ayuda": None}
+    base = {
+        "sisben": "A",
+        "estrato": 1,
+        "personas": 6,
+        "discapacidad": True,
+        "soporte_discapacidad": True,
+        "solicitudes_recientes": 1,
+        "dias_sin_ayuda": None,
+    }
     base.update(cambios)
     return base
 
@@ -62,8 +70,9 @@ class CalculoTests(PruebaBase):
             parametros.validar("puntaje_escala_sisben", "A:100, B:70")  # Faltan niveles.
         with self.assertRaises(ValidationError):
             parametros.validar("puntaje_escala_estrato", "1:120, 2:80, 3:50, 4:25, 5:0, 6:0")
-        self.assertEqual(parametros.validar("grupos_necesidad", "baja|0|#2B8A3E; Alta|60|#d9480f"),
-                         "Alta|60|#d9480f; baja|0|#2b8a3e")
+        self.assertEqual(
+            parametros.validar("grupos_necesidad", "baja|0|#2B8A3E; Alta|60|#d9480f"), "Alta|60|#d9480f; baja|0|#2b8a3e"
+        )
 
 
 class RecalculoAutomaticoTests(PruebaBase):
@@ -107,7 +116,9 @@ class RecalculoAutomaticoTests(PruebaBase):
         usu_srv.revisar_documento(doc, self.admin, True)
         despues = PerfilBeneficiario.objects.get(pk=b.pk).ben_puntaje
         self.assertEqual(despues - antes, Decimal("7.50"))  # 15 × (100 − 50) ÷ 100
-        self.assertTrue(Bitacora.objects.filter(bit_accion="calculo_puntaje", bit_detalle__contains="documentos").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="calculo_puntaje", bit_detalle__contains="documentos").exists()
+        )
 
     def test_nueva_solicitud_recalcula(self):
         b = crear_beneficiario(verificado=True, admin=self.admin)
@@ -116,17 +127,24 @@ class RecalculoAutomaticoTests(PruebaBase):
         sol_srv.enviar_solicitud(b)
         perfil = PerfilBeneficiario.objects.get(pk=b.pk)
         self.assertEqual(perfil.ben_puntaje_detalle[4]["escala"], 25.0)
-        self.assertTrue(Bitacora.objects.filter(bit_accion="calculo_puntaje", bit_detalle__contains="Nueva solicitud").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="calculo_puntaje", bit_detalle__contains="Nueva solicitud").exists()
+        )
 
     def test_cambio_de_parametro_recalcula_a_todos(self):
         b1, b2 = crear_beneficiario(), crear_beneficiario()
         self.client.force_login(self.admin)
         p = Parametro.objects.get(par_clave="grupos_necesidad")
-        r = self.client.post(reverse("core:parametro_editar", args=[p.pk]),
-                             {"par_valor": "Urgente|50|#b42318; Normal|0|#2b8a3e"}, follow=True)
+        r = self.client.post(
+            reverse("core:parametro_editar", args=[p.pk]),
+            {"par_valor": "Urgente|50|#b42318; Normal|0|#2b8a3e"},
+            follow=True,
+        )
         self.assertContains(r, "Se recalculó el puntaje de 2 beneficiario(s)")
         self.assertEqual(set(PerfilBeneficiario.objects.values_list("ben_grupo", flat=True)), {"urgente"})
-        self.assertTrue(Bitacora.objects.filter(bit_accion="clasificacion", bit_detalle__contains="grupos_necesidad").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="clasificacion", bit_detalle__contains="grupos_necesidad").exists()
+        )
 
     def test_tarea_nocturna(self):
         crear_beneficiario()

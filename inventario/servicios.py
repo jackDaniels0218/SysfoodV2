@@ -1,4 +1,5 @@
 """Movimientos de inventario. Toda variación de cantidades pasa por aquí y queda en el kardex."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -37,9 +38,16 @@ def _registrar(inv, tipo, cantidad, usuario, motivo, disp_ant, reserv_ant, entre
     inv.inv_estado = inv.calcular_estado()
     inv.save()
     Kardex.objects.create(
-        inventario=inv, usuario=usuario, entrega=entrega, kar_tipo=tipo, kar_cantidad=cantidad,
-        kar_cant_anterior=disp_ant, kar_cant_resultante=inv.inv_cant_disp,
-        kar_reserv_anterior=reserv_ant, kar_reserv_resultante=inv.inv_cant_reserv, kar_motivo=motivo[:255],
+        inventario=inv,
+        usuario=usuario,
+        entrega=entrega,
+        kar_tipo=tipo,
+        kar_cantidad=cantidad,
+        kar_cant_anterior=disp_ant,
+        kar_cant_resultante=inv.inv_cant_disp,
+        kar_reserv_anterior=reserv_ant,
+        kar_reserv_resultante=inv.inv_cant_reserv,
+        kar_motivo=motivo[:255],
     )
     inv.detalle.donacion.recalcular_estado()
     return inv
@@ -52,9 +60,15 @@ def ingresar_detalle(detalle, usuario, bodega=None):
 
     bodega = bodega or bodega_de_ingreso()
     inv = Inventario(
-        detalle=detalle, bodega=bodega, categoria=detalle.categoria, inv_nom=detalle.dd_nom,
-        inv_unidad=detalle.dd_unidad, inv_divisible=detalle.dd_divisible,
-        inv_cant_inicial=detalle.dd_cantidad, inv_cant_disp=detalle.dd_cantidad, inv_fec_venc=detalle.dd_fec_venc,
+        detalle=detalle,
+        bodega=bodega,
+        categoria=detalle.categoria,
+        inv_nom=detalle.dd_nom,
+        inv_unidad=detalle.dd_unidad,
+        inv_divisible=detalle.dd_divisible,
+        inv_cant_inicial=detalle.dd_cantidad,
+        inv_cant_disp=detalle.dd_cantidad,
+        inv_fec_venc=detalle.dd_fec_venc,
     )
     inv.inv_est_venc = inv.calcular_vigencia()
     inv.save()
@@ -62,18 +76,23 @@ def ingresar_detalle(detalle, usuario, bodega=None):
     detalle.save(update_fields=["dd_estado"])
     if inv.inv_est_venc == Inventario.PROXIMO:
         transaction.on_commit(lambda: _avisar_proximo(inv))
-    return _registrar(inv, Kardex.INGRESO, detalle.dd_cantidad, usuario, f"Ingreso por donación #{detalle.donacion_id}", CERO, CERO)
+    return _registrar(
+        inv, Kardex.INGRESO, detalle.dd_cantidad, usuario, f"Ingreso por donación #{detalle.donacion_id}", CERO, CERO
+    )
 
 
 def _avisar_proximo(inv):
     donacion = inv.detalle.donacion
     notificar(
-        donacion.donante, "vencimiento", "Producto próximo a vencer",
+        donacion.donante,
+        "vencimiento",
+        "Producto próximo a vencer",
         f"Su producto «{inv.inv_nom}» vence el {inv.inv_fec_venc:%d/%m/%Y} y se priorizará en las entregas.",
         reverse("donaciones:detalle", args=[donacion.pk]),
     )
     notificar_administradores(
-        "vencimiento", "Producto próximo a vencer",
+        "vencimiento",
+        "Producto próximo a vencer",
         f"«{inv.inv_nom}» ({inv.cantidad_texto(inv.inv_cant_disp)}) vence el {inv.inv_fec_venc:%d/%m/%Y}. Entrega prioritaria.",
         reverse("inventario:detalle", args=[inv.pk]),
     )
@@ -98,7 +117,9 @@ def sincronizar_detalle(detalle, usuario):
         for cantidad in (inv.inv_cant_inicial, inv.inv_cant_disp, inv.inv_cant_reserv):
             inv.validar_cantidad(cantidad)
     if diferencia:
-        return _registrar(inv, Kardex.AJUSTE, diferencia, usuario, "Edición de la donación por el donante", disp_ant, reserv_ant)
+        return _registrar(
+            inv, Kardex.AJUSTE, diferencia, usuario, "Edición de la donación por el donante", disp_ant, reserv_ant
+        )
     inv.save()
     return inv
 
@@ -147,9 +168,15 @@ def dar_baja(inv, motivo, detalle, usuario):
         raise ValidationError("Cantidad inválida.")
     inv.save()
     Kardex.objects.create(
-        inventario=inv, usuario=usuario, kar_tipo=Kardex.BAJA, kar_cantidad=-disp_ant,
-        kar_cant_anterior=disp_ant, kar_cant_resultante=CERO, kar_reserv_anterior=reserv_ant,
-        kar_reserv_resultante=inv.inv_cant_reserv, kar_motivo=texto[:255],
+        inventario=inv,
+        usuario=usuario,
+        kar_tipo=Kardex.BAJA,
+        kar_cantidad=-disp_ant,
+        kar_cant_anterior=disp_ant,
+        kar_cant_resultante=CERO,
+        kar_reserv_anterior=reserv_ant,
+        kar_reserv_resultante=inv.inv_cant_reserv,
+        kar_motivo=texto[:255],
     )
     inv.detalle.donacion.recalcular_estado()
     return inv
@@ -168,7 +195,16 @@ def reservar(inv, cantidad, usuario, entrega):
     disp_ant, reserv_ant = inv.inv_cant_disp, inv.inv_cant_reserv
     inv.inv_cant_disp -= cantidad
     inv.inv_cant_reserv += cantidad
-    return _registrar(inv, Kardex.RESERVA, cantidad, usuario, f"Reserva para la entrega {entrega.ent_cod}", disp_ant, reserv_ant, entrega)
+    return _registrar(
+        inv,
+        Kardex.RESERVA,
+        cantidad,
+        usuario,
+        f"Reserva para la entrega {entrega.ent_cod}",
+        disp_ant,
+        reserv_ant,
+        entrega,
+    )
 
 
 @transaction.atomic
@@ -208,9 +244,8 @@ def controlar_vencimientos(hoy=None):
 
     hoy = hoy or timezone.localdate()
     proximos, vencidos, donaciones = [], [], set()
-    pendientes = (
-        Inventario.objects.exclude(inv_estado=Inventario.RETIRADO)
-        .select_related("categoria", "detalle__donacion__donante")
+    pendientes = Inventario.objects.exclude(inv_estado=Inventario.RETIRADO).select_related(
+        "categoria", "detalle__donacion__donante"
     )
     for inv in pendientes:
         nueva = inv.calcular_vigencia(hoy)
@@ -223,7 +258,9 @@ def controlar_vencimientos(hoy=None):
         if nueva == Inventario.PROXIMO:
             proximos.append(inv)
             notificar(
-                donante, "vencimiento", "Producto próximo a vencer",
+                donante,
+                "vencimiento",
+                "Producto próximo a vencer",
                 f"Su producto «{inv.inv_nom}» vence el {inv.inv_fec_venc:%d/%m/%Y} y se priorizará en las entregas.",
                 reverse("donaciones:detalle", args=[inv.detalle.donacion_id]),
             )
@@ -231,19 +268,23 @@ def controlar_vencimientos(hoy=None):
             vencidos.append(inv)
             CarritoItem.objects.filter(inventario=inv).delete()
             notificar(
-                donante, "vencimiento", "Producto vencido",
+                donante,
+                "vencimiento",
+                "Producto vencido",
                 f"Su producto «{inv.inv_nom}» venció el {inv.inv_fec_venc:%d/%m/%Y} y será retirado del inventario.",
                 reverse("donaciones:detalle", args=[inv.detalle.donacion_id]),
             )
     if proximos:
         notificar_administradores(
-            "vencimiento", f"{len(proximos)} producto(s) próximos a vencer",
+            "vencimiento",
+            f"{len(proximos)} producto(s) próximos a vencer",
             "Productos para entrega prioritaria: " + ", ".join(i.inv_nom for i in proximos[:15]),
             reverse("inventario:lista") + "?vigencia=proximo",
         )
     if vencidos:
         notificar_administradores(
-            "vencimiento", f"{len(vencidos)} producto(s) vencidos para retirar",
+            "vencimiento",
+            f"{len(vencidos)} producto(s) vencidos para retirar",
             "Productos vencidos marcados para retiro: " + ", ".join(i.inv_nom for i in vencidos[:15]),
             reverse("inventario:lista") + "?vigencia=vencido",
         )

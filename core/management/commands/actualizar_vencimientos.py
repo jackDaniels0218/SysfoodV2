@@ -8,7 +8,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opciones):
         resultado = ejecutar_control_diario(forzar=True)
-        self.stdout.write(self.style.SUCCESS(
-            f"Control ejecutado: {resultado['proximos']} próximos a vencer, {resultado['vencidos']} vencidos, "
-            f"{resultado['documentos_vencidos']} documentos vencidos."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Control ejecutado: {resultado['proximos']} próximos a vencer, {resultado['vencidos']} vencidos, "
+                f"{resultado['documentos_vencidos']} documentos vencidos."
+            )
+        )

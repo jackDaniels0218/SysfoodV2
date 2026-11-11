@@ -17,13 +17,19 @@ class Command(BaseCommand):
     def handle(self, *args, **op):
         if op["listar"]:
             for fila in tareas.estado():
-                self.stdout.write(f"{fila['tarea'].nombre:28} {fila['tarea'].frecuencia:8} {fila['ultima'] or 'nunca'}  {fila['resultado']}")
+                self.stdout.write(
+                    f"{fila['tarea'].nombre:28} {fila['tarea'].frecuencia:8} {fila['ultima'] or 'nunca'}  {fila['resultado']}"
+                )
             return
         if op["tarea"]:
             if op["tarea"] not in tareas.REGISTRO:
                 raise CommandError("Tarea desconocida. Opciones: " + ", ".join(tareas.REGISTRO))
             resultado = tareas.ejecutar(op["tarea"], forzar=op["forzar"])
-            self.stdout.write(self.style.SUCCESS(f"{op['tarea']}: {tareas._resumen(resultado) if resultado is not None else 'no correspondía ejecutarla'}"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{op['tarea']}: {tareas._resumen(resultado) if resultado is not None else 'no correspondía ejecutarla'}"
+                )
+            )
             return
         if op["forzar"]:
             resultados = {n: tareas.ejecutar(n, forzar=True) for n in tareas.REGISTRO}

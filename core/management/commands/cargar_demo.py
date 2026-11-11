@@ -1,4 +1,5 @@
 """Carga datos de demostración para probar SysFood V2 de inmediato."""
+
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -21,18 +22,186 @@ UBICADO = "ubicado"
 # Beneficiarios adicionales para el mapa de calor (coordenadas aproximadas de barrios de Facatativá).
 # (nombre, apellido, documento, dirección, zona, lat, lng, personas, sisbén, estrato, discapacidad, verificado, solicitudes)
 VECINOS = [
-    ("Rosa", "Cárdenas", "39601001", "Cl 7 # 2-15, Pueblo Viejo", "Pueblo Viejo", 4.8172, -74.3573, 5, "A", 1, False, True, 2),
-    ("Luis", "Moreno", "79602002", "Cra 1 # 9-30, Pueblo Viejo", "Pueblo Viejo", 4.8181, -74.3561, 7, "A", 1, True, True, 1),
-    ("Diana", "Suárez", "52603003", "Cl 10 # 1-08, Pueblo Viejo", "Pueblo Viejo", 4.8166, -74.3552, 3, "B", 1, False, True, 1),
-    ("Pedro", "Castillo", "80604004", "Manzana 4 casa 12, Cartagenita", "Cartagenita", 4.8235, -74.3640, 6, "A", 1, False, True, 2),
-    ("Yolanda", "Ríos", "41605005", "Manzana 9 casa 3, Cartagenita", "Cartagenita", 4.8244, -74.3652, 4, "A", 2, False, True, 1),
-    ("Andrés", "Pinto", "1070606006", "Manzana 2 casa 20, Cartagenita", "Cartagenita", 4.8228, -74.3631, 8, "B", 1, True, False, 0),
-    ("Gloria", "Vargas", "39607007", "Cl 15 # 12-40, Manablanca", "Manablanca", 4.8102, -74.3489, 2, "C", 2, False, True, 1),
-    ("Héctor", "Lozano", "79608008", "Cra 14 # 16-22, Manablanca", "Manablanca", 4.8095, -74.3478, 3, "C", 3, False, False, 0),
-    ("Marta", "Quintero", "52609009", "Cl 22 # 5-10, Los Robles", "Los Robles", 4.8031, -74.3601, 4, "B", 2, False, True, 1),
-    ("Jairo", "Mendoza", "80610010", "Cl 24 # 6-55, Los Robles", "Los Robles", 4.8022, -74.3612, 1, "D", 3, False, True, 0),
-    ("Sandra", "Beltrán", "1070611011", "Vereda La Tribuna, km 3", "La Tribuna", 4.8352, -74.3398, 5, "A", 1, True, True, 1),
-    ("Oscar", "Guerrero", "79612012", "Cl 3 # 18-02, Brisas del Mancilla", "Brisas del Mancilla", 4.8286, -74.3712, 6, "B", 1, False, True, 2),
+    (
+        "Rosa",
+        "Cárdenas",
+        "39601001",
+        "Cl 7 # 2-15, Pueblo Viejo",
+        "Pueblo Viejo",
+        4.8172,
+        -74.3573,
+        5,
+        "A",
+        1,
+        False,
+        True,
+        2,
+    ),
+    (
+        "Luis",
+        "Moreno",
+        "79602002",
+        "Cra 1 # 9-30, Pueblo Viejo",
+        "Pueblo Viejo",
+        4.8181,
+        -74.3561,
+        7,
+        "A",
+        1,
+        True,
+        True,
+        1,
+    ),
+    (
+        "Diana",
+        "Suárez",
+        "52603003",
+        "Cl 10 # 1-08, Pueblo Viejo",
+        "Pueblo Viejo",
+        4.8166,
+        -74.3552,
+        3,
+        "B",
+        1,
+        False,
+        True,
+        1,
+    ),
+    (
+        "Pedro",
+        "Castillo",
+        "80604004",
+        "Manzana 4 casa 12, Cartagenita",
+        "Cartagenita",
+        4.8235,
+        -74.3640,
+        6,
+        "A",
+        1,
+        False,
+        True,
+        2,
+    ),
+    (
+        "Yolanda",
+        "Ríos",
+        "41605005",
+        "Manzana 9 casa 3, Cartagenita",
+        "Cartagenita",
+        4.8244,
+        -74.3652,
+        4,
+        "A",
+        2,
+        False,
+        True,
+        1,
+    ),
+    (
+        "Andrés",
+        "Pinto",
+        "1070606006",
+        "Manzana 2 casa 20, Cartagenita",
+        "Cartagenita",
+        4.8228,
+        -74.3631,
+        8,
+        "B",
+        1,
+        True,
+        False,
+        0,
+    ),
+    (
+        "Gloria",
+        "Vargas",
+        "39607007",
+        "Cl 15 # 12-40, Manablanca",
+        "Manablanca",
+        4.8102,
+        -74.3489,
+        2,
+        "C",
+        2,
+        False,
+        True,
+        1,
+    ),
+    (
+        "Héctor",
+        "Lozano",
+        "79608008",
+        "Cra 14 # 16-22, Manablanca",
+        "Manablanca",
+        4.8095,
+        -74.3478,
+        3,
+        "C",
+        3,
+        False,
+        False,
+        0,
+    ),
+    (
+        "Marta",
+        "Quintero",
+        "52609009",
+        "Cl 22 # 5-10, Los Robles",
+        "Los Robles",
+        4.8031,
+        -74.3601,
+        4,
+        "B",
+        2,
+        False,
+        True,
+        1,
+    ),
+    (
+        "Jairo",
+        "Mendoza",
+        "80610010",
+        "Cl 24 # 6-55, Los Robles",
+        "Los Robles",
+        4.8022,
+        -74.3612,
+        1,
+        "D",
+        3,
+        False,
+        True,
+        0,
+    ),
+    (
+        "Sandra",
+        "Beltrán",
+        "1070611011",
+        "Vereda La Tribuna, km 3",
+        "La Tribuna",
+        4.8352,
+        -74.3398,
+        5,
+        "A",
+        1,
+        True,
+        True,
+        1,
+    ),
+    (
+        "Oscar",
+        "Guerrero",
+        "79612012",
+        "Cl 3 # 18-02, Brisas del Mancilla",
+        "Brisas del Mancilla",
+        4.8286,
+        -74.3712,
+        6,
+        "B",
+        1,
+        False,
+        True,
+        2,
+    ),
 ]
 
 PDF_MINIMO = (
@@ -58,8 +227,14 @@ class Command(BaseCommand):
         hoy = timezone.localdate()
         admin, creado = Usuario.objects.get_or_create(
             usu_correo="admin@sysfood.local",
-            defaults=dict(usu_rol=Usuario.ADMIN, usu_nom="Ana", usu_ape="Administradora", usu_tel="3001112233",
-                          usu_acepta_datos=True, usu_fec_acepta=timezone.now()),
+            defaults=dict(
+                usu_rol=Usuario.ADMIN,
+                usu_nom="Ana",
+                usu_ape="Administradora",
+                usu_tel="3001112233",
+                usu_acepta_datos=True,
+                usu_fec_acepta=timezone.now(),
+            ),
         )
         if creado:
             admin.set_password(CLAVE)
@@ -75,7 +250,9 @@ class Command(BaseCommand):
             bod_nom="Bodega Central Facatativá",
             defaults=dict(responsable=admin, bod_dir="Calle 14 # 15-20, Facatativá", bod_capacidad="2.000 kg"),
         )
-        Bodega.objects.get_or_create(bod_nom="Bodega Norte", defaults=dict(responsable=admin, bod_dir="Carrera 2 # 8-40", bod_capacidad="800 kg"))
+        Bodega.objects.get_or_create(
+            bod_nom="Bodega Norte", defaults=dict(responsable=admin, bod_dir="Carrera 2 # 8-40", bod_capacidad="800 kg")
+        )
         Parametro.objects.filter(par_clave="bodega_predeterminada").update(par_valor=str(bodega.pk), usuario_mod=admin)
 
         categorias = {}
@@ -87,61 +264,128 @@ class Command(BaseCommand):
             ("Aseo", "Jabón, detergente, papel higiénico", False, None),
         ]:
             categorias[nombre], _ = Categoria.objects.get_or_create(
-                cat_nom=nombre, defaults=dict(cat_desc=desc, cat_perecedero=perecedero, cat_dias_alerta=dias),
+                cat_nom=nombre,
+                defaults=dict(cat_desc=desc, cat_perecedero=perecedero, cat_dias_alerta=dias),
             )
 
         def usuario(correo, rol, nom, ape, tel):
-            u = Usuario(usu_correo=correo, usu_rol=rol, usu_nom=nom, usu_ape=ape, usu_tel=tel,
-                        usu_acepta_datos=True, usu_fec_acepta=timezone.now())
+            u = Usuario(
+                usu_correo=correo,
+                usu_rol=rol,
+                usu_nom=nom,
+                usu_ape=ape,
+                usu_tel=tel,
+                usu_acepta_datos=True,
+                usu_fec_acepta=timezone.now(),
+            )
             u.set_password(CLAVE)
             u.save()
             return u
 
         d1 = usuario("donante@sysfood.local", Usuario.DONANTE, "Carlos", "Pérez", "3105556677")
-        PerfilDonante.objects.create(usuario=d1, don_tipo_persona="natural", don_tipo_doc="CC", don_doc_nit="1070123456",
-                                     don_dir="Cra 5 # 10-12, Facatativá", don_frecuencia="mensual")
+        PerfilDonante.objects.create(
+            usuario=d1,
+            don_tipo_persona="natural",
+            don_tipo_doc="CC",
+            don_doc_nit="1070123456",
+            don_dir="Cra 5 # 10-12, Facatativá",
+            don_frecuencia="mensual",
+        )
         d2 = usuario("empresa@sysfood.local", Usuario.DONANTE, "Laura", "Gómez", "3209998877")
-        PerfilDonante.objects.create(usuario=d2, don_tipo_persona="juridica", don_tipo_doc="NIT", don_doc_nit="900123456-7",
-                                     don_raz_soc="Alimentos La Sabana S.A.S.", don_contacto="Laura Gómez",
-                                     don_dir="Zona Industrial km 2", don_anonimo_def=True)
+        PerfilDonante.objects.create(
+            usuario=d2,
+            don_tipo_persona="juridica",
+            don_tipo_doc="NIT",
+            don_doc_nit="900123456-7",
+            don_raz_soc="Alimentos La Sabana S.A.S.",
+            don_contacto="Laura Gómez",
+            don_dir="Zona Industrial km 2",
+            don_anonimo_def=True,
+        )
 
         b1 = usuario("beneficiario@sysfood.local", Usuario.BENEFICIARIO, "María", "Rodríguez", "3014445566")
-        PerfilBeneficiario.objects.create(usuario=b1, ben_tipo_doc="CC", ben_num_doc="52123456", ben_fec_exp_doc=date(2010, 5, 20),
-                                          ben_dir="Barrio Santa Rita, Cl 3 # 4-10", ben_num_personas=4, ben_sisben="A", ben_estrato=1,
-                                          ben_lat=Decimal("4.8121"), ben_lng=Decimal("-74.3530"), ben_zona="Santa Rita",
-                                          ben_geo_estado=UBICADO, ben_geo_detalle="Ubicación de demostración")
+        PerfilBeneficiario.objects.create(
+            usuario=b1,
+            ben_tipo_doc="CC",
+            ben_num_doc="52123456",
+            ben_fec_exp_doc=date(2010, 5, 20),
+            ben_dir="Barrio Santa Rita, Cl 3 # 4-10",
+            ben_num_personas=4,
+            ben_sisben="A",
+            ben_estrato=1,
+            ben_lat=Decimal("4.8121"),
+            ben_lng=Decimal("-74.3530"),
+            ben_zona="Santa Rita",
+            ben_geo_estado=UBICADO,
+            ben_geo_detalle="Ubicación de demostración",
+        )
         for tipo in (DocumentoValidacion.IDENTIDAD, DocumentoValidacion.SISBEN, DocumentoValidacion.RESIDENCIA):
             doc = usu_srv.cargar_documento(b1, tipo, _pdf(f"{tipo}.pdf", f"b1-{tipo}"))
             usu_srv.revisar_documento(doc, admin, True)
 
         b2 = usuario("nuevo@sysfood.local", Usuario.BENEFICIARIO, "Jorge", "Martínez", "3127778899")
-        PerfilBeneficiario.objects.create(usuario=b2, ben_tipo_doc="CC", ben_num_doc="80987654", ben_fec_exp_doc=date(2005, 3, 2),
-                                          ben_dir="Vereda El Corzo", ben_num_personas=6, ben_sisben="B", ben_estrato=2, ben_discapacidad=True,
-                                          ben_lat=Decimal("4.7952"), ben_lng=Decimal("-74.3755"), ben_zona="El Corzo",
-                                          ben_geo_estado=UBICADO, ben_geo_detalle="Ubicación de demostración")
-        for tipo in (DocumentoValidacion.IDENTIDAD, DocumentoValidacion.SISBEN, DocumentoValidacion.RESIDENCIA, DocumentoValidacion.DISCAPACIDAD):
+        PerfilBeneficiario.objects.create(
+            usuario=b2,
+            ben_tipo_doc="CC",
+            ben_num_doc="80987654",
+            ben_fec_exp_doc=date(2005, 3, 2),
+            ben_dir="Vereda El Corzo",
+            ben_num_personas=6,
+            ben_sisben="B",
+            ben_estrato=2,
+            ben_discapacidad=True,
+            ben_lat=Decimal("4.7952"),
+            ben_lng=Decimal("-74.3755"),
+            ben_zona="El Corzo",
+            ben_geo_estado=UBICADO,
+            ben_geo_detalle="Ubicación de demostración",
+        )
+        for tipo in (
+            DocumentoValidacion.IDENTIDAD,
+            DocumentoValidacion.SISBEN,
+            DocumentoValidacion.RESIDENCIA,
+            DocumentoValidacion.DISCAPACIDAD,
+        ):
             usu_srv.cargar_documento(b2, tipo, _pdf(f"{tipo}.pdf", f"b2-{tipo}"))
 
         def donar(donante, anonima, productos, obs=""):
             don = Donacion(donante=donante, dona_anonima=anonima, dona_obs=obs)
             detalles = [
-                DetalleDonacion(categoria=categorias[c], dd_nom=n, dd_cantidad=Decimal(q), dd_unidad=u, dd_fec_venc=hoy + timedelta(days=dias), dd_lote=lote)
+                DetalleDonacion(
+                    categoria=categorias[c],
+                    dd_nom=n,
+                    dd_cantidad=Decimal(q),
+                    dd_unidad=u,
+                    dd_fec_venc=hoy + timedelta(days=dias),
+                    dd_lote=lote,
+                )
                 for c, n, q, u, dias, lote in productos
             ]
             return don_srv.registrar(don, detalles, donante)
 
-        donar(d1, False, [
-            ("Granos", "Arroz blanco", "50", "kilogramos", 240, "AR-2201"),
-            ("Granos", "Fríjol rojo", "20", "kilogramos", 200, ""),
-            ("Lácteos", "Leche entera UHT", "24", "litros", 4, "LE-778"),
-        ], "Entrega en la bodega central")
-        donar(d2, True, [
-            ("Enlatados", "Atún en aceite", "60", "latas", 400, "AT-10"),
-            ("Aseo", "Jabón de baño", "40", "unidades", 700, ""),
-            ("Frutas y verduras", "Papa pastusa", "30", "kilogramos", 12, ""),
-        ], "Donación corporativa trimestral")
+        donar(
+            d1,
+            False,
+            [
+                ("Granos", "Arroz blanco", "50", "kilogramos", 240, "AR-2201"),
+                ("Granos", "Fríjol rojo", "20", "kilogramos", 200, ""),
+                ("Lácteos", "Leche entera UHT", "24", "litros", 4, "LE-778"),
+            ],
+            "Entrega en la bodega central",
+        )
+        donar(
+            d2,
+            True,
+            [
+                ("Enlatados", "Atún en aceite", "60", "latas", 400, "AT-10"),
+                ("Aseo", "Jabón de baño", "40", "unidades", 700, ""),
+                ("Frutas y verduras", "Papa pastusa", "30", "kilogramos", 12, ""),
+            ],
+            "Donación corporativa trimestral",
+        )
 
         from inventario.models import Inventario
+
         arroz = Inventario.objects.get(inv_nom="Arroz blanco")
         atun = Inventario.objects.get(inv_nom="Atún en aceite")
         sol_srv.agregar_al_carrito(b1, arroz, "5")
@@ -149,13 +393,29 @@ class Command(BaseCommand):
         sol_srv.enviar_solicitud(b1)
 
         # Vecinos con ubicación (para el mapa de calor) y algunas solicitudes.
-        productos = [arroz, Inventario.objects.get(inv_nom="Fríjol rojo"), Inventario.objects.get(inv_nom="Jabón de baño")]
-        for n, (nom, ape, doc, direccion, zona, lat, lng, personas, sisben, estrato, disc, verif, n_sol) in enumerate(VECINOS):
+        productos = [
+            arroz,
+            Inventario.objects.get(inv_nom="Fríjol rojo"),
+            Inventario.objects.get(inv_nom="Jabón de baño"),
+        ]
+        for n, (nom, ape, doc, direccion, zona, lat, lng, personas, sisben, estrato, disc, verif, n_sol) in enumerate(
+            VECINOS
+        ):
             u = usuario(f"vecino{n + 1}@sysfood.local", Usuario.BENEFICIARIO, nom, ape, f"31{doc[-8:]}")
             PerfilBeneficiario.objects.create(
-                usuario=u, ben_tipo_doc="CC", ben_num_doc=doc, ben_fec_exp_doc=date(2012, 1, 15), ben_dir=direccion,
-                ben_num_personas=personas, ben_sisben=sisben, ben_estrato=estrato, ben_discapacidad=disc,
-                ben_lat=Decimal(str(lat)), ben_lng=Decimal(str(lng)), ben_zona=zona, ben_geo_estado=UBICADO,
+                usuario=u,
+                ben_tipo_doc="CC",
+                ben_num_doc=doc,
+                ben_fec_exp_doc=date(2012, 1, 15),
+                ben_dir=direccion,
+                ben_num_personas=personas,
+                ben_sisben=sisben,
+                ben_estrato=estrato,
+                ben_discapacidad=disc,
+                ben_lat=Decimal(str(lat)),
+                ben_lng=Decimal(str(lng)),
+                ben_zona=zona,
+                ben_geo_estado=UBICADO,
                 ben_geo_detalle="Ubicación de demostración",
             )
             if verif:
@@ -170,9 +430,12 @@ class Command(BaseCommand):
                     sol_srv.enviar_solicitud(u)
 
         from core.tareas import ejecutar_control_diario
+
         ejecutar_control_diario(forzar=True)
 
-        self.stdout.write(self.style.SUCCESS("Datos de demostración cargados. Contraseña de todas las cuentas: " + CLAVE))
+        self.stdout.write(
+            self.style.SUCCESS("Datos de demostración cargados. Contraseña de todas las cuentas: " + CLAVE)
+        )
         for correo, rol in [
             ("admin@sysfood.local", "Administrador"),
             ("donante@sysfood.local", "Donante (persona natural)"),

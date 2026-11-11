@@ -1,4 +1,5 @@
 """Control de acceso por rol, validado en el servidor en cada vista."""
+
 from functools import wraps
 
 from django.contrib import messages

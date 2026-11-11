@@ -16,20 +16,34 @@ class Inventario(models.Model):
     ESTADOS = [(DISPONIBLE, "Disponible"), (RESERVADO, "Reservado"), (AGOTADO, "Agotado"), (RETIRADO, "Retirado")]
     VIGENTE, PROXIMO, VENCIDO = "vigente", "proximo", "vencido"
     VIGENCIAS = [(VIGENTE, "Vigente"), (PROXIMO, "Próximo a vencer"), (VENCIDO, "Vencido")]
-    MOTIVOS_BAJA = [("vencido", "Vencido"), ("danado", "Dañado"), ("retiro_donante", "Retiro del donante"), ("otro", "Otro")]
+    MOTIVOS_BAJA = [
+        ("vencido", "Vencido"),
+        ("danado", "Dañado"),
+        ("retiro_donante", "Retiro del donante"),
+        ("otro", "Otro"),
+    ]
 
     inv_id = models.AutoField(primary_key=True)
     detalle = models.OneToOneField(
-        "donaciones.DetalleDonacion", on_delete=models.PROTECT, db_column="dd_id", related_name="inventario",
+        "donaciones.DetalleDonacion",
+        on_delete=models.PROTECT,
+        db_column="dd_id",
+        related_name="inventario",
     )
-    bodega = models.ForeignKey("catalogo.Bodega", on_delete=models.PROTECT, db_column="bod_id", related_name="inventario")
+    bodega = models.ForeignKey(
+        "catalogo.Bodega", on_delete=models.PROTECT, db_column="bod_id", related_name="inventario"
+    )
     categoria = models.ForeignKey(
-        "catalogo.Categoria", on_delete=models.PROTECT, db_column="cat_id", related_name="inventario",
+        "catalogo.Categoria",
+        on_delete=models.PROTECT,
+        db_column="cat_id",
+        related_name="inventario",
     )
     inv_nom = models.CharField("producto", max_length=120, db_index=True)
     inv_unidad = models.CharField("unidad", max_length=30)
     inv_divisible = models.BooleanField(
-        "admite decimales", default=True,
+        "admite decimales",
+        default=True,
         help_text="Copia de la unidad al ingresar: si es falso, todas las cantidades deben ser enteras.",
     )
     inv_cant_inicial = models.DecimalField("cantidad inicial", max_digits=12, decimal_places=2)
@@ -43,7 +57,11 @@ class Inventario(models.Model):
     inv_det_baja = models.CharField("detalle de la baja", max_length=255, blank=True)
     inv_fec_baja = models.DateTimeField("fecha de baja", null=True, blank=True)
     usuario_baja = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, db_column="usu_id_baja",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="usu_id_baja",
         related_name="+",
     )
 
@@ -54,8 +72,10 @@ class Inventario(models.Model):
             models.CheckConstraint(condition=models.Q(inv_cant_disp__gte=0), name="inv_disp_no_negativa"),
             models.CheckConstraint(condition=models.Q(inv_cant_reserv__gte=0), name="inv_reserv_no_negativa"),
             models.CheckConstraint(
-                condition=models.Q(inv_divisible=True) | models.Q(
-                    inv_cant_inicial=Floor("inv_cant_inicial"), inv_cant_disp=Floor("inv_cant_disp"),
+                condition=models.Q(inv_divisible=True)
+                | models.Q(
+                    inv_cant_inicial=Floor("inv_cant_inicial"),
+                    inv_cant_disp=Floor("inv_cant_disp"),
                     inv_cant_reserv=Floor("inv_cant_reserv"),
                 ),
                 name="inv_contable_entero",
@@ -119,26 +139,49 @@ class Inventario(models.Model):
     def catalogo(cls):
         """Productos visibles para los beneficiarios: vigentes y con existencia."""
         return cls.objects.filter(
-            inv_estado=cls.DISPONIBLE, inv_cant_disp__gt=0, inv_fec_venc__gte=timezone.localdate(),
+            inv_estado=cls.DISPONIBLE,
+            inv_cant_disp__gt=0,
+            inv_fec_venc__gte=timezone.localdate(),
         ).exclude(inv_est_venc=cls.VENCIDO)
 
 
 class Kardex(_SoloInsercion):
     """Movimientos de inventario. Solo inserción (Actividad 14 y 19)."""
 
-    INGRESO, RESERVA, LIBERACION, ENTREGA, AJUSTE, BAJA = "ingreso", "reserva", "liberacion", "entrega", "ajuste", "baja"
+    INGRESO, RESERVA, LIBERACION, ENTREGA, AJUSTE, BAJA = (
+        "ingreso",
+        "reserva",
+        "liberacion",
+        "entrega",
+        "ajuste",
+        "baja",
+    )
     TIPOS = [
-        (INGRESO, "Ingreso"), (RESERVA, "Reserva"), (LIBERACION, "Liberación"),
-        (ENTREGA, "Entrega"), (AJUSTE, "Ajuste"), (BAJA, "Baja"),
+        (INGRESO, "Ingreso"),
+        (RESERVA, "Reserva"),
+        (LIBERACION, "Liberación"),
+        (ENTREGA, "Entrega"),
+        (AJUSTE, "Ajuste"),
+        (BAJA, "Baja"),
     ]
 
     kar_id = models.BigAutoField(primary_key=True)
     inventario = models.ForeignKey(Inventario, on_delete=models.PROTECT, db_column="inv_id", related_name="kardex")
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, db_column="usu_id", related_name="+",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="usu_id",
+        related_name="+",
     )
     entrega = models.ForeignKey(
-        "entregas.Entrega", on_delete=models.PROTECT, null=True, blank=True, db_column="ent_id", related_name="kardex",
+        "entregas.Entrega",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="ent_id",
+        related_name="kardex",
     )
     kar_tipo = models.CharField("tipo de movimiento", max_length=12, choices=TIPOS, db_index=True)
     kar_cantidad = models.DecimalField("cantidad", max_digits=12, decimal_places=2)

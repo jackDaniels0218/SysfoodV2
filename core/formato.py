@@ -1,4 +1,5 @@
 """Formato de números para mostrar en pantalla (convención colombiana: 1.500,25)."""
+
 from decimal import Decimal, InvalidOperation
 
 

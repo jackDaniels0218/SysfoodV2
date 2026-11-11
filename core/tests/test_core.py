@@ -1,4 +1,5 @@
 """Actividades 9, 13, 14, 16, 17, 19 y 22: parámetros, notificaciones, auditoría, rendimiento, seguridad y respaldo."""
+
 import time
 import zipfile
 from io import StringIO
@@ -13,7 +14,14 @@ from django.urls import reverse
 from core.models import Bitacora, Notificacion, Parametro
 from core.servicios import notificar
 from core.tests.utilidades import (
-    PruebaBase, PruebaTransaccional, crear_admin, crear_beneficiario, crear_bodega, crear_donacion, crear_donante, pdf,
+    PruebaBase,
+    PruebaTransaccional,
+    crear_admin,
+    crear_beneficiario,
+    crear_bodega,
+    crear_donacion,
+    crear_donante,
+    pdf,
 )
 from donaciones.models import Donacion
 from inventario.models import Inventario, Kardex
@@ -28,8 +36,16 @@ class ParametrosTests(PruebaBase):
 
     def test_parametros_iniciales(self):
         claves = set(Parametro.objects.values_list("par_clave", flat=True))
-        for clave in ("max_productos_solicitud", "dias_alerta_vencimiento", "tam_max_archivo_mb", "formatos_permitidos",
-                      "intentos_ingreso", "vigencia_token_minutos", "unidades_medida", "bodega_predeterminada"):
+        for clave in (
+            "max_productos_solicitud",
+            "dias_alerta_vencimiento",
+            "tam_max_archivo_mb",
+            "formatos_permitidos",
+            "intentos_ingreso",
+            "vigencia_token_minutos",
+            "unidades_medida",
+            "bodega_predeterminada",
+        ):
             self.assertIn(clave, claves)
         self.assertEqual(Parametro.objects.get(par_clave="max_productos_solicitud").par_valor, "5")
         self.assertEqual(Parametro.objects.get(par_clave="tam_max_archivo_mb").par_valor, "5")
@@ -95,7 +111,11 @@ class TrazabilidadTests(PruebaBase):
         crear_donacion(crear_donante(), productos=[("Arroz", "10", 100)])
 
     def test_bitacora_inmutable_y_con_ip(self):
-        self.client.post(reverse("usuarios:login"), {"correo": self.admin.usu_correo, "password": "Clave$egura123"}, REMOTE_ADDR="10.1.2.3")
+        self.client.post(
+            reverse("usuarios:login"),
+            {"correo": self.admin.usu_correo, "password": "Clave$egura123"},
+            REMOTE_ADDR="10.1.2.3",
+        )
         b = Bitacora.objects.get(bit_accion="ingreso")
         self.assertEqual((b.usuario, b.bit_ip), (self.admin, "10.1.2.3"))
         with self.assertRaises(PermissionDenied):
@@ -109,7 +129,9 @@ class TrazabilidadTests(PruebaBase):
         self.assertEqual(r.context["pagina"].paginator.count, 1)
         r = self.client.get(reverse("core:trazabilidad"), {"vista": "kardex", "tipo": "reserva"})
         self.assertEqual(r.context["pagina"].paginator.count, 0)
-        r = self.client.get(reverse("core:trazabilidad"), {"vista": "bitacora", "usuario": self.admin.pk, "desde": "2000-01-01"})
+        r = self.client.get(
+            reverse("core:trazabilidad"), {"vista": "bitacora", "usuario": self.admin.pk, "desde": "2000-01-01"}
+        )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.client.get(reverse("core:trazabilidad"), {"vista": "entregas"}).status_code, 200)
 
@@ -137,6 +159,7 @@ class ReportesTests(PruebaBase):
             import io
 
             from openpyxl import load_workbook
+
             libro = load_workbook(io.BytesIO(r.content))
             self.assertIn("Reporte", libro.sheetnames)
             self.assertTrue(libro["Gráfico 1"]._charts)
@@ -164,7 +187,14 @@ class RendimientoTests(PruebaBase):
         for i in range(20):
             crear_donacion(donante, productos=[(f"P{i}-{j}", "5", 50 + j) for j in range(5)])
         self.ingresar(admin)
-        for nombre in ("reportes:dashboard", "inventario:lista", "donaciones:lista_admin", "solicitudes:lista_admin", "reportes:reportes", "core:trazabilidad"):
+        for nombre in (
+            "reportes:dashboard",
+            "inventario:lista",
+            "donaciones:lista_admin",
+            "solicitudes:lista_admin",
+            "reportes:reportes",
+            "core:trazabilidad",
+        ):
             inicio = time.perf_counter()
             r = self.client.get(reverse(nombre))
             duracion = time.perf_counter() - inicio
@@ -175,7 +205,9 @@ class RendimientoTests(PruebaBase):
         ben = crear_beneficiario()
         self.ingresar(ben)
         inicio = time.perf_counter()
-        r = self.client.post(reverse("usuarios:documentos"), {"docv_tipo": "identidad", "archivo": pdf(relleno=5 * 1024 * 1024 - 100)})
+        r = self.client.post(
+            reverse("usuarios:documentos"), {"docv_tipo": "identidad", "archivo": pdf(relleno=5 * 1024 * 1024 - 100)}
+        )
         self.assertLess(time.perf_counter() - inicio, 5)
         self.assertEqual(r.status_code, 302)
 
@@ -199,6 +231,7 @@ class SeguridadTests(PruebaBase):
         import os
 
         import sysfood.settings as conf
+
         os.environ["DJANGO_HTTPS"] = "1"
         try:
             importlib.reload(conf)
@@ -241,7 +274,10 @@ class RespaldoTests(PruebaTransaccional):
 
         # ...y se restauran.
         call_command("restaurar", str(destino), si=True, stdout=StringIO())
-        self.assertEqual((Usuario.objects.count(), Donacion.objects.count(), Kardex.objects.count(), Bitacora.objects.count()), conteo)
+        self.assertEqual(
+            (Usuario.objects.count(), Donacion.objects.count(), Kardex.objects.count(), Bitacora.objects.count()),
+            conteo,
+        )
         self.assertNotEqual(Donacion.objects.first().dona_obs, "dañado")
         self.assertEqual(DocumentoValidacion.objects.get(pk=doc.pk).ruta_absoluta.read_bytes(), contenido)
         self.assertTrue(Usuario.objects.get(pk=admin.pk).check_password("Clave$egura123"))
@@ -253,9 +289,25 @@ class EntradasInvalidasTests(PruebaBase):
     def test_filtros_con_basura(self):
         admin = self.ingresar(crear_admin())
         crear_donacion(crear_donante())
-        basura = {"categoria": "abc", "bodega": "x", "donante": "uno", "desde": "2025-13-45", "hasta": "ayer", "page": "-1", "usuario": "x"}
-        urls = [reverse("inventario:lista"), reverse("donaciones:lista_admin"), reverse("entregas:lista"), reverse("solicitudes:lista_admin"),
-                reverse("core:trazabilidad")] + [reverse("reportes:reportes") + f"?tipo={t}" for t in ("donaciones", "inventario", "vencidos", "solicitudes", "beneficiarios")]
+        basura = {
+            "categoria": "abc",
+            "bodega": "x",
+            "donante": "uno",
+            "desde": "2025-13-45",
+            "hasta": "ayer",
+            "page": "-1",
+            "usuario": "x",
+        }
+        urls = [
+            reverse("inventario:lista"),
+            reverse("donaciones:lista_admin"),
+            reverse("entregas:lista"),
+            reverse("solicitudes:lista_admin"),
+            reverse("core:trazabilidad"),
+        ] + [
+            reverse("reportes:reportes") + f"?tipo={t}"
+            for t in ("donaciones", "inventario", "vencidos", "solicitudes", "beneficiarios")
+        ]
         for url in urls:
             for clave, valor in basura.items():
                 separador = "&" if "?" in url else "?"
@@ -272,6 +324,7 @@ class EntradasInvalidasTests(PruebaBase):
             r = self.client.post(reverse("solicitudes:agregar", args=[inv.pk]), {"cantidad": valor})
             self.assertEqual(r.status_code, 302, valor)
         from solicitudes.models import CarritoItem
+
         self.assertFalse(CarritoItem.objects.exists())
 
 

@@ -7,6 +7,7 @@ ningún usuario, así que nunca entrega datos personales por este canal.
 Probado solo con mensajes simulados (firmas y formato de Meta y Twilio); falta
 probarlo con credenciales reales. Ver README, sección «Asistente de ayuda».
 """
+
 import base64
 import hashlib
 import hmac
@@ -28,11 +29,14 @@ def proveedor():
 
 # ---------------------------------------------------------------- Meta (WhatsApp Cloud API)
 
+
 def verificar_suscripcion(parametros_get):
     """Responde al GET de verificación del webhook de Meta. Devuelve el desafío o None."""
-    if (parametros_get.get("hub.mode") == "subscribe"
-            and settings.WHATSAPP_VERIFY_TOKEN
-            and hmac.compare_digest(parametros_get.get("hub.verify_token", ""), settings.WHATSAPP_VERIFY_TOKEN)):
+    if (
+        parametros_get.get("hub.mode") == "subscribe"
+        and settings.WHATSAPP_VERIFY_TOKEN
+        and hmac.compare_digest(parametros_get.get("hub.verify_token", ""), settings.WHATSAPP_VERIFY_TOKEN)
+    ):
         return parametros_get.get("hub.challenge", "")
     return None
 
@@ -62,12 +66,22 @@ def mensajes_meta(cuerpo):
 
 def enviar_meta(telefono, texto):
     url = f"https://graph.facebook.com/v20.0/{settings.WHATSAPP_PHONE_ID}/messages"
-    cuerpo = json.dumps({
-        "messaging_product": "whatsapp", "to": telefono, "type": "text", "text": {"body": texto[:4000]},
-    }).encode()
-    peticion = urllib.request.Request(url, cuerpo, {
-        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}", "Content-Type": "application/json",
-    })
+    cuerpo = json.dumps(
+        {
+            "messaging_product": "whatsapp",
+            "to": telefono,
+            "type": "text",
+            "text": {"body": texto[:4000]},
+        }
+    ).encode()
+    peticion = urllib.request.Request(
+        url,
+        cuerpo,
+        {
+            "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+            "Content-Type": "application/json",
+        },
+    )
     try:
         with urllib.request.urlopen(peticion, timeout=10) as r:
             return 200 <= r.status < 300
@@ -77,6 +91,7 @@ def enviar_meta(telefono, texto):
 
 
 # ---------------------------------------------------------------- Twilio
+
 
 def firma_twilio_valida(url, parametros_post, firma):
     """Algoritmo de Twilio: HMAC-SHA1 (base64) de la URL + parámetros ordenados (clave+valor)."""

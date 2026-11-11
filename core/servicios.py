@@ -1,4 +1,5 @@
 """Servicios transversales: auditoría y notificaciones."""
+
 import logging
 
 from django.conf import settings
@@ -45,7 +46,11 @@ def enviar_correo(destinatarios, asunto, mensaje):
 def notificar(usuario, tipo, titulo, mensaje, url="", correo=True):
     """Crea una notificación interna y la envía por correo."""
     noti = Notificacion.objects.create(
-        destinatario=usuario, not_tipo=tipo, not_titulo=titulo, not_mensaje=mensaje, not_url=url,
+        destinatario=usuario,
+        not_tipo=tipo,
+        not_titulo=titulo,
+        not_mensaje=mensaje,
+        not_url=url,
     )
     if correo:
         enlace = f"\n\nIngrese a SysFood: {settings.SITE_URL}{url}" if url else ""

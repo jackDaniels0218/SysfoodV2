@@ -1,4 +1,5 @@
 """Actividad 8 y 14: entregas, estados, historial y seguimiento."""
+
 from decimal import Decimal
 
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -38,7 +39,15 @@ class EntregasTests(PruebaBase):
         with self.assertRaises(ValidationError):
             self.avanzar()
         estados = list(self.entrega.historial.values_list("his_estado_ant", "his_estado_nuevo"))
-        self.assertEqual(estados, [("", "en_revision"), ("en_revision", "en_bodega"), ("en_bodega", "en_entrega"), ("en_entrega", "entregado")])
+        self.assertEqual(
+            estados,
+            [
+                ("", "en_revision"),
+                ("en_revision", "en_bodega"),
+                ("en_bodega", "en_entrega"),
+                ("en_entrega", "entregado"),
+            ],
+        )
 
     def test_entregado_descuenta_definitivamente(self):
         self.avanzar(3)
@@ -71,7 +80,9 @@ class EntregasTests(PruebaBase):
         self.avanzar()
         servicios.cancelar(self.entrega, self.admin, "Beneficiario no responde")
         self.entrega.refresh_from_db()
-        self.assertEqual((self.entrega.ent_estado, self.entrega.ent_mot_cancel), (Entrega.CANCELADO, "Beneficiario no responde"))
+        self.assertEqual(
+            (self.entrega.ent_estado, self.entrega.ent_mot_cancel), (Entrega.CANCELADO, "Beneficiario no responde")
+        )
         self.arroz.refresh_from_db()
         self.assertEqual((self.arroz.inv_cant_disp, self.arroz.inv_cant_reserv), (10, 0))
         self.assertEqual(Solicitud.objects.get().sol_estado, Solicitud.CANCELADA)
@@ -100,8 +111,17 @@ class EntregasTests(PruebaBase):
         self.ingresar(self.admin)
         url = reverse("entregas:detalle", args=[self.entrega.pk])
         self.assertContains(self.client.get(reverse("entregas:lista")), self.entrega.ent_cod)
-        r = self.client.post(reverse("entregas:actualizar", args=[self.entrega.pk]), {
-            "ent_modalidad": "domicilio", "ent_dir_entrega": "", "ent_fec_prog": "", "responsable": self.admin.pk, "ent_obs": ""}, follow=True)
+        r = self.client.post(
+            reverse("entregas:actualizar", args=[self.entrega.pk]),
+            {
+                "ent_modalidad": "domicilio",
+                "ent_dir_entrega": "",
+                "ent_fec_prog": "",
+                "responsable": self.admin.pk,
+                "ent_obs": "",
+            },
+            follow=True,
+        )
         self.assertContains(r, "Indique la dirección")
         self.client.post(reverse("entregas:avanzar", args=[self.entrega.pk]), {"observacion": "Alistado"})
         self.assertContains(self.client.get(url), "En bodega")

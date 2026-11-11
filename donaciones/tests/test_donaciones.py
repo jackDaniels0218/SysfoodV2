@@ -1,4 +1,5 @@
 """Actividad 5: donaciones (ingreso automático al inventario y anonimato)."""
+
 from datetime import timedelta
 
 from django.urls import reverse
@@ -7,7 +8,13 @@ from django.utils import timezone
 from catalogo.models import Bodega
 from core.models import Bitacora, Parametro
 from core.tests.utilidades import (
-    PruebaBase, crear_admin, crear_beneficiario, crear_bodega, crear_categoria, crear_donacion, crear_donante,
+    PruebaBase,
+    crear_admin,
+    crear_beneficiario,
+    crear_bodega,
+    crear_categoria,
+    crear_donacion,
+    crear_donante,
 )
 from donaciones.models import ANONIMO, DetalleDonacion, Donacion
 from inventario.models import Inventario, Kardex
@@ -15,13 +22,25 @@ from solicitudes import servicios as sol_srv
 
 
 def datos_donacion(categoria, productos, anonima=False, extra=None):
-    datos = {"productos-TOTAL_FORMS": str(len(productos)), "productos-INITIAL_FORMS": "0", "productos-MIN_NUM_FORMS": "0",
-             "productos-MAX_NUM_FORMS": "1000", "dona_obs": "Prueba"}
+    datos = {
+        "productos-TOTAL_FORMS": str(len(productos)),
+        "productos-INITIAL_FORMS": "0",
+        "productos-MIN_NUM_FORMS": "0",
+        "productos-MAX_NUM_FORMS": "1000",
+        "dona_obs": "Prueba",
+    }
     if anonima:
         datos["dona_anonima"] = "on"
     for i, (nombre, cantidad, venc) in enumerate(productos):
-        datos.update({f"productos-{i}-categoria": categoria.pk, f"productos-{i}-dd_nom": nombre, f"productos-{i}-dd_cantidad": cantidad,
-                      f"productos-{i}-dd_unidad": "kilogramos", f"productos-{i}-dd_fec_venc": venc})
+        datos.update(
+            {
+                f"productos-{i}-categoria": categoria.pk,
+                f"productos-{i}-dd_nom": nombre,
+                f"productos-{i}-dd_cantidad": cantidad,
+                f"productos-{i}-dd_unidad": "kilogramos",
+                f"productos-{i}-dd_fec_venc": venc,
+            }
+        )
     datos.update(extra or {})
     return datos
 
@@ -35,7 +54,10 @@ class RegistroDonacionTests(PruebaBase):
         self.futuro = (timezone.localdate() + timedelta(days=90)).isoformat()
 
     def test_registro_con_varios_productos_ingresa_al_inventario(self):
-        r = self.client.post(reverse("donaciones:nueva"), datos_donacion(self.cat, [("Arroz", "10", self.futuro), ("Fríjol", "2.5", self.futuro)]))
+        r = self.client.post(
+            reverse("donaciones:nueva"),
+            datos_donacion(self.cat, [("Arroz", "10", self.futuro), ("Fríjol", "2.5", self.futuro)]),
+        )
         donacion = Donacion.objects.get()
         self.assertRedirects(r, reverse("donaciones:detalle", args=[donacion.pk]))
         self.assertEqual(donacion.dona_estado, Donacion.DISPONIBLE)
@@ -98,7 +120,11 @@ class AnonimatoTests(PruebaBase):
         self.assertNotContains(r, "Secreto")
         r = self.client.post(url, {"accion": "revelar"})
         self.assertContains(r, "Secreto")
-        self.assertTrue(Bitacora.objects.filter(bit_accion="consulta_anonimo", bit_registro=str(self.donacion.pk), usuario=self.admin).exists())
+        self.assertTrue(
+            Bitacora.objects.filter(
+                bit_accion="consulta_anonimo", bit_registro=str(self.donacion.pk), usuario=self.admin
+            ).exists()
+        )
 
     def test_otros_donantes_no_ven_la_donacion(self):
         self.ingresar(crear_donante())
@@ -123,12 +149,26 @@ class EdicionCancelacionTests(PruebaBase):
 
     def _datos_edicion(self, cambios=None, borrar=None):
         detalles = list(self.donacion.detalles.order_by("dd_id"))
-        datos = {"productos-TOTAL_FORMS": str(len(detalles)), "productos-INITIAL_FORMS": str(len(detalles)),
-                 "productos-MIN_NUM_FORMS": "0", "productos-MAX_NUM_FORMS": "1000", "dona_obs": "Editada", "dona_anonima": "on"}
+        datos = {
+            "productos-TOTAL_FORMS": str(len(detalles)),
+            "productos-INITIAL_FORMS": str(len(detalles)),
+            "productos-MIN_NUM_FORMS": "0",
+            "productos-MAX_NUM_FORMS": "1000",
+            "dona_obs": "Editada",
+            "dona_anonima": "on",
+        }
         for i, d in enumerate(detalles):
-            datos.update({f"productos-{i}-dd_id": d.pk, f"productos-{i}-donacion": self.donacion.pk, f"productos-{i}-categoria": d.categoria_id,
-                          f"productos-{i}-dd_nom": d.dd_nom, f"productos-{i}-dd_cantidad": str(d.dd_cantidad), f"productos-{i}-dd_unidad": d.dd_unidad,
-                          f"productos-{i}-dd_fec_venc": d.dd_fec_venc.isoformat()})
+            datos.update(
+                {
+                    f"productos-{i}-dd_id": d.pk,
+                    f"productos-{i}-donacion": self.donacion.pk,
+                    f"productos-{i}-categoria": d.categoria_id,
+                    f"productos-{i}-dd_nom": d.dd_nom,
+                    f"productos-{i}-dd_cantidad": str(d.dd_cantidad),
+                    f"productos-{i}-dd_unidad": d.dd_unidad,
+                    f"productos-{i}-dd_fec_venc": d.dd_fec_venc.isoformat(),
+                }
+            )
         for clave, valor in (cambios or {}).items():
             datos[clave] = valor
         if borrar is not None:
@@ -136,7 +176,10 @@ class EdicionCancelacionTests(PruebaBase):
         return datos
 
     def test_editar_actualiza_inventario_y_kardex(self):
-        r = self.client.post(reverse("donaciones:editar", args=[self.donacion.pk]), self._datos_edicion({"productos-0-dd_cantidad": "12"}, borrar=1))
+        r = self.client.post(
+            reverse("donaciones:editar", args=[self.donacion.pk]),
+            self._datos_edicion({"productos-0-dd_cantidad": "12"}, borrar=1),
+        )
         self.assertRedirects(r, reverse("donaciones:detalle", args=[self.donacion.pk]))
         self.donacion.refresh_from_db()
         self.assertTrue(self.donacion.dona_anonima)

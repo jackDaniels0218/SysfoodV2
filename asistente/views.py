@@ -45,11 +45,15 @@ def inicio(request):
         raise Http404
     contexto = motor.Contexto.desde(request.user, request.GET.get("pagina", ""))
     nombre = f", {request.user.usu_nom}" if contexto.usuario else ""
-    return _no_store(JsonResponse({
-        "texto": parametros.texto("chat_bienvenida").replace("{nombre}", nombre),
-        "sugerencias": kb.sugerencias(contexto.rol, contexto.nombre_url),
-        "anonimo": contexto.usuario is None,
-    }))
+    return _no_store(
+        JsonResponse(
+            {
+                "texto": parametros.texto("chat_bienvenida").replace("{nombre}", nombre),
+                "sugerencias": kb.sugerencias(contexto.rol, contexto.nombre_url),
+                "anonimo": contexto.usuario is None,
+            }
+        )
+    )
 
 
 @require_POST
@@ -65,7 +69,8 @@ def preguntar(request):
     if motor.limite_superado(sesion):
         respuesta = motor.Respuesta(
             "Ha hecho muchas preguntas en poco tiempo. Espere un momento o escriba al administrador.",
-            ConsultaChat.LIMITE, ofrecer_contacto=True,
+            ConsultaChat.LIMITE,
+            ofrecer_contacto=True,
         )
         consulta = motor.registrar(pregunta, respuesta, contexto, sesion)
         return _no_store(JsonResponse({**respuesta.como_dict(), "id": consulta.pk}, status=429))
@@ -105,7 +110,9 @@ def contactar(request, pk):
     if request.user.is_authenticated:
         contacto = f"{request.user.nombre_completo} <{request.user.usu_correo}>"
     elif not contacto:
-        return JsonResponse({"error": "Deje un correo o teléfono para que el administrador pueda responderle."}, status=400)
+        return JsonResponse(
+            {"error": "Deje un correo o teléfono para que el administrador pueda responderle."}, status=400
+        )
     if consulta.con_escalada:
         return JsonResponse({"texto": "Esta consulta ya se envió al administrador."})
     consulta.con_escalada = True
@@ -113,15 +120,23 @@ def contactar(request, pk):
     consulta.con_contacto = contacto
     consulta.save(update_fields=["con_escalada", "con_mensaje", "con_contacto"])
     notificar_administradores(
-        "ayuda", "Consulta enviada desde el asistente",
+        "ayuda",
+        "Consulta enviada desde el asistente",
         f"Pregunta: {consulta.con_pregunta}\nMensaje: {mensaje or '(sin mensaje)'}\nResponder a: {contacto}",
         url=f"/asistente/consultas/?escaladas=1#c{consulta.pk}",
     )
-    auditar(request, "escalamiento_chat", "consulta_chat", consulta.pk, f"Consulta enviada al administrador: {consulta.con_pregunta[:150]}")
+    auditar(
+        request,
+        "escalamiento_chat",
+        "consulta_chat",
+        consulta.pk,
+        f"Consulta enviada al administrador: {consulta.con_pregunta[:150]}",
+    )
     return JsonResponse({"texto": "Listo, le envié su consulta al administrador. Le responderá lo antes posible."})
 
 
 # ---------------------------------------------------------------- Panel del administrador
+
 
 @solo_admin
 def panel(request):
@@ -150,12 +165,18 @@ def panel(request):
     por_fuente = recientes.values("con_fuente").annotate(n=Count("con_id")).order_by("-n")
     nombres = dict(ConsultaChat.FUENTES)
     pagina = Paginator(consultas, 25).get_page(request.GET.get("page"))
-    return render(request, "asistente/panel.html", {
-        "pagina": pagina, "filtro": filtro, "resumen": resumen,
-        "por_fuente": [(nombres.get(f["con_fuente"], f["con_fuente"]), f["n"]) for f in por_fuente],
-        "modo": "Claude" if motor.claude_disponible() else "Reglas y búsqueda",
-        "whatsapp": whatsapp.proveedor(),
-    })
+    return render(
+        request,
+        "asistente/panel.html",
+        {
+            "pagina": pagina,
+            "filtro": filtro,
+            "resumen": resumen,
+            "por_fuente": [(nombres.get(f["con_fuente"], f["con_fuente"]), f["n"]) for f in por_fuente],
+            "modo": "Claude" if motor.claude_disponible() else "Reglas y búsqueda",
+            "whatsapp": whatsapp.proveedor(),
+        },
+    )
 
 
 @solo_admin
@@ -171,6 +192,7 @@ def atender(request, pk):
 
 # ---------------------------------------------------------------- WhatsApp (opcional)
 
+
 @csrf_exempt
 def whatsapp_webhook(request):
     canal = whatsapp.proveedor()
@@ -180,7 +202,9 @@ def whatsapp_webhook(request):
         if request.method == "GET":
             desafio = whatsapp.verificar_suscripcion(request.GET)
             return HttpResponse(desafio) if desafio is not None else HttpResponseForbidden()
-        if request.method != "POST" or not whatsapp.firma_meta_valida(request.body, request.headers.get("X-Hub-Signature-256", "")):
+        if request.method != "POST" or not whatsapp.firma_meta_valida(
+            request.body, request.headers.get("X-Hub-Signature-256", "")
+        ):
             return HttpResponseForbidden()
         for telefono, texto in whatsapp.mensajes_meta(request.body):
             respuesta = _responder_whatsapp(telefono, texto)
@@ -194,7 +218,9 @@ def whatsapp_webhook(request):
     if not whatsapp.firma_twilio_valida(url, request.POST.dict(), request.headers.get("X-Twilio-Signature", "")):
         return HttpResponseForbidden()
     respuesta = _responder_whatsapp(request.POST.get("From", ""), request.POST.get("Body", ""))
-    texto = whatsapp.texto_plano(respuesta) if respuesta else "Ha hecho muchas preguntas en poco tiempo. Intente más tarde."
+    texto = (
+        whatsapp.texto_plano(respuesta) if respuesta else "Ha hecho muchas preguntas en poco tiempo. Intente más tarde."
+    )
     return HttpResponse(whatsapp.respuesta_twiml(texto), content_type="application/xml")
 
 

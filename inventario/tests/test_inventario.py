@@ -1,4 +1,5 @@
 """Actividad 6, 12 y 19: inventario, kardex, control de vencimientos e integridad."""
+
 from datetime import timedelta
 from decimal import Decimal
 
@@ -9,7 +10,14 @@ from django.utils import timezone
 
 from core.models import Notificacion
 from core.tareas import ejecutar_control_diario
-from core.tests.utilidades import PruebaBase, crear_admin, crear_beneficiario, crear_categoria, crear_donacion, crear_donante
+from core.tests.utilidades import (
+    PruebaBase,
+    crear_admin,
+    crear_beneficiario,
+    crear_categoria,
+    crear_donacion,
+    crear_donante,
+)
 from donaciones.models import Donacion
 from inventario import servicios
 from inventario.models import Inventario, Kardex
@@ -35,13 +43,19 @@ class InventarioAdminTests(PruebaBase):
         self.assertEqual([i.inv_nom for i in r.context["pagina"]], ["Leche"])
 
     def test_ajuste_exige_motivo_y_queda_en_kardex(self):
-        r = self.client.post(reverse("inventario:ajustar", args=[self.arroz.pk]), {"nueva_cantidad": "8", "motivo": ""}, follow=True)
+        r = self.client.post(
+            reverse("inventario:ajustar", args=[self.arroz.pk]), {"nueva_cantidad": "8", "motivo": ""}, follow=True
+        )
         self.assertContains(r, "exige una cantidad válida")
-        self.client.post(reverse("inventario:ajustar", args=[self.arroz.pk]), {"nueva_cantidad": "8", "motivo": "Conteo físico"})
+        self.client.post(
+            reverse("inventario:ajustar", args=[self.arroz.pk]), {"nueva_cantidad": "8", "motivo": "Conteo físico"}
+        )
         self.arroz.refresh_from_db()
         self.assertEqual(self.arroz.inv_cant_disp, 8)
         k = self.arroz.kardex.get(kar_tipo=Kardex.AJUSTE)
-        self.assertEqual((k.kar_cant_anterior, k.kar_cant_resultante, k.kar_motivo, k.usuario), (10, 8, "Conteo físico", self.admin))
+        self.assertEqual(
+            (k.kar_cant_anterior, k.kar_cant_resultante, k.kar_motivo, k.usuario), (10, 8, "Conteo físico", self.admin)
+        )
 
     def test_cantidad_nunca_negativa(self):
         with self.assertRaises(ValidationError):
@@ -56,7 +70,11 @@ class InventarioAdminTests(PruebaBase):
         self.assertEqual((self.arroz.inv_mot_baja, self.arroz.usuario_baja), ("danado", self.admin))
         self.assertIsNotNone(self.arroz.inv_fec_baja)
         self.assertTrue(Inventario.objects.filter(pk=self.arroz.pk).exists())
-        r = self.client.post(reverse("inventario:baja", args=[Inventario.objects.get(inv_nom="Pasta").pk]), {"motivo": "otro"}, follow=True)
+        r = self.client.post(
+            reverse("inventario:baja", args=[Inventario.objects.get(inv_nom="Pasta").pk]),
+            {"motivo": "otro"},
+            follow=True,
+        )
         self.assertContains(r, "Describa el motivo")
 
     def test_no_se_retira_con_entregas_pendientes(self):
@@ -66,6 +84,7 @@ class InventarioAdminTests(PruebaBase):
         with self.assertRaisesMessage(ValidationError, "Cancele antes esas entregas"):
             servicios.dar_baja(self.arroz, "danado", "", self.admin)
         from entregas import servicios as ent_srv
+
         ent_srv.cancelar(entrega, self.admin, "Producto dañado")
         servicios.dar_baja(self.arroz, "danado", "", self.admin)
         self.arroz.refresh_from_db()
@@ -92,7 +111,9 @@ class ControlVencimientosTests(PruebaBase):
         self.admin = crear_admin()
         self.donante = crear_donante()
         self.cat = crear_categoria(dias=10)
-        self.donacion = crear_donacion(self.donante, categoria=self.cat, productos=[("Queso", "5", 30), ("Yogur", "3", 40)])
+        self.donacion = crear_donacion(
+            self.donante, categoria=self.cat, productos=[("Queso", "5", 30), ("Yogur", "3", 40)]
+        )
 
     def test_asigna_vigencia_segun_dias_de_la_categoria_o_parametro(self):
         hoy = timezone.localdate()
@@ -121,7 +142,9 @@ class ControlVencimientosTests(PruebaBase):
         self.assertFalse(CarritoItem.objects.filter(beneficiario=ben).exists())
         with self.assertRaises(ValidationError):
             sol_srv.agregar_al_carrito(ben, queso, "1")
-        self.assertTrue(Notificacion.objects.filter(destinatario=self.donante, not_titulo="Producto próximo a vencer").exists())
+        self.assertTrue(
+            Notificacion.objects.filter(destinatario=self.donante, not_titulo="Producto próximo a vencer").exists()
+        )
         self.assertTrue(Notificacion.objects.filter(destinatario=self.admin, not_tipo="vencimiento").exists())
 
     def test_donacion_vencida_cuando_vencen_todos_sus_productos(self):

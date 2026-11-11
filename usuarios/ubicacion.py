@@ -4,6 +4,7 @@ Privacidad: solo el administrador consulta el mapa; cada consulta y cada
 exportación quedan en la bitácora; al exportar, los puntos se desplazan al azar
 (parámetro mapa_desplazamiento_m) y no se incluyen nombres ni documentos.
 """
+
 import logging
 import math
 import random
@@ -28,6 +29,7 @@ log = logging.getLogger("sysfood")
 
 # ---------------------------------------------------------------- Geocodificación del beneficiario
 
+
 def geocodificar_beneficiario(perfil_id, motivo):
     """Intenta ubicar al beneficiario. Nunca lanza excepciones: registra el resultado."""
     perfil = Perfil.objects.filter(pk=perfil_id).first()
@@ -46,25 +48,44 @@ def geocodificar_beneficiario(perfil_id, motivo):
 
     if error is None:
         Perfil.objects.filter(pk=perfil.pk).update(
-            ben_lat=resultado.lat, ben_lng=resultado.lng, ben_zona=resultado.zona, ben_geo_estado=Perfil.GEO_OK,
-            ben_geo_intentos=perfil.ben_geo_intentos + 1, ben_geo_fecha=ahora, ben_geo_detalle=f"Ubicado ({resultado.fuente})",
+            ben_lat=resultado.lat,
+            ben_lng=resultado.lng,
+            ben_zona=resultado.zona,
+            ben_geo_estado=Perfil.GEO_OK,
+            ben_geo_intentos=perfil.ben_geo_intentos + 1,
+            ben_geo_fecha=ahora,
+            ben_geo_detalle=f"Ubicado ({resultado.fuente})",
         )
-        auditar(None, "geocodificacion", "beneficiario", perfil.pk,
-                f"Ubicado automáticamente en {resultado.lat}, {resultado.lng}"
-                f"{' · zona ' + resultado.zona if resultado.zona else ''} · fuente {resultado.fuente}. Motivo: {motivo}.")
+        auditar(
+            None,
+            "geocodificacion",
+            "beneficiario",
+            perfil.pk,
+            f"Ubicado automáticamente en {resultado.lat}, {resultado.lng}"
+            f"{' · zona ' + resultado.zona if resultado.zona else ''} · fuente {resultado.fuente}. Motivo: {motivo}.",
+        )
         return Perfil.GEO_OK
 
     intentos = perfil.ben_geo_intentos + 1
     estado = Perfil.GEO_REVISION if intentos >= maximo else Perfil.GEO_REINTENTAR
     Perfil.objects.filter(pk=perfil.pk).update(
-        ben_geo_estado=estado, ben_geo_intentos=intentos, ben_geo_fecha=ahora, ben_geo_detalle=error[:255],
+        ben_geo_estado=estado,
+        ben_geo_intentos=intentos,
+        ben_geo_fecha=ahora,
+        ben_geo_detalle=error[:255],
     )
-    auditar(None, "geocodificacion", "beneficiario", perfil.pk,
-            f"Intento {intentos} de {maximo} fallido: {error} "
-            f"{'Se marca para revisión del administrador.' if estado == Perfil.GEO_REVISION else 'Se reintentará automáticamente.'} Motivo: {motivo}.")
+    auditar(
+        None,
+        "geocodificacion",
+        "beneficiario",
+        perfil.pk,
+        f"Intento {intentos} de {maximo} fallido: {error} "
+        f"{'Se marca para revisión del administrador.' if estado == Perfil.GEO_REVISION else 'Se reintentará automáticamente.'} Motivo: {motivo}.",
+    )
     if estado == Perfil.GEO_REVISION:
         notificar_administradores(
-            "cuenta", "Dirección por revisar",
+            "cuenta",
+            "Dirección por revisar",
             f"No fue posible ubicar en el mapa la dirección de {perfil.usuario.nombre_completo} tras {intentos} intentos. "
             "Corríjala o ubíquela manualmente.",
             reverse("usuarios:revisar_usuario", args=[perfil.pk]) + "#ubicacion",
@@ -94,14 +115,22 @@ def programar(perfil_id, motivo):
 def marcar_cambio_direccion(perfil, motivo):
     """La dirección cambió: se borra la ubicación anterior y se programa una nueva."""
     Perfil.objects.filter(pk=perfil.pk).update(
-        ben_lat=None, ben_lng=None, ben_zona="", ben_geo_estado=Perfil.GEO_PENDIENTE, ben_geo_intentos=0, ben_geo_detalle="",
+        ben_lat=None,
+        ben_lng=None,
+        ben_zona="",
+        ben_geo_estado=Perfil.GEO_PENDIENTE,
+        ben_geo_intentos=0,
+        ben_geo_detalle="",
     )
     programar(perfil.pk, motivo)
 
 
 def ubicar_manualmente(perfil, lat, lng, admin, request=None):
     Perfil.objects.filter(pk=perfil.pk).update(
-        ben_lat=lat, ben_lng=lng, ben_geo_estado=Perfil.GEO_MANUAL, ben_geo_fecha=timezone.now(),
+        ben_lat=lat,
+        ben_lng=lng,
+        ben_geo_estado=Perfil.GEO_MANUAL,
+        ben_geo_fecha=timezone.now(),
         ben_geo_detalle=f"Ubicado manualmente por {admin.nombre_completo}",
     )
     auditar(request, "geocodificacion", "beneficiario", perfil.pk, f"Ubicación manual en {lat}, {lng}.", usuario=admin)
@@ -110,7 +139,11 @@ def ubicar_manualmente(perfil, lat, lng, admin, request=None):
 def tarea_geocodificacion():
     """Tarea horaria: reintenta los pendientes y los fallidos (no los marcados para revisión)."""
     resumen = {"ubicados": 0, "fallidos": 0, "para_revision": 0}
-    ids = list(Perfil.objects.filter(ben_geo_estado__in=[Perfil.GEO_PENDIENTE, Perfil.GEO_REINTENTAR]).values_list("pk", flat=True)[:200])
+    ids = list(
+        Perfil.objects.filter(ben_geo_estado__in=[Perfil.GEO_PENDIENTE, Perfil.GEO_REINTENTAR]).values_list(
+            "pk", flat=True
+        )[:200]
+    )
     for pk in ids:
         estado = geocodificar_beneficiario(pk, "Reintento programado")
         if estado == Perfil.GEO_OK:
@@ -123,6 +156,7 @@ def tarea_geocodificacion():
 
 
 # ---------------------------------------------------------------- Datos del mapa
+
 
 def _filtros_validos(datos):
     filtros = {}
@@ -173,12 +207,23 @@ def puntos(datos_filtro):
         }
         peso = sum(pesos[k] * componentes[k] for k in pesos) / suma
         grupo = grupos.get(p.ben_grupo) or {"nombre": "Sin grupo", "color": "#8a9a91"}
-        resultado.append({
-            "id": p.pk, "nombre": p.usuario.nombre_completo, "lat": float(p.ben_lat), "lng": float(p.ben_lng),
-            "puntaje": float(p.ben_puntaje or 0), "grupo": grupo["nombre"], "color": grupo["color"], "zona": p.ben_zona,
-            "verif": p.get_ben_estado_verif_display(), "solicitudes": p.n_solicitudes, "personas": p.ben_num_personas,
-            "peso": round(peso, 3), "url": reverse("usuarios:revisar_usuario", args=[p.pk]),
-        })
+        resultado.append(
+            {
+                "id": p.pk,
+                "nombre": p.usuario.nombre_completo,
+                "lat": float(p.ben_lat),
+                "lng": float(p.ben_lng),
+                "puntaje": float(p.ben_puntaje or 0),
+                "grupo": grupo["nombre"],
+                "color": grupo["color"],
+                "zona": p.ben_zona,
+                "verif": p.get_ben_estado_verif_display(),
+                "solicitudes": p.n_solicitudes,
+                "personas": p.ben_num_personas,
+                "peso": round(peso, 3),
+                "url": reverse("usuarios:revisar_usuario", args=[p.pk]),
+            }
+        )
     return resultado, filtros
 
 
@@ -200,21 +245,35 @@ def puntos_para_exportar(lista):
     exportados = []
     for p in lista:
         lat, lng = desplazar(p["lat"], p["lng"], metros, azar)
-        exportados.append({"lat": lat, "lng": lng, "grupo": p["grupo"], "puntaje": p["puntaje"], "zona": p["zona"],
-                           "solicitudes": p["solicitudes"], "personas": p["personas"], "peso_calor": p["peso"]})
+        exportados.append(
+            {
+                "lat": lat,
+                "lng": lng,
+                "grupo": p["grupo"],
+                "puntaje": p["puntaje"],
+                "zona": p["zona"],
+                "solicitudes": p["solicitudes"],
+                "personas": p["personas"],
+                "peso_calor": p["peso"],
+            }
+        )
     return exportados, metros
 
 
 def resumen_geo():
-    conteo = dict(Perfil.objects.values_list("ben_geo_estado").annotate(n=Count("pk")).values_list("ben_geo_estado", "n"))
+    conteo = dict(
+        Perfil.objects.values_list("ben_geo_estado").annotate(n=Count("pk")).values_list("ben_geo_estado", "n")
+    )
     return [(k, v, conteo.get(k, 0)) for k, v in Perfil.ESTADOS_GEO]
 
 
 def configuracion_mapa():
     lat, lng = parametros.coordenadas("mapa_centro")
     return {
-        "tiles": parametros.texto("mapa_tiles_url"), "atribucion": parametros.texto("mapa_atribucion"),
-        "centro": [lat, lng], "zoom": parametros.entero("mapa_zoom"),
+        "tiles": parametros.texto("mapa_tiles_url"),
+        "atribucion": parametros.texto("mapa_atribucion"),
+        "centro": [lat, lng],
+        "zoom": parametros.entero("mapa_zoom"),
     }
 
 

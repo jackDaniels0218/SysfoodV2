@@ -1,4 +1,5 @@
 """Actividad 2 y 18: documentos de validación y su protección."""
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -152,7 +153,11 @@ class CargaDocumentosTests(PruebaBase):
         from django.utils import timezone
 
         verificado = crear_beneficiario(verificado=True, admin=self.admin)
-        Doc.objects.filter(usuario=verificado, docv_tipo=Doc.SISBEN).update(docv_fec_venc=timezone.localdate() - timedelta(days=1))
+        Doc.objects.filter(usuario=verificado, docv_tipo=Doc.SISBEN).update(
+            docv_fec_venc=timezone.localdate() - timedelta(days=1)
+        )
         self.assertEqual(servicios.controlar_documentos_vencidos(), 1)
         self.assertEqual(Doc.objects.get(usuario=verificado, docv_tipo=Doc.SISBEN).docv_estado, Doc.VENCIDO)
-        self.assertEqual(PerfilBeneficiario.objects.get(pk=verificado.pk).ben_estado_verif, PerfilBeneficiario.PENDIENTE)
+        self.assertEqual(
+            PerfilBeneficiario.objects.get(pk=verificado.pk).ben_estado_verif, PerfilBeneficiario.PENDIENTE
+        )

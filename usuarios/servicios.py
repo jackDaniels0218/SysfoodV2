@@ -1,4 +1,5 @@
 """Reglas de negocio de cuentas y documentos de validación."""
+
 import hashlib
 import uuid
 
@@ -25,7 +26,11 @@ MIMES = {"pdf": "application/pdf", "jpg": "image/jpeg", "png": "image/png"}
 def tipos_permitidos(usuario):
     if usuario.es_beneficiario:
         return list(Doc.TIPOS_BENEFICIARIO)
-    if usuario.es_donante and getattr(usuario, "perfil_donante", None) and usuario.perfil_donante.don_tipo_persona == PerfilDonante.JURIDICA:
+    if (
+        usuario.es_donante
+        and getattr(usuario, "perfil_donante", None)
+        and usuario.perfil_donante.don_tipo_persona == PerfilDonante.JURIDICA
+    ):
         return list(Doc.TIPOS_DONANTE_JURIDICO)
     return []
 
@@ -118,13 +123,15 @@ def cargar_documento(usuario, tipo, archivo, fec_venc=None):
     nuevo = recalcular_verificacion(usuario)
     if nuevo == PerfilBeneficiario.EN_REVISION and estado_previo != nuevo:
         notificar_administradores(
-            "documento", "Documentos pendientes de revisión",
+            "documento",
+            "Documentos pendientes de revisión",
             f"{usuario.nombre_completo} completó sus documentos y espera verificación.",
             reverse("usuarios:revisar_usuario", args=[usuario.pk]),
         )
     elif usuario.es_donante:
         notificar_administradores(
-            "documento", "Documento de donante por revisar",
+            "documento",
+            "Documento de donante por revisar",
             f"{usuario.nombre_completo} cargó {doc.get_docv_tipo_display()}.",
             reverse("usuarios:revisar_usuario", args=[usuario.pk]),
         )
@@ -165,7 +172,9 @@ def recalcular_verificacion(usuario):
         nuevo = PerfilBeneficiario.PENDIENTE
     if nuevo != perfil.ben_estado_verif:
         perfil.ben_estado_verif = nuevo
-        perfil.ben_fec_verif = timezone.now() if nuevo in (PerfilBeneficiario.VERIFICADO, PerfilBeneficiario.RECHAZADO) else None
+        perfil.ben_fec_verif = (
+            timezone.now() if nuevo in (PerfilBeneficiario.VERIFICADO, PerfilBeneficiario.RECHAZADO) else None
+        )
         perfil.save(update_fields=["ben_estado_verif", "ben_fec_verif"])
         usuario.perfil_beneficiario = perfil
     return nuevo
@@ -204,12 +213,17 @@ def _resolver(doc, aprobar, observacion, admin):
         notificar(usuario, "documento", "Documento aprobado", f"Su {doc.get_docv_tipo_display().lower()} {texto}.", url)
     else:
         notificar(
-            usuario, "documento", "Documento rechazado",
-            f"Su {doc.get_docv_tipo_display().lower()} fue rechazado. Motivo: {doc.docv_obs}. Puede volver a cargarlo.", url,
+            usuario,
+            "documento",
+            "Documento rechazado",
+            f"Su {doc.get_docv_tipo_display().lower()} fue rechazado. Motivo: {doc.docv_obs}. Puede volver a cargarlo.",
+            url,
         )
     if nuevo == PerfilBeneficiario.VERIFICADO and anterior != nuevo:
         notificar(
-            usuario, "cuenta", "Cuenta verificada",
+            usuario,
+            "cuenta",
+            "Cuenta verificada",
             "Sus documentos fueron aprobados. Ya puede consultar el catálogo y enviar solicitudes.",
             reverse("solicitudes:catalogo"),
         )
@@ -219,7 +233,9 @@ def _resolver(doc, aprobar, observacion, admin):
 def controlar_documentos_vencidos(hoy=None):
     """Marca como vencidos los documentos cuya fecha de vencimiento pasó."""
     hoy = hoy or timezone.localdate()
-    vencidos = Doc.objects.filter(docv_fec_venc__lt=hoy, docv_estado__in=[Doc.CARGADO, Doc.APROBADO]).select_related("usuario")
+    vencidos = Doc.objects.filter(docv_fec_venc__lt=hoy, docv_estado__in=[Doc.CARGADO, Doc.APROBADO]).select_related(
+        "usuario"
+    )
     total = 0
     for doc in vencidos:
         with transaction.atomic():
@@ -227,7 +243,9 @@ def controlar_documentos_vencidos(hoy=None):
             doc.save(update_fields=["docv_estado"])
             recalcular_verificacion(doc.usuario)
             notificar(
-                doc.usuario, "documento", "Documento vencido",
+                doc.usuario,
+                "documento",
+                "Documento vencido",
                 f"Su {doc.get_docv_tipo_display().lower()} venció. Cargue una versión vigente.",
                 reverse("usuarios:documentos"),
             )

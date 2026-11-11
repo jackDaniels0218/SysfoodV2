@@ -1,0 +1,41 @@
+[project]
+name = "sysfood"
+version = "2.0.0"
+description = "Sistema de gestión de donaciones de alimentos (Django)."
+readme = "README.md"
+requires-python = ">=3.10"
+
+# ---------------------------------------------------------------- Estilo y análisis estático
+# Uso:  ruff format .   y   ruff check .   (los dos se ejecutan en la integración continua)
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["*/migrations/*", "staticfiles", "static/vendor"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes: imports y variables sin usar, nombres indefinidos
+    "I",        # orden de imports
+    "B",        # bugbear: errores frecuentes
+    "DJ",       # buenas prácticas de Django
+    "SIM",      # simplificaciones
+    "UP",       # sintaxis moderna de Python
+]
+ignore = [
+    "E501",     # El formateador ya controla el largo; quedan solo cadenas y URL largas.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "sysfood", "core", "usuarios", "catalogo", "donaciones", "inventario",
+    "solicitudes", "entregas", "reportes", "asistente",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["DJ008"]
+
+[tool.coverage.run]
+source = ["."]
+omit = ["*/migrations/*", "*/tests/*", ".venv/*", "manage.py", "sysfood/wsgi.py", "sysfood/asgi.py"]

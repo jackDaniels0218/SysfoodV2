@@ -1,4 +1,5 @@
 """Actividad 1: CRUD de usuarios por el administrador (baja lógica)."""
+
 from django.urls import reverse
 
 from core.models import Bitacora
@@ -12,20 +13,41 @@ class AdminUsuariosTests(PruebaBase):
 
     def test_crear_beneficiario_desde_administracion(self):
         datos = {
-            "usu_rol": "beneficiario", "usu_correo": "nuevo@prueba.co", "usu_nom": "Ana", "usu_ape": "Paz", "usu_tel": "3001231234",
-            "usu_estado": "activo", "password1": "Segura#2025x", "password2": "Segura#2025x",
-            "ben-ben_tipo_doc": "TI", "ben-ben_num_doc": "1001", "ben-ben_fec_exp_doc": "2020-01-01", "ben-ben_dir": "Cl 1",
-            "ben-ben_num_personas": "2", "ben-ben_sisben": "NR", "ben-ben_estrato": "3",
+            "usu_rol": "beneficiario",
+            "usu_correo": "nuevo@prueba.co",
+            "usu_nom": "Ana",
+            "usu_ape": "Paz",
+            "usu_tel": "3001231234",
+            "usu_estado": "activo",
+            "password1": "Segura#2025x",
+            "password2": "Segura#2025x",
+            "ben-ben_tipo_doc": "TI",
+            "ben-ben_num_doc": "1001",
+            "ben-ben_fec_exp_doc": "2020-01-01",
+            "ben-ben_dir": "Cl 1",
+            "ben-ben_num_personas": "2",
+            "ben-ben_sisben": "NR",
+            "ben-ben_estrato": "3",
         }
         r = self.client.post(reverse("usuarios:crear"), datos)
         u = Usuario.objects.get(usu_correo="nuevo@prueba.co")
         self.assertRedirects(r, reverse("usuarios:revisar_usuario", args=[u.pk]))
         self.assertEqual(u.perfil_beneficiario.ben_tipo_doc, "TI")
-        self.assertTrue(Bitacora.objects.filter(bit_accion="crear", bit_entidad="usuario", bit_registro=str(u.pk)).exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="crear", bit_entidad="usuario", bit_registro=str(u.pk)).exists()
+        )
 
     def test_crear_administrador_sin_datos_adicionales(self):
-        datos = {"usu_rol": "administrador", "usu_correo": "otro@prueba.co", "usu_nom": "B", "usu_ape": "C", "usu_tel": "3000000001",
-                 "usu_estado": "activo", "password1": "Segura#2025x", "password2": "Segura#2025x"}
+        datos = {
+            "usu_rol": "administrador",
+            "usu_correo": "otro@prueba.co",
+            "usu_nom": "B",
+            "usu_ape": "C",
+            "usu_tel": "3000000001",
+            "usu_estado": "activo",
+            "password1": "Segura#2025x",
+            "password2": "Segura#2025x",
+        }
         self.client.post(reverse("usuarios:crear"), datos)
         self.assertTrue(Usuario.objects.filter(usu_correo="otro@prueba.co", usu_rol="administrador").exists())
 
@@ -34,8 +56,17 @@ class AdminUsuariosTests(PruebaBase):
         r = self.client.get(reverse("usuarios:lista"), {"q": "Zacar", "rol": "donante"})
         self.assertContains(r, "Zacarías")
         perfil = don.perfil_donante
-        datos = {"usu_correo": don.usu_correo, "usu_nom": "Zacarías", "usu_ape": "Nuevo", "usu_tel": "3009998888", "usu_estado": "activo",
-                 "don-don_tipo_persona": "natural", "don-don_tipo_doc": "CC", "don-don_doc_nit": perfil.don_doc_nit, "don-don_dir": "Nueva dir"}
+        datos = {
+            "usu_correo": don.usu_correo,
+            "usu_nom": "Zacarías",
+            "usu_ape": "Nuevo",
+            "usu_tel": "3009998888",
+            "usu_estado": "activo",
+            "don-don_tipo_persona": "natural",
+            "don-don_tipo_doc": "CC",
+            "don-don_doc_nit": perfil.don_doc_nit,
+            "don-don_dir": "Nueva dir",
+        }
         r = self.client.post(reverse("usuarios:editar", args=[don.pk]), datos)
         self.assertEqual(r.status_code, 302)
         don.refresh_from_db()
@@ -75,10 +106,20 @@ class PerfilPropioTests(PruebaBase):
     def test_usuario_edita_sus_datos_pero_no_su_estado_de_verificacion(self):
         ben = self.ingresar(crear_beneficiario())
         p = ben.perfil_beneficiario
-        datos = {"usu_correo": ben.usu_correo, "usu_nom": "Nuevo", "usu_ape": ben.usu_ape, "usu_tel": "3112223344",
-                 "ben-ben_tipo_doc": p.ben_tipo_doc, "ben-ben_num_doc": p.ben_num_doc, "ben-ben_fec_exp_doc": "2015-01-01",
-                 "ben-ben_dir": "Otra", "ben-ben_num_personas": "5", "ben-ben_sisben": "C", "ben-ben_estrato": "2",
-                 "ben-ben_estado_verif": "verificado"}
+        datos = {
+            "usu_correo": ben.usu_correo,
+            "usu_nom": "Nuevo",
+            "usu_ape": ben.usu_ape,
+            "usu_tel": "3112223344",
+            "ben-ben_tipo_doc": p.ben_tipo_doc,
+            "ben-ben_num_doc": p.ben_num_doc,
+            "ben-ben_fec_exp_doc": "2015-01-01",
+            "ben-ben_dir": "Otra",
+            "ben-ben_num_personas": "5",
+            "ben-ben_sisben": "C",
+            "ben-ben_estrato": "2",
+            "ben-ben_estado_verif": "verificado",
+        }
         r = self.client.post(reverse("usuarios:perfil"), datos)
         self.assertRedirects(r, reverse("usuarios:perfil"))
         ben.refresh_from_db()

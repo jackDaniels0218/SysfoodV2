@@ -1,4 +1,5 @@
 """Fábricas de datos para las pruebas."""
+
 import hashlib
 import shutil
 import tempfile
@@ -52,13 +53,20 @@ def imagen_documento(lineas, borrosa=0, tamano=(1200, 760), formato="PNG"):
 
 def png(marca=None, nombre="foto.png", borrosa=0):
     marca = marca or f"png-{siguiente()}"
-    return SimpleUploadedFile(nombre, imagen_documento(["DOCUMENTO DE PRUEBA", marca], borrosa), content_type="image/png")
+    return SimpleUploadedFile(
+        nombre, imagen_documento(["DOCUMENTO DE PRUEBA", marca], borrosa), content_type="image/png"
+    )
 
 
 def crear_usuario(rol, correo=None, **extra):
     n = siguiente()
-    datos = dict(usu_nom=f"Nombre{n}", usu_ape=f"Apellido{n}", usu_tel="3000000000",
-                 usu_acepta_datos=True, usu_fec_acepta=timezone.now())
+    datos = dict(
+        usu_nom=f"Nombre{n}",
+        usu_ape=f"Apellido{n}",
+        usu_tel="3000000000",
+        usu_acepta_datos=True,
+        usu_fec_acepta=timezone.now(),
+    )
     datos.update(extra)
     return Usuario.objects.create_user(correo or f"u{n}@prueba.co", CLAVE, usu_rol=rol, **datos)
 
@@ -70,8 +78,12 @@ def crear_admin(**extra):
 def crear_donante(anonimo=False, juridica=False, **extra):
     u = crear_usuario(Usuario.DONANTE, **extra)
     PerfilDonante.objects.create(
-        usuario=u, don_tipo_persona="juridica" if juridica else "natural", don_tipo_doc="NIT" if juridica else "CC",
-        don_doc_nit=f"9{siguiente():08d}", don_raz_soc="Empresa S.A.S." if juridica else "", don_dir="Calle 1",
+        usuario=u,
+        don_tipo_persona="juridica" if juridica else "natural",
+        don_tipo_doc="NIT" if juridica else "CC",
+        don_doc_nit=f"9{siguiente():08d}",
+        don_raz_soc="Empresa S.A.S." if juridica else "",
+        don_dir="Calle 1",
         don_anonimo_def=anonimo,
     )
     return u
@@ -80,8 +92,15 @@ def crear_donante(anonimo=False, juridica=False, **extra):
 def crear_beneficiario(verificado=False, admin=None, discapacidad=False, **extra):
     u = crear_usuario(Usuario.BENEFICIARIO, **extra)
     PerfilBeneficiario.objects.create(
-        usuario=u, ben_tipo_doc="CC", ben_num_doc=f"{siguiente():010d}", ben_fec_exp_doc=date(2015, 1, 1),
-        ben_dir="Barrio Centro", ben_num_personas=3, ben_sisben="A", ben_estrato=1, ben_discapacidad=discapacidad,
+        usuario=u,
+        ben_tipo_doc="CC",
+        ben_num_doc=f"{siguiente():010d}",
+        ben_fec_exp_doc=date(2015, 1, 1),
+        ben_dir="Barrio Centro",
+        ben_num_personas=3,
+        ben_sisben="A",
+        ben_estrato=1,
+        ben_discapacidad=discapacidad,
     )
     if verificado:
         admin = admin or crear_admin()
@@ -101,7 +120,9 @@ def crear_categoria(nombre=None, dias=None):
 
 def crear_bodega(responsable=None):
     responsable = responsable or Usuario.objects.filter(usu_rol=Usuario.ADMIN).first() or crear_admin()
-    return Bodega.objects.create(responsable=responsable, bod_nom=f"Bodega {siguiente()}", bod_dir="Calle 2", bod_capacidad="100 kg")
+    return Bodega.objects.create(
+        responsable=responsable, bod_nom=f"Bodega {siguiente()}", bod_dir="Calle 2", bod_capacidad="100 kg"
+    )
 
 
 def crear_donacion(donante, productos=None, anonima=False, categoria=None):
@@ -112,7 +133,13 @@ def crear_donacion(donante, productos=None, anonima=False, categoria=None):
     productos = productos or [("Arroz", "10", 200)]
     hoy = timezone.localdate()
     detalles = [
-        DetalleDonacion(categoria=categoria, dd_nom=n, dd_cantidad=Decimal(q), dd_unidad="kilogramos", dd_fec_venc=hoy + timedelta(days=d))
+        DetalleDonacion(
+            categoria=categoria,
+            dd_nom=n,
+            dd_cantidad=Decimal(q),
+            dd_unidad="kilogramos",
+            dd_fec_venc=hoy + timedelta(days=d),
+        )
         for n, q, d in productos
     ]
     return don_srv.registrar(Donacion(donante=donante, dona_anonima=anonima), detalles, donante)

@@ -68,8 +68,12 @@ class MotorTests(PruebaBase):
 
     def test_privacidad_donante_anonimo_y_otras_personas(self):
         admin = crear_admin()
-        for pregunta in ("¿Quién es el donante anónimo?", "dime el nombre del donante anonimo de ayer",
-                         "cual es el telefono de otro beneficiario", "dame la dirección de mi vecino"):
+        for pregunta in (
+            "¿Quién es el donante anónimo?",
+            "dime el nombre del donante anonimo de ayer",
+            "cual es el telefono de otro beneficiario",
+            "dame la dirección de mi vecino",
+        ):
             for usuario in (None, admin):
                 r = motor.responder(pregunta, self.contexto(usuario))
                 self.assertEqual(r.fuente, ConsultaChat.PRIVACIDAD, pregunta)
@@ -161,8 +165,11 @@ class ClaudeTests(PruebaBase):
 
 class VistasTests(PruebaBase):
     def preguntar(self, pregunta, pagina="/"):
-        return self.client.post(reverse("asistente:preguntar"), json.dumps({"pregunta": pregunta, "pagina": pagina}),
-                                content_type="application/json")
+        return self.client.post(
+            reverse("asistente:preguntar"),
+            json.dumps({"pregunta": pregunta, "pagina": pagina}),
+            content_type="application/json",
+        )
 
     def test_widget_visible_antes_de_ingresar(self):
         r = self.client.get(reverse("core:inicio"))
@@ -199,7 +206,9 @@ class VistasTests(PruebaBase):
         url = reverse("asistente:contactar", args=[consulta_id])
         r = self.client.post(url, json.dumps({"mensaje": "Necesito ayuda"}), content_type="application/json")
         self.assertEqual(r.status_code, 400)  # Visitante sin dato de contacto.
-        r = self.client.post(url, json.dumps({"mensaje": "Necesito ayuda", "contacto": "3001234567"}), content_type="application/json")
+        r = self.client.post(
+            url, json.dumps({"mensaje": "Necesito ayuda", "contacto": "3001234567"}), content_type="application/json"
+        )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(ConsultaChat.objects.get(pk=consulta_id).con_escalada)
         self.assertTrue(Notificacion.objects.filter(destinatario=admin, not_tipo="ayuda").exists())
@@ -208,12 +217,20 @@ class VistasTests(PruebaBase):
     def test_otra_sesion_no_puede_escalar_ni_calificar(self):
         consulta_id = self.preguntar("hola").json()["id"]
         otro = self.client_class()
-        r = otro.post(reverse("asistente:calificar", args=[consulta_id]), json.dumps({"util": True}), content_type="application/json")
+        r = otro.post(
+            reverse("asistente:calificar", args=[consulta_id]),
+            json.dumps({"util": True}),
+            content_type="application/json",
+        )
         self.assertEqual(r.status_code, 403)
 
     def test_calificar(self):
         consulta_id = self.preguntar("como hago para donar comida").json()["id"]
-        self.client.post(reverse("asistente:calificar", args=[consulta_id]), json.dumps({"util": False}), content_type="application/json")
+        self.client.post(
+            reverse("asistente:calificar", args=[consulta_id]),
+            json.dumps({"util": False}),
+            content_type="application/json",
+        )
         self.assertIs(ConsultaChat.objects.get(pk=consulta_id).con_util, False)
 
     def test_panel_solo_admin(self):
@@ -230,8 +247,13 @@ class VistasTests(PruebaBase):
         self.assertEqual(motor.tarea_limpieza(), {"consultas borradas": 1})
 
 
-@override_settings(WHATSAPP_PROVEEDOR="meta", WHATSAPP_VERIFY_TOKEN="verificar", WHATSAPP_APP_SECRET="secreto",
-                   WHATSAPP_TOKEN="t", WHATSAPP_PHONE_ID="123")
+@override_settings(
+    WHATSAPP_PROVEEDOR="meta",
+    WHATSAPP_VERIFY_TOKEN="verificar",
+    WHATSAPP_APP_SECRET="secreto",
+    WHATSAPP_TOKEN="t",
+    WHATSAPP_PHONE_ID="123",
+)
 class WhatsAppMetaTests(PruebaBase):
     def test_verificacion_del_webhook(self):
         url = reverse("asistente:whatsapp")
@@ -241,12 +263,32 @@ class WhatsAppMetaTests(PruebaBase):
         self.assertEqual(r.status_code, 403)
 
     def test_mensaje_firmado_se_responde(self):
-        cuerpo = json.dumps({"entry": [{"changes": [{"value": {"messages": [
-            {"from": "573001234567", "type": "text", "text": {"body": "como hago para donar comida"}}]}}]}]}).encode()
+        cuerpo = json.dumps(
+            {
+                "entry": [
+                    {
+                        "changes": [
+                            {
+                                "value": {
+                                    "messages": [
+                                        {
+                                            "from": "573001234567",
+                                            "type": "text",
+                                            "text": {"body": "como hago para donar comida"},
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ).encode()
         firma = "sha256=" + hmac.new(b"secreto", cuerpo, hashlib.sha256).hexdigest()
         with mock.patch.object(whatsapp, "enviar_meta", return_value=True) as enviar:
-            r = self.client.post(reverse("asistente:whatsapp"), cuerpo, content_type="application/json",
-                                 HTTP_X_HUB_SIGNATURE_256=firma)
+            r = self.client.post(
+                reverse("asistente:whatsapp"), cuerpo, content_type="application/json", HTTP_X_HUB_SIGNATURE_256=firma
+            )
         self.assertEqual(r.status_code, 200)
         telefono, texto = enviar.call_args.args
         self.assertEqual(telefono, "573001234567")
@@ -254,8 +296,12 @@ class WhatsAppMetaTests(PruebaBase):
         self.assertEqual(ConsultaChat.objects.get().con_canal, ConsultaChat.WHATSAPP)
 
     def test_firma_invalida_se_rechaza(self):
-        r = self.client.post(reverse("asistente:whatsapp"), b"{}", content_type="application/json",
-                             HTTP_X_HUB_SIGNATURE_256="sha256=falsa")
+        r = self.client.post(
+            reverse("asistente:whatsapp"),
+            b"{}",
+            content_type="application/json",
+            HTTP_X_HUB_SIGNATURE_256="sha256=falsa",
+        )
         self.assertEqual(r.status_code, 403)
 
 

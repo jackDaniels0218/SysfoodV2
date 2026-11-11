@@ -7,6 +7,7 @@ Cada tarea se declara en REGISTRO con su frecuencia. Se ejecutan:
 Una tarea nunca corre dos veces en el mismo periodo: la fecha de la última
 ejecución se guarda en la tabla tarea_programada con bloqueo de fila.
 """
+
 import logging
 import threading
 import time
@@ -25,20 +26,53 @@ CONTROL_DIARIO = "control_vencimientos"
 
 Tarea = namedtuple("Tarea", "nombre titulo frecuencia funcion descripcion")
 
-REGISTRO = OrderedDict((t.nombre, t) for t in [
-    Tarea(CONTROL_DIARIO, "Control de vencimientos", "diaria", "core.tareas._control_vencimientos",
-          "Asigna la vigencia del inventario, marca documentos vencidos y avisa a donantes y administradores."),
-    Tarea("recalculo_puntajes", "Recálculo nocturno de puntajes", "diaria", "usuarios.puntaje.tarea_recalculo_nocturno",
-          "Recalcula el puntaje de necesidad de todos los beneficiarios (el tiempo sin ayuda cambia cada día) y reasigna su grupo."),
-    Tarea("geocodificacion", "Geocodificación de direcciones", "horaria", "usuarios.ubicacion.tarea_geocodificacion",
-          "Ubica en el mapa a los beneficiarios pendientes y reintenta los fallidos; tras varios fallos los marca para revisión."),
-    Tarea("verificacion_documentos", "Lectura automática de documentos", "horaria", "usuarios.verificacion.tarea_pendientes",
-          "Lee con OCR los documentos que quedaron sin leer (por ejemplo, si el servicio no estaba disponible) y aplica el semáforo."),
-    Tarea("reportes_programados", "Envío de reportes programados", "horaria", "reportes.programados.tarea_envios",
-          "Envía por correo los reportes programados que ya cumplieron su periodo (desde la hora reportes_hora_envio)."),
-    Tarea("limpieza_chat", "Limpieza de consultas del asistente", "diaria", "asistente.motor.tarea_limpieza",
-          "Borra las consultas del asistente más antiguas que la retención configurada (chat_retencion_dias)."),
-])
+REGISTRO = OrderedDict(
+    (t.nombre, t)
+    for t in [
+        Tarea(
+            CONTROL_DIARIO,
+            "Control de vencimientos",
+            "diaria",
+            "core.tareas._control_vencimientos",
+            "Asigna la vigencia del inventario, marca documentos vencidos y avisa a donantes y administradores.",
+        ),
+        Tarea(
+            "recalculo_puntajes",
+            "Recálculo nocturno de puntajes",
+            "diaria",
+            "usuarios.puntaje.tarea_recalculo_nocturno",
+            "Recalcula el puntaje de necesidad de todos los beneficiarios (el tiempo sin ayuda cambia cada día) y reasigna su grupo.",
+        ),
+        Tarea(
+            "geocodificacion",
+            "Geocodificación de direcciones",
+            "horaria",
+            "usuarios.ubicacion.tarea_geocodificacion",
+            "Ubica en el mapa a los beneficiarios pendientes y reintenta los fallidos; tras varios fallos los marca para revisión.",
+        ),
+        Tarea(
+            "verificacion_documentos",
+            "Lectura automática de documentos",
+            "horaria",
+            "usuarios.verificacion.tarea_pendientes",
+            "Lee con OCR los documentos que quedaron sin leer (por ejemplo, si el servicio no estaba disponible) y aplica el semáforo.",
+        ),
+        Tarea(
+            "reportes_programados",
+            "Envío de reportes programados",
+            "horaria",
+            "reportes.programados.tarea_envios",
+            "Envía por correo los reportes programados que ya cumplieron su periodo (desde la hora reportes_hora_envio).",
+        ),
+        Tarea(
+            "limpieza_chat",
+            "Limpieza de consultas del asistente",
+            "diaria",
+            "asistente.motor.tarea_limpieza",
+            "Borra las consultas del asistente más antiguas que la retención configurada (chat_retencion_dias).",
+        ),
+    ]
+)
 
 PERIODOS = {"diaria": timedelta(days=1), "horaria": timedelta(hours=1)}
 
@@ -81,7 +115,8 @@ def ejecutar(nombre, forzar=False):
         TareaProgramada.objects.filter(pk=nombre).update(tar_resultado=f"Error: {error}"[:255], tar_duracion_ms=0)
         raise
     TareaProgramada.objects.filter(pk=nombre).update(
-        tar_resultado=_resumen(resultado), tar_duracion_ms=int((time.monotonic() - inicio) * 1000),
+        tar_resultado=_resumen(resultado),
+        tar_duracion_ms=int((time.monotonic() - inicio) * 1000),
     )
     log.info("Tarea %s ejecutada: %s", nombre, _resumen(resultado))
     return resultado
@@ -131,6 +166,7 @@ def lanzar_en_segundo_plano(cada_segundos=600):
 
 # ---------------------------------------------------------------- Tareas del núcleo
 
+
 def _control_vencimientos():
     from inventario.servicios import controlar_vencimientos
     from usuarios.servicios import controlar_documentos_vencidos
@@ -157,8 +193,12 @@ def estado():
     filas = []
     for tarea in REGISTRO.values():
         r = registros.get(tarea.nombre)
-        filas.append({
-            "tarea": tarea, "ultima": r.tar_ult_ejecucion if r else None,
-            "resultado": r.tar_resultado if r else "", "duracion": r.tar_duracion_ms if r else None,
-        })
+        filas.append(
+            {
+                "tarea": tarea,
+                "ultima": r.tar_ult_ejecucion if r else None,
+                "resultado": r.tar_resultado if r else "",
+                "duracion": r.tar_duracion_ms if r else None,
+            }
+        )
     return filas

@@ -32,7 +32,11 @@ def mis_donaciones(request):
 
 @solo_admin
 def lista_admin(request):
-    qs = Donacion.objects.select_related("donante__perfil_donante").annotate(productos=Count("detalles")).order_by("-dona_fec_reg")
+    qs = (
+        Donacion.objects.select_related("donante__perfil_donante")
+        .annotate(productos=Count("detalles"))
+        .order_by("-dona_fec_reg")
+    )
     qs = _filtrar(request, qs)
     if request.GET.get("donante", "").isdigit():
         qs = qs.filter(donante_id=request.GET["donante"])
@@ -40,9 +44,16 @@ def lista_admin(request):
         qs = qs.filter(dona_anonima=request.GET["anonima"] == "1")
     pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
     donantes = Usuario.objects.filter(usu_rol=Usuario.DONANTE).order_by("usu_nom")
-    return render(request, "donaciones/lista.html", {
-        "pagina": pagina, "estados": Donacion.ESTADOS, "es_admin": True, "donantes": donantes,
-    })
+    return render(
+        request,
+        "donaciones/lista.html",
+        {
+            "pagina": pagina,
+            "estados": Donacion.ESTADOS,
+            "es_admin": True,
+            "donantes": donantes,
+        },
+    )
 
 
 @solo_donante
@@ -60,7 +71,9 @@ def nueva(request):
                 messages.error(request, error.messages[0])
             else:
                 auditar(request, "crear", "donacion", donacion.pk, f"Donación con {len(detalles)} producto(s)")
-                messages.success(request, f"Donación #{donacion.pk} registrada. Sus productos ya están en el inventario.")
+                messages.success(
+                    request, f"Donación #{donacion.pk} registrada. Sus productos ya están en el inventario."
+                )
                 return redirect("donaciones:detalle", donacion.pk)
         else:
             messages.error(request, "Revise los campos marcados.")
@@ -105,7 +118,11 @@ def editar(request, pk):
                 return redirect("donaciones:detalle", pk)
         else:
             messages.error(request, "Revise los campos marcados.")
-    return render(request, "donaciones/form.html", {"form": form, "formset": formset, "titulo": f"Editar donación #{pk}", "objeto": donacion})
+    return render(
+        request,
+        "donaciones/form.html",
+        {"form": form, "formset": formset, "titulo": f"Editar donación #{pk}", "objeto": donacion},
+    )
 
 
 @rol_requerido(Usuario.DONANTE, Usuario.ADMIN)
@@ -136,10 +153,26 @@ def detalle(request, pk):
     revelar = False
     if request.method == "POST" and request.user.es_admin and request.POST.get("accion") == "revelar":
         revelar = True
-        auditar(request, "consulta_anonimo", "donacion", pk, f"Consulta de la identidad del donante anónimo (usuario {donacion.donante_id})")
+        auditar(
+            request,
+            "consulta_anonimo",
+            "donacion",
+            pk,
+            f"Consulta de la identidad del donante anónimo (usuario {donacion.donante_id})",
+        )
     detalles = donacion.detalles.select_related("categoria", "inventario__bodega")
-    entregado = donacion.detalles.aggregate(total=Sum("inventario__kardex__kar_cantidad", filter=Q(inventario__kardex__kar_tipo="entrega")))["total"]
-    return render(request, "donaciones/detalle.html", {
-        "d": donacion, "detalles": detalles, "revelar": revelar or not donacion.dona_anonima or request.user.pk == donacion.donante_id,
-        "entregado": entregado, "cancelar_form": CancelarForm(), "nombre_donante": donacion.nombre_donante(request.user),
-    })
+    entregado = donacion.detalles.aggregate(
+        total=Sum("inventario__kardex__kar_cantidad", filter=Q(inventario__kardex__kar_tipo="entrega"))
+    )["total"]
+    return render(
+        request,
+        "donaciones/detalle.html",
+        {
+            "d": donacion,
+            "detalles": detalles,
+            "revelar": revelar or not donacion.dona_anonima or request.user.pk == donacion.donante_id,
+            "entregado": entregado,
+            "cancelar_form": CancelarForm(),
+            "nombre_donante": donacion.nombre_donante(request.user),
+        },
+    )

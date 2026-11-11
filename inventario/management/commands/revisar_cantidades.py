@@ -4,6 +4,7 @@ Uso: python manage.py revisar_cantidades
 Los registros listados vienen de antes de la regla (la migración los conservó para no perder datos).
 Corríjalos con un ajuste de inventario a un número entero. El panel de inventario muestra el mismo conteo.
 """
+
 from django.core.management.base import BaseCommand
 
 from core import formato

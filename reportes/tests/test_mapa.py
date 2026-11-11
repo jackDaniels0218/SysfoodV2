@@ -1,4 +1,5 @@
 """Mejora 2: geocodificación automática, mapa de beneficiarios y mapa de calor."""
+
 import json
 import math
 import random
@@ -31,8 +32,11 @@ class GeocodificacionTests(PruebaBase):
         self.assertEqual(p.ben_geo_estado, Perfil.GEO_OK)
         self.assertIsNotNone(p.ben_lat)
         self.assertEqual(p.ben_zona, "Centro")
-        self.assertTrue(Bitacora.objects.filter(bit_accion="geocodificacion", bit_registro=str(b.pk),
-                                                bit_detalle__contains="Ubicado automáticamente").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(
+                bit_accion="geocodificacion", bit_registro=str(b.pk), bit_detalle__contains="Ubicado automáticamente"
+            ).exists()
+        )
 
     def test_cache_evita_consultar_dos_veces(self):
         falso = mock.Mock(return_value=Resultado(True, Decimal("4.8"), Decimal("-74.3"), "Centro", "prueba"))
@@ -53,7 +57,9 @@ class GeocodificacionTests(PruebaBase):
         despues = perfil(b)
         self.assertEqual(despues.ben_geo_estado, Perfil.GEO_OK)
         self.assertNotEqual(antes, (despues.ben_lat, despues.ben_lng))
-        self.assertTrue(Bitacora.objects.filter(bit_accion="geocodificacion", bit_detalle__contains="Cambio de dirección").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="geocodificacion", bit_detalle__contains="Cambio de dirección").exists()
+        )
 
     def test_fallo_temporal_reintenta_y_luego_marca_para_revision(self):
         Parametro.objects.filter(par_clave="geo_max_intentos").update(par_valor="2")
@@ -67,9 +73,13 @@ class GeocodificacionTests(PruebaBase):
         self.assertEqual(resumen["para_revision"], 1)
         p = perfil(b)
         self.assertEqual(p.ben_geo_estado, Perfil.GEO_REVISION)
-        self.assertTrue(Notificacion.objects.filter(destinatario=self.admin, not_titulo="Dirección por revisar").exists())
+        self.assertTrue(
+            Notificacion.objects.filter(destinatario=self.admin, not_titulo="Dirección por revisar").exists()
+        )
         # La tarea ya no insiste con los casos en revisión.
-        self.assertEqual(tareas.ejecutar("geocodificacion", forzar=True), {"ubicados": 0, "fallidos": 0, "para_revision": 0})
+        self.assertEqual(
+            tareas.ejecutar("geocodificacion", forzar=True), {"ubicados": 0, "fallidos": 0, "para_revision": 0}
+        )
 
     def test_direccion_no_encontrada(self):
         b = crear_beneficiario()
@@ -122,7 +132,9 @@ class MapaTests(PruebaBase):
         self.assertGreater(p1["peso"], p2["peso"])  # Mismo perfil; b1 tiene una solicitud.
         self.assertTrue(0 < p1["peso"] <= 1)
         self.assertEqual(r["Cache-Control"], "private, no-store")
-        self.assertTrue(Bitacora.objects.filter(bit_accion="consulta_mapa", bit_detalle__contains="2 punto(s)").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_accion="consulta_mapa", bit_detalle__contains="2 punto(s)").exists()
+        )
         r = self.client.get(reverse("reportes:mapa_datos"), {"verif": "verificado"})
         self.assertEqual([p["id"] for p in r.json()["puntos"]], [self.b1.pk])
         r = self.client.get(reverse("reportes:mapa_datos"), {"desde": "2000-01-01", "hasta": "2000-12-31"})

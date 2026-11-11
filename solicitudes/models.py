@@ -10,10 +10,17 @@ class CarritoItem(models.Model):
 
     car_id = models.AutoField(primary_key=True)
     beneficiario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column="usu_id", related_name="carrito",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="usu_id",
+        related_name="carrito",
     )
-    inventario = models.ForeignKey("inventario.Inventario", on_delete=models.CASCADE, db_column="inv_id", related_name="+")
-    car_cant = models.DecimalField("cantidad", max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    inventario = models.ForeignKey(
+        "inventario.Inventario", on_delete=models.CASCADE, db_column="inv_id", related_name="+"
+    )
+    car_cant = models.DecimalField(
+        "cantidad", max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))]
+    )
     car_fec_agregado = models.DateTimeField("fecha en que se agregó", auto_now_add=True)
 
     class Meta:
@@ -30,10 +37,17 @@ class Solicitud(models.Model):
 
     sol_id = models.AutoField(primary_key=True)
     beneficiario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="usu_id", related_name="solicitudes",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        db_column="usu_id",
+        related_name="solicitudes",
     )
     revisor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, db_column="usu_id_revisor",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="usu_id_revisor",
         related_name="+",
     )
     sol_estado = models.CharField("estado", max_length=10, choices=ESTADOS, default=PENDIENTE, db_index=True)
@@ -54,7 +68,9 @@ class SolicitudDetalle(models.Model):
 
     sd_id = models.AutoField(primary_key=True)
     solicitud = models.ForeignKey(Solicitud, on_delete=models.PROTECT, db_column="sol_id", related_name="detalles")
-    inventario = models.ForeignKey("inventario.Inventario", on_delete=models.PROTECT, db_column="inv_id", related_name="+")
+    inventario = models.ForeignKey(
+        "inventario.Inventario", on_delete=models.PROTECT, db_column="inv_id", related_name="+"
+    )
     sd_cant = models.DecimalField("cantidad solicitada", max_digits=12, decimal_places=2)
 
     class Meta:

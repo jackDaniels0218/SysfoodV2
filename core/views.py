@@ -32,6 +32,7 @@ def politica_datos(request):
 
 # ---------------------------------------------------------------- Notificaciones
 
+
 @login_required
 def notificaciones(request):
     qs = request.user.notificaciones.all()
@@ -62,6 +63,7 @@ def notificaciones_leer_todas(request):
 
 # ---------------------------------------------------------------- Parámetros
 
+
 @solo_admin
 def parametros_lista(request):
     por_clave = {p.par_clave: p for p in Parametro.objects.select_related("usuario_mod")}
@@ -85,16 +87,23 @@ def parametro_editar(request, pk):
         parametro.par_valor = form.cleaned_data["par_valor"]
         parametro.usuario_mod = request.user
         parametro.save()
-        auditar(request, "cambio_parametro", "parametro", parametro.par_clave, f"«{anterior}» → «{parametro.par_valor}»")
+        auditar(
+            request, "cambio_parametro", "parametro", parametro.par_clave, f"«{anterior}» → «{parametro.par_valor}»"
+        )
         messages.success(request, f"Parámetro «{parametro.par_clave}» actualizado.")
         if anterior != parametro.par_valor:
             for resumen in parametros.notificar_cambio(parametro.par_clave, request.user):
                 messages.info(request, resumen)
         return redirect(reverse("core:parametros") + f"#{slugify(parametros.definicion(parametro.par_clave).grupo)}")
-    return render(request, "core/parametro_form.html", {"form": form, "p": parametro, "definicion": parametros.definicion(parametro.par_clave)})
+    return render(
+        request,
+        "core/parametro_form.html",
+        {"form": form, "p": parametro, "definicion": parametros.definicion(parametro.par_clave)},
+    )
 
 
 # ---------------------------------------------------------------- Tareas automáticas
+
 
 @solo_admin
 def tareas_lista(request):
@@ -115,6 +124,7 @@ def tareas_lista(request):
 
 # ---------------------------------------------------------------- Trazabilidad (solo consulta)
 
+
 def _rango(request, qs, campo):
     qs = filtrar_rango(qs, campo, request.GET.get("desde"), request.GET.get("hasta"))
     if request.GET.get("usuario", "").isdigit():
@@ -131,12 +141,20 @@ def trazabilidad(request):
         if request.GET.get("tipo"):
             qs = qs.filter(kar_tipo=request.GET["tipo"])
         if registro:
-            qs = qs.filter(Q(inventario_id=registro if registro.isdigit() else 0) | Q(inventario__inv_nom__icontains=registro) | Q(entrega__ent_cod__iexact=registro))
+            qs = qs.filter(
+                Q(inventario_id=registro if registro.isdigit() else 0)
+                | Q(inventario__inv_nom__icontains=registro)
+                | Q(entrega__ent_cod__iexact=registro)
+            )
         tipos = Kardex.TIPOS
     elif vista == "entregas":
-        qs = _rango(request, HistorialEntrega.objects.select_related("entrega", "usuario"), "his_fecha").order_by("-his_fecha", "-his_id")
+        qs = _rango(request, HistorialEntrega.objects.select_related("entrega", "usuario"), "his_fecha").order_by(
+            "-his_fecha", "-his_id"
+        )
         if registro:
-            qs = qs.filter(Q(entrega__ent_cod__icontains=registro) | Q(entrega_id=registro if registro.isdigit() else 0))
+            qs = qs.filter(
+                Q(entrega__ent_cod__icontains=registro) | Q(entrega_id=registro if registro.isdigit() else 0)
+            )
         tipos = []
     else:
         vista = "bitacora"
@@ -144,12 +162,21 @@ def trazabilidad(request):
         if request.GET.get("tipo"):
             qs = qs.filter(bit_accion=request.GET["tipo"])
         if registro:
-            qs = qs.filter(Q(bit_registro=registro) | Q(bit_entidad__icontains=registro) | Q(bit_detalle__icontains=registro))
+            qs = qs.filter(
+                Q(bit_registro=registro) | Q(bit_entidad__icontains=registro) | Q(bit_detalle__icontains=registro)
+            )
         tipos = Bitacora.ACCIONES
     pagina = Paginator(qs, 30).get_page(request.GET.get("page"))
-    return render(request, "core/trazabilidad.html", {
-        "vista": vista, "pagina": pagina, "tipos": tipos, "usuarios": Usuario.objects.order_by("usu_nom"),
-    })
+    return render(
+        request,
+        "core/trazabilidad.html",
+        {
+            "vista": vista,
+            "pagina": pagina,
+            "tipos": tipos,
+            "usuarios": Usuario.objects.order_by("usu_nom"),
+        },
+    )
 
 
 @login_required
@@ -174,7 +201,10 @@ def filtro_guardar(request):
         messages.error(request, "Aplique al menos un filtro antes de guardarlo.")
     else:
         FiltroGuardado.objects.update_or_create(
-            usuario=request.user, fil_vista=vista, fil_nombre=nombre, defaults={"fil_consulta": consulta},
+            usuario=request.user,
+            fil_vista=vista,
+            fil_nombre=nombre,
+            defaults={"fil_consulta": consulta},
         )
         messages.success(request, f"Filtro «{nombre}» guardado. Lo encuentra en «Filtros guardados».")
     return redirect(f"{destino}?{consulta}" if consulta else destino)

@@ -36,7 +36,11 @@ def categoria_form(request, pk=None):
         _guardar(request, form, "categoria")
         messages.success(request, "Categoría guardada.")
         return redirect("catalogo:categorias")
-    return render(request, "catalogo/form.html", {"form": form, "titulo": "Editar categoría" if objeto else "Nueva categoría", "volver": "catalogo:categorias"})
+    return render(
+        request,
+        "catalogo/form.html",
+        {"form": form, "titulo": "Editar categoría" if objeto else "Nueva categoría", "volver": "catalogo:categorias"},
+    )
 
 
 @solo_admin
@@ -58,10 +62,14 @@ def categoria_eliminar(request, pk):
 
 @solo_admin
 def bodegas(request):
-    lista = Bodega.objects.select_related("responsable").annotate(
-        productos=Count("inventario", filter=~Q(inventario__inv_estado="retirado")),
-        existencias=Sum("inventario__inv_cant_disp", filter=~Q(inventario__inv_estado="retirado")),
-    ).order_by("bod_nom")
+    lista = (
+        Bodega.objects.select_related("responsable")
+        .annotate(
+            productos=Count("inventario", filter=~Q(inventario__inv_estado="retirado")),
+            existencias=Sum("inventario__inv_cant_disp", filter=~Q(inventario__inv_estado="retirado")),
+        )
+        .order_by("bod_nom")
+    )
     return render(request, "catalogo/bodegas.html", {"lista": lista})
 
 
@@ -73,7 +81,11 @@ def bodega_form(request, pk=None):
         _guardar(request, form, "bodega")
         messages.success(request, "Bodega guardada.")
         return redirect("catalogo:bodegas")
-    return render(request, "catalogo/form.html", {"form": form, "titulo": "Editar bodega" if objeto else "Nueva bodega", "volver": "catalogo:bodegas"})
+    return render(
+        request,
+        "catalogo/form.html",
+        {"form": form, "titulo": "Editar bodega" if objeto else "Nueva bodega", "volver": "catalogo:bodegas"},
+    )
 
 
 @solo_admin

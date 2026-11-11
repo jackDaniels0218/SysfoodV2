@@ -8,6 +8,7 @@ El flujo manual siempre funciona: si el OCR no está disponible, falla o no es
 concluyente, el documento queda «Cargado» y el administrador decide como siempre.
 Toda decisión automática queda en la bitácora con su confianza y su motivo.
 """
+
 import logging
 
 from django.core.exceptions import ValidationError
@@ -40,7 +41,9 @@ def revisar_calidad(contenido, mime):
         raise ValidationError(f"{error} Tome la foto de nuevo o cargue otro archivo.")
     calidad = ocr.calidad(imagen)
     if not calidad["legible"]:
-        raise ValidationError("No pudimos aceptar la foto: " + "; ".join(calidad["problemas"]) + ". Por favor tómela de nuevo.")
+        raise ValidationError(
+            "No pudimos aceptar la foto: " + "; ".join(calidad["problemas"]) + ". Por favor tómela de nuevo."
+        )
     return calidad
 
 
@@ -71,13 +74,24 @@ def verificar(doc, motivo="Carga del documento"):
     if not aplica(doc.usuario, doc.docv_tipo) or doc.docv_estado != Doc.CARGADO:
         return None
     if not parametros.booleano("ocr_activo"):
-        _guardar(doc, docv_ocr_estado=Doc.OCR_NO_DISPONIBLE, docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": "Desactivada en Parámetros"})
+        _guardar(
+            doc,
+            docv_ocr_estado=Doc.OCR_NO_DISPONIBLE,
+            docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": "Desactivada en Parámetros"},
+        )
         return None
     listo, detalle = ocr.disponible()
     if not listo:
-        _guardar(doc, docv_ocr_estado=Doc.OCR_NO_DISPONIBLE, docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": detalle})
-        auditar(None, "verificacion_auto", "documento_validacion", doc.pk,
-                f"{doc.get_docv_tipo_display()}: lectura automática no disponible ({detalle}). Queda para revisión manual.")
+        _guardar(
+            doc, docv_ocr_estado=Doc.OCR_NO_DISPONIBLE, docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": detalle}
+        )
+        auditar(
+            None,
+            "verificacion_auto",
+            "documento_validacion",
+            doc.pk,
+            f"{doc.get_docv_tipo_display()}: lectura automática no disponible ({detalle}). Queda para revisión manual.",
+        )
         return None
 
     intentos = doc.docv_ocr_intentos + 1
@@ -90,44 +104,89 @@ def verificar(doc, motivo="Carga del documento"):
         texto, confianza_ocr, calidad = "", 0, {"legible": False, "problemas": [str(error)]}
     except (ocr.ErrorOCR, OSError) as error:
         estado = Doc.OCR_ERROR if intentos < MAX_INTENTOS else Doc.OCR_NO_DISPONIBLE
-        _guardar(doc, docv_ocr_estado=estado, docv_ocr_intentos=intentos,
-                 docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": str(error)})
-        auditar(None, "verificacion_auto", "documento_validacion", doc.pk,
-                f"{doc.get_docv_tipo_display()}: la lectura falló ({error}). "
-                f"{'Se reintentará.' if estado == Doc.OCR_ERROR else 'Queda para revisión manual.'}")
+        _guardar(
+            doc,
+            docv_ocr_estado=estado,
+            docv_ocr_intentos=intentos,
+            docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": str(error)},
+        )
+        auditar(
+            None,
+            "verificacion_auto",
+            "documento_validacion",
+            doc.pk,
+            f"{doc.get_docv_tipo_display()}: la lectura falló ({error}). "
+            f"{'Se reintentará.' if estado == Doc.OCR_ERROR else 'Queda para revisión manual.'}",
+        )
         return None
     except Exception as error:  # Nunca romper la carga por la verificación.
         log.exception("Error inesperado en la verificación del documento %s", doc.pk)
-        _guardar(doc, docv_ocr_estado=Doc.OCR_ERROR, docv_ocr_intentos=intentos,
-                 docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": f"Error inesperado: {error}"})
+        _guardar(
+            doc,
+            docv_ocr_estado=Doc.OCR_ERROR,
+            docv_ocr_intentos=intentos,
+            docv_ocr_resultado={**doc.docv_ocr_resultado, "motivo": f"Error inesperado: {error}"},
+        )
         return None
 
     filas = ocr.comparar(doc, texto)
     legible = calidad.get("legible", True) and len(texto) >= 15 and confianza_ocr >= 20
     if not legible and calidad.get("legible", True):
-        calidad = {**calidad, "legible": False, "problemas": calidad.get("problemas", []) + ["no se distingue texto en el documento"]}
+        calidad = {
+            **calidad,
+            "legible": False,
+            "problemas": calidad.get("problemas", []) + ["no se distingue texto en el documento"],
+        }
     conf = ocr.confianza(filas, confianza_ocr) if legible else 0.0
     decision = decidir(conf, legible)
-    resultado = {"campos": filas, "calidad": calidad, "confianza_ocr": confianza_ocr, "motor": detalle,
-                 "umbral_alto": parametros.entero("ocr_umbral_alto"), "umbral_bajo": parametros.entero("ocr_umbral_bajo")}
+    resultado = {
+        "campos": filas,
+        "calidad": calidad,
+        "confianza_ocr": confianza_ocr,
+        "motor": detalle,
+        "umbral_alto": parametros.entero("ocr_umbral_alto"),
+        "umbral_bajo": parametros.entero("ocr_umbral_bajo"),
+    }
     with transaction.atomic():
-        _guardar(doc, docv_ocr_estado=Doc.OCR_PROCESADO, docv_ocr_texto=texto[:20000], docv_ocr_confianza=conf,
-                 docv_ocr_resultado=resultado, docv_decision_auto=decision, docv_ocr_intentos=intentos, docv_fec_ocr=timezone.now())
+        _guardar(
+            doc,
+            docv_ocr_estado=Doc.OCR_PROCESADO,
+            docv_ocr_texto=texto[:20000],
+            docv_ocr_confianza=conf,
+            docv_ocr_resultado=resultado,
+            docv_decision_auto=decision,
+            docv_ocr_intentos=intentos,
+            docv_fec_ocr=timezone.now(),
+        )
         accion = aplicar_decision(doc, decision, conf, filas, calidad)
-        auditar(None, "verificacion_auto", "documento_validacion", doc.pk,
-                f"{doc.get_docv_tipo_display()} de {doc.usuario.nombre_completo}: confianza {numero(conf)} % "
-                f"({dict(Doc.DECISIONES)[decision].lower()}). {accion} Campos: "
-                + "; ".join(f"{f['etiqueta']} {'coincide' if f['coincide'] >= 1 else 'no coincide' if not f['coincide'] else 'coincide parcialmente'}" for f in filas)
-                + f". Motivo: {motivo}.")
+        auditar(
+            None,
+            "verificacion_auto",
+            "documento_validacion",
+            doc.pk,
+            f"{doc.get_docv_tipo_display()} de {doc.usuario.nombre_completo}: confianza {numero(conf)} % "
+            f"({dict(Doc.DECISIONES)[decision].lower()}). {accion} Campos: "
+            + "; ".join(
+                f"{f['etiqueta']} {'coincide' if f['coincide'] >= 1 else 'no coincide' if not f['coincide'] else 'coincide parcialmente'}"
+                for f in filas
+            )
+            + f". Motivo: {motivo}.",
+        )
     return decision
 
 
 def _motivo_rechazo(filas, calidad):
     if not calidad.get("legible", True):
-        return "El documento es ilegible: " + "; ".join(calidad.get("problemas", [])) + ". Cargue una imagen nítida y completa."
+        return (
+            "El documento es ilegible: "
+            + "; ".join(calidad.get("problemas", []))
+            + ". Cargue una imagen nítida y completa."
+        )
     faltan = [f["etiqueta"].lower() for f in filas if not f["coincide"]]
-    return ("No se pudo confirmar " + ", ".join(faltan) + " frente a los datos registrados. "
-            "Verifique que cargó el documento correcto y que se lea completo.")
+    return (
+        "No se pudo confirmar " + ", ".join(faltan) + " frente a los datos registrados. "
+        "Verifique que cargó el documento correcto y que se lea completo."
+    )
 
 
 def aplicar_decision(doc, decision, conf, filas, calidad):
@@ -145,8 +204,11 @@ def aplicar_decision(doc, decision, conf, filas, calidad):
 
 def tarea_pendientes():
     resumen = {"leidos": 0, "sin_motor": 0}
-    pendientes = Doc.objects.filter(docv_estado=Doc.CARGADO, docv_ocr_estado__in=[Doc.OCR_PENDIENTE, Doc.OCR_ERROR, Doc.OCR_NO_DISPONIBLE],
-                                    docv_ocr_intentos__lt=MAX_INTENTOS)
+    pendientes = Doc.objects.filter(
+        docv_estado=Doc.CARGADO,
+        docv_ocr_estado__in=[Doc.OCR_PENDIENTE, Doc.OCR_ERROR, Doc.OCR_NO_DISPONIBLE],
+        docv_ocr_intentos__lt=MAX_INTENTOS,
+    )
     if not parametros.booleano("ocr_activo") or not ocr.disponible()[0]:
         return {"leidos": 0, "sin_motor": pendientes.count()}
     for doc in pendientes[:100]:

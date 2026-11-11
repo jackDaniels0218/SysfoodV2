@@ -1,4 +1,5 @@
 """Exportación de reportes a PDF (ReportLab) y Excel (openpyxl), con gráficos."""
+
 import io
 
 from openpyxl import Workbook
@@ -55,8 +56,16 @@ def _dibujo_grafico(grafico, ancho=24 * cm, alto=7 * cm):
 
 def a_pdf(datos, filtros_texto=""):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), leftMargin=1.2 * cm, rightMargin=1.2 * cm,
-                            topMargin=1.2 * cm, bottomMargin=1.2 * cm, title=datos["titulo"], author="SysFood V2")
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=1.2 * cm,
+        rightMargin=1.2 * cm,
+        topMargin=1.2 * cm,
+        bottomMargin=1.2 * cm,
+        title=datos["titulo"],
+        author="SysFood V2",
+    )
     estilos = getSampleStyleSheet()
     celda = estilos["BodyText"].clone("celda", fontSize=7.5, leading=9)
     partes = [
@@ -65,21 +74,36 @@ def a_pdf(datos, filtros_texto=""):
         Spacer(1, 8),
     ]
     resumen = Table([[str(a), str(b)] for a, b in datos["resumen"]], hAlign="LEFT")
-    resumen.setStyle(TableStyle([("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
-                                 ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef6f1"))]))
+    resumen.setStyle(
+        TableStyle(
+            [
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef6f1")),
+            ]
+        )
+    )
     partes += [resumen, Spacer(1, 8), _dibujo_grafico(datos["grafico"])]
     if datos.get("grafico2"):
         partes += [Spacer(1, 4), _dibujo_grafico(datos["grafico2"])]
     partes.append(Spacer(1, 10))
     encabezado = celda.clone("encabezado", textColor=colors.white)
     filas = [[Paragraph(f"<b>{c}</b>", encabezado) for c in datos["columnas"]]]
-    filas += [[Paragraph(str(v), celda) for v in fila] for fila in datos["filas"]] or [[Paragraph("Sin registros para los filtros seleccionados.", celda)] + [""] * (len(datos["columnas"]) - 1)]
+    filas += [[Paragraph(str(v), celda) for v in fila] for fila in datos["filas"]] or [
+        [Paragraph("Sin registros para los filtros seleccionados.", celda)] + [""] * (len(datos["columnas"]) - 1)
+    ]
     tabla = Table(filas, repeatRows=1)
-    tabla.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), VERDE), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey), ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f6f8f7")]),
-    ]))
+    tabla.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), VERDE),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f6f8f7")]),
+            ]
+        )
+    )
     partes.append(tabla)
     doc.build(partes)
     return buffer.getvalue()

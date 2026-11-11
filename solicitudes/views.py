@@ -16,8 +16,8 @@ from . import servicios
 from .forms import AprobarForm, MotivoForm
 from .models import CarritoItem, Solicitud
 
-
 # ---------------------------------------------------------------- Beneficiario
+
 
 @beneficiario_verificado
 def catalogo(request):
@@ -30,10 +30,16 @@ def catalogo(request):
     qs = qs.order_by("inv_fec_venc", "inv_nom")
     pagina = Paginator(qs, 12).get_page(request.GET.get("page"))
     en_carrito = dict(request.user.carrito.values_list("inventario_id", "car_cant"))
-    return render(request, "solicitudes/catalogo.html", {
-        "pagina": pagina, "categorias": Categoria.objects.filter(cat_estado="activa"), "en_carrito": en_carrito,
-        "maximo": parametros.entero("max_productos_solicitud"),
-    })
+    return render(
+        request,
+        "solicitudes/catalogo.html",
+        {
+            "pagina": pagina,
+            "categorias": Categoria.objects.filter(cat_estado="activa"),
+            "en_carrito": en_carrito,
+            "maximo": parametros.entero("max_productos_solicitud"),
+        },
+    )
 
 
 @beneficiario_verificado
@@ -53,7 +59,9 @@ def agregar(request, inv_id):
 @beneficiario_verificado
 def carrito(request):
     items = request.user.carrito.select_related("inventario__categoria", "inventario__detalle__donacion")
-    return render(request, "solicitudes/carrito.html", {"items": items, "maximo": parametros.entero("max_productos_solicitud")})
+    return render(
+        request, "solicitudes/carrito.html", {"items": items, "maximo": parametros.entero("max_productos_solicitud")}
+    )
 
 
 @beneficiario_verificado
@@ -117,7 +125,11 @@ def enviar(request):
 
 @solo_beneficiario
 def mis_solicitudes(request):
-    qs = request.user.solicitudes.annotate(productos=Count("detalles")).select_related("entrega").order_by("-sol_fec_envio")
+    qs = (
+        request.user.solicitudes.annotate(productos=Count("detalles"))
+        .select_related("entrega")
+        .order_by("-sol_fec_envio")
+    )
     if request.GET.get("estado"):
         qs = qs.filter(sol_estado=request.GET["estado"])
     pagina = Paginator(qs, 15).get_page(request.GET.get("page"))
@@ -127,13 +139,19 @@ def mis_solicitudes(request):
 @solo_beneficiario
 def detalle(request, pk):
     solicitud = get_object_or_404(Solicitud, pk=pk, beneficiario=request.user)
-    return render(request, "solicitudes/detalle.html", {
-        "s": solicitud, "detalles": solicitud.detalles.select_related("inventario__categoria", "inventario__detalle__donacion"),
-        "entrega": getattr(solicitud, "entrega", None),
-    })
+    return render(
+        request,
+        "solicitudes/detalle.html",
+        {
+            "s": solicitud,
+            "detalles": solicitud.detalles.select_related("inventario__categoria", "inventario__detalle__donacion"),
+            "entrega": getattr(solicitud, "entrega", None),
+        },
+    )
 
 
 # ---------------------------------------------------------------- Administrador
+
 
 @solo_admin
 def lista_admin(request):
@@ -143,7 +161,11 @@ def lista_admin(request):
         qs = qs.filter(sol_estado=estado)
     if request.GET.get("q"):
         q = request.GET["q"].strip()
-        qs = qs.filter(Q(beneficiario__usu_nom__icontains=q) | Q(beneficiario__usu_ape__icontains=q) | Q(pk__iexact=q if q.isdigit() else 0))
+        qs = qs.filter(
+            Q(beneficiario__usu_nom__icontains=q)
+            | Q(beneficiario__usu_ape__icontains=q)
+            | Q(pk__iexact=q if q.isdigit() else 0)
+        )
     if request.GET.get("grupo"):
         qs = qs.filter(beneficiario__perfil_beneficiario__ben_grupo=request.GET["grupo"])
     qs = filtrar_rango(qs, "sol_fec_envio", request.GET.get("desde"), request.GET.get("hasta"))
@@ -155,14 +177,24 @@ def lista_admin(request):
         qs = qs.order_by("sol_fec_envio" if estado == "pendiente" else "-sol_fec_envio")
     qs = qs.select_related("beneficiario__perfil_beneficiario")
     pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
-    return render(request, "solicitudes/admin_lista.html", {
-        "pagina": pagina, "estados": Solicitud.ESTADOS, "estado": estado, "grupos": parametros.grupos(), "por_prioridad": por_prioridad,
-    })
+    return render(
+        request,
+        "solicitudes/admin_lista.html",
+        {
+            "pagina": pagina,
+            "estados": Solicitud.ESTADOS,
+            "estado": estado,
+            "grupos": parametros.grupos(),
+            "por_prioridad": por_prioridad,
+        },
+    )
 
 
 @solo_admin
 def admin_detalle(request, pk):
-    solicitud = get_object_or_404(Solicitud.objects.select_related("beneficiario__perfil_beneficiario", "revisor"), pk=pk)
+    solicitud = get_object_or_404(
+        Solicitud.objects.select_related("beneficiario__perfil_beneficiario", "revisor"), pk=pk
+    )
     perfil = solicitud.beneficiario.perfil_beneficiario
     aprobar_form = AprobarForm(request.POST or None, initial={"direccion": perfil.ben_dir}, prefix="ap")
     motivo_form = MotivoForm(request.POST or None, prefix="mo")
@@ -171,22 +203,46 @@ def admin_detalle(request, pk):
         try:
             if accion == "aprobar" and aprobar_form.is_valid():
                 d = aprobar_form.cleaned_data
-                entrega = servicios.aprobar(solicitud, request.user, d["modalidad"], d["direccion"], d["fecha_prog"], d["bodega"], d["observacion"])
+                entrega = servicios.aprobar(
+                    solicitud,
+                    request.user,
+                    d["modalidad"],
+                    d["direccion"],
+                    d["fecha_prog"],
+                    d["bodega"],
+                    d["observacion"],
+                )
                 auditar(request, "cambio_estado", "solicitud", pk, f"Aprobada. Entrega {entrega.ent_cod}")
                 messages.success(request, f"Solicitud aprobada. Se generó la entrega {entrega.ent_cod}.")
                 return redirect("entregas:detalle", entrega.pk)
             if accion in ("rechazar", "cancelar") and motivo_form.is_valid():
                 funcion = servicios.rechazar if accion == "rechazar" else servicios.cancelar
                 funcion(solicitud, request.user, motivo_form.cleaned_data["observacion"])
-                auditar(request, "cambio_estado", "solicitud", pk, f"{accion.capitalize()}: {motivo_form.cleaned_data['observacion']}")
+                auditar(
+                    request,
+                    "cambio_estado",
+                    "solicitud",
+                    pk,
+                    f"{accion.capitalize()}: {motivo_form.cleaned_data['observacion']}",
+                )
                 messages.success(request, f"Solicitud {'rechazada' if accion == 'rechazar' else 'cancelada'}.")
                 return redirect("solicitudes:admin_detalle", pk)
             messages.error(request, "Revise los datos del formulario.")
         except ValidationError as error:
             messages.error(request, error.messages[0])
-    detalles = solicitud.detalles.select_related("inventario__categoria", "inventario__bodega", "inventario__detalle__donacion__donante")
-    return render(request, "solicitudes/admin_detalle.html", {
-        "s": solicitud, "perfil": perfil, "detalles": detalles, "aprobar_form": aprobar_form, "motivo_form": motivo_form,
-        "entrega": getattr(solicitud, "entrega", None),
-        "otras": solicitud.beneficiario.solicitudes.exclude(pk=pk).order_by("-sol_fec_envio")[:5],
-    })
+    detalles = solicitud.detalles.select_related(
+        "inventario__categoria", "inventario__bodega", "inventario__detalle__donacion__donante"
+    )
+    return render(
+        request,
+        "solicitudes/admin_detalle.html",
+        {
+            "s": solicitud,
+            "perfil": perfil,
+            "detalles": detalles,
+            "aprobar_form": aprobar_form,
+            "motivo_form": motivo_form,
+            "entrega": getattr(solicitud, "entrega", None),
+            "otras": solicitud.beneficiario.solicitudes.exclude(pk=pk).order_by("-sol_fec_envio")[:5],
+        },
+    )

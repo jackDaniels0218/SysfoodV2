@@ -17,7 +17,9 @@ class DatosEntregaForm(forms.ModelForm):
         self.fields["responsable"].queryset = Usuario.objects.filter(usu_rol=Usuario.ADMIN, usu_estado=Usuario.ACTIVO)
         self.fields["ent_modalidad"].widget.attrs["data-modalidad"] = "dir-entrega"
         for campo in self.fields.values():
-            campo.widget.attrs.setdefault("class", "form-select" if isinstance(campo.widget, forms.Select) else "form-control")
+            campo.widget.attrs.setdefault(
+                "class", "form-select" if isinstance(campo.widget, forms.Select) else "form-control"
+            )
 
     def clean(self):
         datos = super().clean()

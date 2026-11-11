@@ -27,9 +27,15 @@ class Fecha(forms.DateInput):
 class CuentaForm(BootstrapMixin, forms.ModelForm):
     """Datos de la cuenta comunes a todos los roles."""
 
-    password1 = forms.CharField(label="Contraseña", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
-                                help_text=password_validation.password_validators_help_text_html(), required=False)
-    password2 = forms.CharField(label="Confirmar contraseña", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}), required=False)
+    password1 = forms.CharField(
+        label="Contraseña",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        help_text=password_validation.password_validators_help_text_html(),
+        required=False,
+    )
+    password2 = forms.CharField(
+        label="Confirmar contraseña", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}), required=False
+    )
 
     class Meta:
         model = Usuario
@@ -91,7 +97,8 @@ class RegistroForm(CuentaForm):
         widget=forms.RadioSelect,
     )
     acepta = forms.BooleanField(
-        label="Acepto la política de tratamiento de datos personales (Ley 1581 de 2012)", required=True,
+        label="Acepto la política de tratamiento de datos personales (Ley 1581 de 2012)",
+        required=True,
         error_messages={"required": "Debe aceptar la política de tratamiento de datos para registrarse."},
     )
 
@@ -133,7 +140,10 @@ class PerfilDonanteForm(BootstrapMixin, forms.ModelForm):
 class PerfilBeneficiarioForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = PerfilBeneficiario
-        exclude = ["usuario", *sorted(PerfilBeneficiario.CAMPOS_AUTOMATICOS)]  # Los calcula el sistema, nunca el usuario.
+        exclude = [
+            "usuario",
+            *sorted(PerfilBeneficiario.CAMPOS_AUTOMATICOS),
+        ]  # Los calcula el sistema, nunca el usuario.
         widgets = {"ben_fec_exp_doc": Fecha()}
 
     def __init__(self, *args, **kwargs):
@@ -171,8 +181,14 @@ class PerfilUsuarioForm(CuentaForm):
 
 
 class LoginForm(forms.Form):
-    correo = forms.EmailField(label="Correo electrónico", widget=forms.EmailInput(attrs={"class": "form-control", "autofocus": True, "autocomplete": "email"}))
-    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "current-password"}))
+    correo = forms.EmailField(
+        label="Correo electrónico",
+        widget=forms.EmailInput(attrs={"class": "form-control", "autofocus": True, "autocomplete": "email"}),
+    )
+    password = forms.CharField(
+        label="Contraseña",
+        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "current-password"}),
+    )
 
 
 class RecuperarForm(forms.Form):
@@ -180,9 +196,15 @@ class RecuperarForm(forms.Form):
 
 
 class NuevaPasswordForm(forms.Form):
-    password1 = forms.CharField(label="Nueva contraseña", widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
-                                help_text=password_validation.password_validators_help_text_html())
-    password2 = forms.CharField(label="Confirmar contraseña", widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}))
+    password1 = forms.CharField(
+        label="Nueva contraseña",
+        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
+        help_text=password_validation.password_validators_help_text_html(),
+    )
+    password2 = forms.CharField(
+        label="Confirmar contraseña",
+        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "new-password"}),
+    )
 
     def __init__(self, usuario, *args, **kwargs):
         self.usuario = usuario
@@ -202,8 +224,15 @@ class NuevaPasswordForm(forms.Form):
 
 class DocumentoForm(forms.Form):
     docv_tipo = forms.ChoiceField(label="Tipo de documento", widget=forms.Select(attrs={"class": "form-select"}))
-    archivo = forms.FileField(label="Archivo", widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"}))
-    docv_fec_venc = forms.DateField(label="Fecha de vencimiento (opcional)", required=False, widget=Fecha(attrs={"class": "form-control"}))
+    archivo = forms.FileField(
+        label="Archivo",
+        widget=forms.ClearableFileInput(
+            attrs={"class": "form-control", "accept": ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"}
+        ),
+    )
+    docv_fec_venc = forms.DateField(
+        label="Fecha de vencimiento (opcional)", required=False, widget=Fecha(attrs={"class": "form-control"})
+    )
 
     def __init__(self, tipos, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -213,7 +242,9 @@ class DocumentoForm(forms.Form):
 
 class RevisionDocumentoForm(forms.Form):
     decision = forms.ChoiceField(choices=[("aprobar", "Aprobar"), ("rechazar", "Rechazar")])
-    observacion = forms.CharField(label="Observación", required=False, widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}))
+    observacion = forms.CharField(
+        label="Observación", required=False, widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"})
+    )
 
     def clean(self):
         datos = super().clean()

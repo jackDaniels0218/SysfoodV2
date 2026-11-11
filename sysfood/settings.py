@@ -3,6 +3,7 @@
 Los valores sensibles se leen de variables de entorno o de un archivo .env
 en la raíz del proyecto (ver .env.example).
 """
+
 import os
 import sys
 from pathlib import Path
@@ -93,6 +94,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "sysfood.wsgi.application"
 
+
 def _base_desde_url(url):
     """postgresql://usuario:clave@servidor:5432/base (formato de DATABASE_URL en Render)."""
     from urllib.parse import unquote, urlparse
@@ -177,8 +179,10 @@ TAREAS_AUTOMATICAS = env_bool("TAREAS_AUTOMATICAS", "1") and not TESTING
 # Geocodificación en un hilo aparte para no demorar el registro (en las pruebas es inmediata).
 GEOCODIFICACION_EN_HILO = not TESTING
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-     "OPTIONS": {"user_attributes": ("usu_correo", "usu_nom", "usu_ape")}},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("usu_correo", "usu_nom", "usu_ape")},
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},

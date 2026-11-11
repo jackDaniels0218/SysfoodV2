@@ -1,4 +1,5 @@
 """Actividad 3 y 4: categorías y bodegas."""
+
 from django.urls import reverse
 
 from catalogo.models import Bodega, Categoria
@@ -10,14 +11,25 @@ class CategoriasTests(PruebaBase):
         self.admin = self.ingresar(crear_admin())
 
     def test_crear_editar_y_validar(self):
-        r = self.client.post(reverse("catalogo:categoria_nueva"), {"cat_nom": "Lácteos", "cat_desc": "Leche", "cat_perecedero": "on", "cat_dias_alerta": "5", "cat_estado": "activa"})
+        r = self.client.post(
+            reverse("catalogo:categoria_nueva"),
+            {
+                "cat_nom": "Lácteos",
+                "cat_desc": "Leche",
+                "cat_perecedero": "on",
+                "cat_dias_alerta": "5",
+                "cat_estado": "activa",
+            },
+        )
         self.assertRedirects(r, reverse("catalogo:categorias"))
         c = Categoria.objects.get(cat_nom="Lácteos")
         self.assertTrue(c.cat_perecedero)
         self.assertEqual(c.dias_alerta(), 5)
         r = self.client.post(reverse("catalogo:categoria_nueva"), {"cat_nom": "lácteos", "cat_estado": "activa"})
         self.assertContains(r, "Ya existe una categoría")
-        self.client.post(reverse("catalogo:categoria_editar", args=[c.pk]), {"cat_nom": "Lácteos", "cat_estado": "activa"})
+        self.client.post(
+            reverse("catalogo:categoria_editar", args=[c.pk]), {"cat_nom": "Lácteos", "cat_estado": "activa"}
+        )
         c.refresh_from_db()
         self.assertEqual(c.dias_alerta(), 7)  # Vacío: usa el parámetro general.
 
@@ -47,7 +59,16 @@ class BodegasTests(PruebaBase):
         self.admin = self.ingresar(crear_admin())
 
     def test_crear_bodega_con_responsable(self):
-        r = self.client.post(reverse("catalogo:bodega_nueva"), {"bod_nom": "Central", "bod_dir": "Cl 1", "bod_capacidad": "1 t", "responsable": self.admin.pk, "bod_estado": "activa"})
+        r = self.client.post(
+            reverse("catalogo:bodega_nueva"),
+            {
+                "bod_nom": "Central",
+                "bod_dir": "Cl 1",
+                "bod_capacidad": "1 t",
+                "responsable": self.admin.pk,
+                "bod_estado": "activa",
+            },
+        )
         self.assertRedirects(r, reverse("catalogo:bodegas"))
         self.assertEqual(Bodega.objects.get(bod_nom="Central").responsable, self.admin)
 

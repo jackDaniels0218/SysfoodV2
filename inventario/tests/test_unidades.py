@@ -13,7 +13,12 @@ from django.utils import timezone
 from core import parametros
 from core.models import FiltroGuardado, Parametro
 from core.tests.utilidades import (
-    PruebaBase, crear_admin, crear_beneficiario, crear_categoria, crear_donacion, crear_donante,
+    PruebaBase,
+    crear_admin,
+    crear_beneficiario,
+    crear_categoria,
+    crear_donacion,
+    crear_donante,
 )
 from donaciones import servicios as don_srv
 from donaciones.forms import DetalleForm
@@ -28,8 +33,13 @@ def donar_latas(donante, cantidad="24", unidad="latas", nombre="Atún"):
     categoria = crear_categoria()
     if not Inventario.objects.exists():
         crear_donacion(donante)  # Crea la bodega activa.
-    det = DetalleDonacion(categoria=categoria, dd_nom=nombre, dd_cantidad=Decimal(cantidad), dd_unidad=unidad,
-                          dd_fec_venc=timezone.localdate() + timedelta(days=200))
+    det = DetalleDonacion(
+        categoria=categoria,
+        dd_nom=nombre,
+        dd_cantidad=Decimal(cantidad),
+        dd_unidad=unidad,
+        dd_fec_venc=timezone.localdate() + timedelta(days=200),
+    )
     don_srv.registrar(Donacion(donante=donante), [det], donante)
     return Inventario.objects.get(detalle=det)
 
@@ -37,9 +47,15 @@ def donar_latas(donante, cantidad="24", unidad="latas", nombre="Atún"):
 class FormatoTests(PruebaBase):
     def test_formato_por_unidad(self):
         casos = [
-            ("50", "kilogramos", "50 kg"), ("24", "latas", "24 latas"), ("1", "latas", "1 lata"),
-            ("2.50", "litros", "2,5 L"), ("1", "unidades", "1 unidad"), ("3", "cajas", "3 cajas"),
-            ("1", "paquetes", "1 paquete"), ("1500", "gramos", "1.500 g"), ("0.25", "kilogramos", "0,25 kg"),
+            ("50", "kilogramos", "50 kg"),
+            ("24", "latas", "24 latas"),
+            ("1", "latas", "1 lata"),
+            ("2.50", "litros", "2,5 L"),
+            ("1", "unidades", "1 unidad"),
+            ("3", "cajas", "3 cajas"),
+            ("1", "paquetes", "1 paquete"),
+            ("1500", "gramos", "1.500 g"),
+            ("0.25", "kilogramos", "0,25 kg"),
         ]
         for cantidad, unidad, esperado in casos:
             self.assertEqual(unidades.formatear(Decimal(cantidad), unidad), esperado)
@@ -67,7 +83,9 @@ class FormatoTests(PruebaBase):
     def test_parametro_divisibles_valida_contra_unidades_de_medida(self):
         with self.assertRaisesMessage(ValidationError, "toneladas"):
             parametros.validar("unidades_divisibles", "kilogramos,toneladas")
-        self.assertEqual(parametros.validar("unidades_abreviaturas", "kilogramos:kg,litros:L"), "kilogramos:kg, litros:L")
+        self.assertEqual(
+            parametros.validar("unidades_abreviaturas", "kilogramos:kg,litros:L"), "kilogramos:kg, litros:L"
+        )
         with self.assertRaises(ValidationError):
             parametros.validar("unidades_abreviaturas", "kilogramos")
 
@@ -78,8 +96,13 @@ class ValidacionTests(PruebaBase):
         self.admin = crear_admin()
 
     def test_formulario_de_donacion_rechaza_decimales_en_contables(self):
-        datos = {"categoria": crear_categoria().pk, "dd_nom": "Atún", "dd_cantidad": "24.5", "dd_unidad": "latas",
-                 "dd_fec_venc": (timezone.localdate() + timedelta(days=30)).isoformat()}
+        datos = {
+            "categoria": crear_categoria().pk,
+            "dd_nom": "Atún",
+            "dd_cantidad": "24.5",
+            "dd_unidad": "latas",
+            "dd_fec_venc": (timezone.localdate() + timedelta(days=30)).isoformat(),
+        }
         form = DetalleForm(data=datos)
         self.assertFalse(form.is_valid())
         self.assertIn("unidades completas", form.errors["dd_cantidad"][0])
@@ -171,13 +194,17 @@ class PanelTests(PruebaBase):
     def test_ajuste_rapido_vuelve_a_la_lista(self):
         inv = donar_latas(self.donante)
         siguiente = reverse("inventario:lista") + "?vista=tabla"
-        r = self.client.post(reverse("inventario:ajustar", args=[inv.pk]),
-                             {"nueva_cantidad": "12", "motivo": "conteo físico", "siguiente": siguiente})
+        r = self.client.post(
+            reverse("inventario:ajustar", args=[inv.pk]),
+            {"nueva_cantidad": "12", "motivo": "conteo físico", "siguiente": siguiente},
+        )
         self.assertRedirects(r, siguiente, fetch_redirect_response=False)
         inv.refresh_from_db()
         self.assertEqual(inv.inv_cant_disp, 12)
-        r = self.client.post(reverse("inventario:ajustar", args=[inv.pk]),
-                             {"nueva_cantidad": "11.5", "motivo": "x", "siguiente": "https://otro.sitio/"})
+        r = self.client.post(
+            reverse("inventario:ajustar", args=[inv.pk]),
+            {"nueva_cantidad": "11.5", "motivo": "x", "siguiente": "https://otro.sitio/"},
+        )
         self.assertRedirects(r, reverse("inventario:detalle", args=[inv.pk]), fetch_redirect_response=False)
         inv.refresh_from_db()
         self.assertEqual(inv.inv_cant_disp, 12)
@@ -213,27 +240,40 @@ class FiltrosGuardadosTests(PruebaBase):
         self.admin = self.ingresar(crear_admin())
 
     def test_guardar_usar_y_eliminar(self):
-        r = self.client.post(reverse("core:filtro_guardar"), {
-            "vista": "inventario", "nombre": "Vencen pronto", "f_vigencia": "proximo", "f_page": "3",
-        })
+        r = self.client.post(
+            reverse("core:filtro_guardar"),
+            {
+                "vista": "inventario",
+                "nombre": "Vencen pronto",
+                "f_vigencia": "proximo",
+                "f_page": "3",
+            },
+        )
         self.assertRedirects(r, reverse("inventario:lista") + "?vigencia=proximo", fetch_redirect_response=False)
         filtro = FiltroGuardado.objects.get(usuario=self.admin)
         self.assertEqual(filtro.fil_consulta, "vigencia=proximo")
         r = self.client.get(reverse("inventario:lista"))
         self.assertContains(r, "Vencen pronto")
         # Mismo nombre: se reemplaza.
-        self.client.post(reverse("core:filtro_guardar"), {"vista": "inventario", "nombre": "Vencen pronto", "f_vigencia": "vencido"})
+        self.client.post(
+            reverse("core:filtro_guardar"), {"vista": "inventario", "nombre": "Vencen pronto", "f_vigencia": "vencido"}
+        )
         self.assertEqual(FiltroGuardado.objects.get().fil_consulta, "vigencia=vencido")
         self.client.post(reverse("core:filtro_eliminar", args=[filtro.pk]))
         self.assertFalse(FiltroGuardado.objects.exists())
 
     def test_filtros_son_de_cada_usuario(self):
         otro = crear_admin()
-        filtro = FiltroGuardado.objects.create(usuario=otro, fil_vista="inventario", fil_nombre="Ajeno", fil_consulta="q=a")
+        filtro = FiltroGuardado.objects.create(
+            usuario=otro, fil_vista="inventario", fil_nombre="Ajeno", fil_consulta="q=a"
+        )
         self.assertEqual(self.client.post(reverse("core:filtro_eliminar", args=[filtro.pk])).status_code, 404)
         self.assertNotContains(self.client.get(reverse("inventario:lista")), "Ajeno")
 
     def test_sin_filtros_no_guarda(self):
         self.client.post(reverse("core:filtro_guardar"), {"vista": "inventario", "nombre": "Vacío"})
         self.assertFalse(FiltroGuardado.objects.exists())
-        self.assertEqual(self.client.post(reverse("core:filtro_guardar"), {"vista": "otra", "nombre": "x", "f_q": "a"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(reverse("core:filtro_guardar"), {"vista": "otra", "nombre": "x", "f_q": "a"}).status_code,
+            404,
+        )

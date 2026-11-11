@@ -1,4 +1,5 @@
 """Actividad 1, 10 y 17: registro, autenticación, recuperación y control por rol."""
+
 from datetime import timedelta
 
 from django.core import mail
@@ -14,11 +15,25 @@ NUEVA = "OtraClave#2025"
 
 def datos_registro(rol="donante", **extra):
     datos = {
-        "usu_rol": rol, "usu_nom": "Laura", "usu_ape": "Ruiz", "usu_correo": "laura@correo.com", "usu_tel": "3101112222",
-        "password1": "Segura#2025x", "password2": "Segura#2025x", "acepta": "on",
-        "don-don_tipo_persona": "natural", "don-don_tipo_doc": "CC", "don-don_doc_nit": "1012345678", "don-don_dir": "Cra 1",
-        "ben-ben_tipo_doc": "CC", "ben-ben_num_doc": "52000111", "ben-ben_fec_exp_doc": "2012-03-04", "ben-ben_dir": "Cl 9",
-        "ben-ben_num_personas": "4", "ben-ben_sisben": "B", "ben-ben_estrato": "2",
+        "usu_rol": rol,
+        "usu_nom": "Laura",
+        "usu_ape": "Ruiz",
+        "usu_correo": "laura@correo.com",
+        "usu_tel": "3101112222",
+        "password1": "Segura#2025x",
+        "password2": "Segura#2025x",
+        "acepta": "on",
+        "don-don_tipo_persona": "natural",
+        "don-don_tipo_doc": "CC",
+        "don-don_doc_nit": "1012345678",
+        "don-don_dir": "Cra 1",
+        "ben-ben_tipo_doc": "CC",
+        "ben-ben_num_doc": "52000111",
+        "ben-ben_fec_exp_doc": "2012-03-04",
+        "ben-ben_dir": "Cl 9",
+        "ben-ben_num_personas": "4",
+        "ben-ben_sisben": "B",
+        "ben-ben_estrato": "2",
     }
     datos.update(extra)
     return datos
@@ -60,24 +75,35 @@ class RegistroTests(PruebaBase):
     def test_confirmacion_y_requisitos_de_contrasena(self):
         r = self.client.post(reverse("usuarios:registro"), datos_registro(password2="Distinta#2025"))
         self.assertContains(r, "Las contraseñas no coinciden")
-        r = self.client.post(reverse("usuarios:registro"), datos_registro(password1="sencilla12", password2="sencilla12"))
+        r = self.client.post(
+            reverse("usuarios:registro"), datos_registro(password1="sencilla12", password2="sencilla12")
+        )
         self.assertContains(r, "una letra mayúscula")
         self.assertFalse(Usuario.objects.exists())
 
     def test_fecha_expedicion_futura_y_documento_unico_por_tipo(self):
         futura = (timezone.localdate() + timedelta(days=3)).isoformat()
-        r = self.client.post(reverse("usuarios:registro"), datos_registro("beneficiario", **{"ben-ben_fec_exp_doc": futura}))
+        r = self.client.post(
+            reverse("usuarios:registro"), datos_registro("beneficiario", **{"ben-ben_fec_exp_doc": futura})
+        )
         self.assertContains(r, "no puede ser futura")
         existente = crear_beneficiario()
-        r = self.client.post(reverse("usuarios:registro"), datos_registro(
-            "beneficiario", **{"ben-ben_num_doc": existente.perfil_beneficiario.ben_num_doc}))
+        r = self.client.post(
+            reverse("usuarios:registro"),
+            datos_registro("beneficiario", **{"ben-ben_num_doc": existente.perfil_beneficiario.ben_num_doc}),
+        )
         self.assertContains(r, "Ya existe un beneficiario registrado con este documento")
 
     def test_juridica_requiere_razon_social_y_nit_unico(self):
-        r = self.client.post(reverse("usuarios:registro"), datos_registro(**{"don-don_tipo_persona": "juridica", "don-don_tipo_doc": "NIT"}))
+        r = self.client.post(
+            reverse("usuarios:registro"),
+            datos_registro(**{"don-don_tipo_persona": "juridica", "don-don_tipo_doc": "NIT"}),
+        )
         self.assertContains(r, "razón social es obligatoria")
         otro = crear_donante()
-        r = self.client.post(reverse("usuarios:registro"), datos_registro(**{"don-don_doc_nit": otro.perfil_donante.don_doc_nit}))
+        r = self.client.post(
+            reverse("usuarios:registro"), datos_registro(**{"don-don_doc_nit": otro.perfil_donante.don_doc_nit})
+        )
         self.assertContains(r, "Ya existe un donante registrado")
 
 
@@ -191,9 +217,18 @@ class ControlPorRolTests(PruebaBase):
     """Se niega el acceso directo por dirección a páginas no autorizadas."""
 
     URLS_ADMIN = [
-        "usuarios:lista", "usuarios:crear", "usuarios:documentos_pendientes", "catalogo:categorias", "catalogo:bodegas",
-        "inventario:lista", "donaciones:lista_admin", "solicitudes:lista_admin", "entregas:lista", "core:parametros",
-        "core:trazabilidad", "reportes:reportes",
+        "usuarios:lista",
+        "usuarios:crear",
+        "usuarios:documentos_pendientes",
+        "catalogo:categorias",
+        "catalogo:bodegas",
+        "inventario:lista",
+        "donaciones:lista_admin",
+        "solicitudes:lista_admin",
+        "entregas:lista",
+        "core:parametros",
+        "core:trazabilidad",
+        "reportes:reportes",
     ]
 
     def test_anonimo_es_enviado_a_ingresar(self):
@@ -218,8 +253,11 @@ class ControlPorRolTests(PruebaBase):
         self.assertEqual(self.client.get(reverse("donaciones:nueva")).status_code, 403)
 
     def test_panel_por_rol(self):
-        for usuario, texto in ((crear_admin(), "Panel del administrador"), (crear_donante(), "Registrar donación"),
-                               (crear_beneficiario(), "Estado de verificación")):
+        for usuario, texto in (
+            (crear_admin(), "Panel del administrador"),
+            (crear_donante(), "Registrar donación"),
+            (crear_beneficiario(), "Estado de verificación"),
+        ):
             self.ingresar(usuario)
             r = self.client.get(reverse("reportes:dashboard"))
             self.assertContains(r, texto)

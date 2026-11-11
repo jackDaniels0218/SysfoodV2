@@ -23,10 +23,13 @@ class ParametroForm(forms.Form):
         elif tipo == "bodega":
             campo.widget = forms.Select(
                 attrs={"class": "form-select"},
-                choices=[("", "Primera bodega activa")] + [(str(b.pk), b.bod_nom) for b in Bodega.objects.filter(bod_estado="activa")],
+                choices=[("", "Primera bodega activa")]
+                + [(str(b.pk), b.bod_nom) for b in Bodega.objects.filter(bod_estado="activa")],
             )
         elif tipo == "opcion":
-            campo.widget = forms.Select(attrs={"class": "form-select"}, choices=parametros.OPCIONES.get(parametro.par_clave, []))
+            campo.widget = forms.Select(
+                attrs={"class": "form-select"}, choices=parametros.OPCIONES.get(parametro.par_clave, [])
+            )
         elif tipo == "booleano":
             campo.widget = forms.Select(attrs={"class": "form-select"}, choices=[("si", "Sí"), ("no", "No")])
         elif tipo in ("grupos", "escala") or len(parametro.par_valor) > 60:

@@ -25,21 +25,38 @@ def lista(request):
         qs = qs.filter(ent_modalidad=request.GET["modalidad"])
     if request.GET.get("q"):
         q = request.GET["q"].strip()
-        qs = qs.filter(Q(ent_cod__icontains=q) | Q(solicitud__beneficiario__usu_nom__icontains=q) | Q(solicitud__beneficiario__usu_ape__icontains=q))
+        qs = qs.filter(
+            Q(ent_cod__icontains=q)
+            | Q(solicitud__beneficiario__usu_nom__icontains=q)
+            | Q(solicitud__beneficiario__usu_ape__icontains=q)
+        )
     qs = filtrar_rango(qs, "ent_fec_crea", request.GET.get("desde"), request.GET.get("hasta"))
     pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
-    return render(request, "entregas/lista.html", {"pagina": pagina, "estados": Entrega.ESTADOS, "modalidades": Entrega.MODALIDADES})
+    return render(
+        request,
+        "entregas/lista.html",
+        {"pagina": pagina, "estados": Entrega.ESTADOS, "modalidades": Entrega.MODALIDADES},
+    )
 
 
 @solo_admin
 def detalle(request, pk):
-    entrega = get_object_or_404(Entrega.objects.select_related("solicitud__beneficiario__perfil_beneficiario", "bodega", "responsable"), pk=pk)
+    entrega = get_object_or_404(
+        Entrega.objects.select_related("solicitud__beneficiario__perfil_beneficiario", "bodega", "responsable"), pk=pk
+    )
     form = DatosEntregaForm(instance=entrega)
-    return render(request, "entregas/detalle.html", {
-        "e": entrega, "detalles": entrega.detalles.select_related("inventario__categoria"),
-        "historial": entrega.historial.select_related("usuario"), "form": form,
-        "siguiente": dict(Entrega.ESTADOS).get(entrega.siguiente_estado), "pasos": Entrega.ESTADOS[:4],
-    })
+    return render(
+        request,
+        "entregas/detalle.html",
+        {
+            "e": entrega,
+            "detalles": entrega.detalles.select_related("inventario__categoria"),
+            "historial": entrega.historial.select_related("usuario"),
+            "form": form,
+            "siguiente": dict(Entrega.ESTADOS).get(entrega.siguiente_estado),
+            "pasos": Entrega.ESTADOS[:4],
+        },
+    )
 
 
 @solo_admin
@@ -85,7 +102,15 @@ def actualizar(request, pk):
     if form.is_valid():
         d = form.cleaned_data
         try:
-            servicios.actualizar_datos(entrega, request.user, d["ent_modalidad"], d["ent_dir_entrega"], d["ent_fec_prog"], d["responsable"], d["ent_obs"])
+            servicios.actualizar_datos(
+                entrega,
+                request.user,
+                d["ent_modalidad"],
+                d["ent_dir_entrega"],
+                d["ent_fec_prog"],
+                d["responsable"],
+                d["ent_obs"],
+            )
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
@@ -103,12 +128,23 @@ def seguimiento(request):
     codigo = request.GET.get("codigo", "").strip().upper()
     entrega = None
     if codigo:
-        entrega = Entrega.objects.filter(ent_cod=codigo, solicitud__beneficiario=request.user).select_related("bodega").first()
+        entrega = (
+            Entrega.objects.filter(ent_cod=codigo, solicitud__beneficiario=request.user)
+            .select_related("bodega")
+            .first()
+        )
         if entrega is None:
             messages.error(request, "No encontramos una entrega suya con ese código.")
     mias = Entrega.objects.filter(solicitud__beneficiario=request.user).order_by("-ent_fec_crea")
-    return render(request, "entregas/seguimiento.html", {
-        "codigo": codigo, "e": entrega, "mias": mias, "pasos": Entrega.ESTADOS[:4],
-        "historial": entrega.historial.all() if entrega else [],
-        "detalles": entrega.detalles.select_related("inventario") if entrega else [],
-    })
+    return render(
+        request,
+        "entregas/seguimiento.html",
+        {
+            "codigo": codigo,
+            "e": entrega,
+            "mias": mias,
+            "pasos": Entrega.ESTADOS[:4],
+            "historial": entrega.historial.all() if entrega else [],
+            "detalles": entrega.detalles.select_related("inventario") if entrega else [],
+        },
+    )

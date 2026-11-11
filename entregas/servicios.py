@@ -1,4 +1,5 @@
 """Cambios de estado de las entregas."""
+
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -15,7 +16,9 @@ from .models import Entrega, HistorialEntrega
 def _avisar(entrega, texto_estado):
     solicitud = entrega.solicitud
     notificar(
-        solicitud.beneficiario, "entrega", f"Entrega {entrega.ent_cod}: {texto_estado}",
+        solicitud.beneficiario,
+        "entrega",
+        f"Entrega {entrega.ent_cod}: {texto_estado}",
         f"Su entrega {entrega.ent_cod} cambió a «{texto_estado}».",
         reverse("entregas:seguimiento") + f"?codigo={entrega.ent_cod}",
     )
@@ -25,7 +28,9 @@ def _avisar(entrega, texto_estado):
         donantes.setdefault(det.inventario.detalle.donacion.donante, []).append(det.inventario.inv_nom)
     for donante, productos in donantes.items():
         notificar(
-            donante, "entrega", f"Avance de entrega: {texto_estado}",
+            donante,
+            "entrega",
+            f"Avance de entrega: {texto_estado}",
             f"La entrega que incluye sus productos ({', '.join(productos)}) cambió a «{texto_estado}».",
             reverse("donaciones:mis_donaciones"),
         )
@@ -33,7 +38,11 @@ def _avisar(entrega, texto_estado):
 
 def _historial(entrega, usuario, anterior, nuevo, obs=""):
     HistorialEntrega.objects.create(
-        entrega=entrega, usuario=usuario, his_estado_ant=anterior, his_estado_nuevo=nuevo, his_obs=obs[:255],
+        entrega=entrega,
+        usuario=usuario,
+        his_estado_ant=anterior,
+        his_estado_nuevo=nuevo,
+        his_obs=obs[:255],
     )
 
 
@@ -77,14 +86,18 @@ def cancelar(entrega, usuario, motivo, cancelar_solicitud=True):
         raise ValidationError("Una entrega entregada o ya cancelada no puede cancelarse.")
     anterior = entrega.ent_estado
     for det in entrega.detalles.select_related("inventario"):
-        inv_srv.liberar(det.inventario, det.de_cant_asig, usuario, entrega, f"Cancelación de {entrega.ent_cod}: {motivo}")
+        inv_srv.liberar(
+            det.inventario, det.de_cant_asig, usuario, entrega, f"Cancelación de {entrega.ent_cod}: {motivo}"
+        )
     entrega.ent_estado = Entrega.CANCELADO
     entrega.ent_mot_cancel = motivo.strip()[:255]
     entrega.save()
     _historial(entrega, usuario, anterior, Entrega.CANCELADO, motivo)
     if cancelar_solicitud:
         Solicitud.objects.filter(pk=entrega.solicitud_id).update(
-            sol_estado=Solicitud.CANCELADA, sol_obs_admin=f"Entrega cancelada: {motivo.strip()}", sol_fec_resp=timezone.now(),
+            sol_estado=Solicitud.CANCELADA,
+            sol_obs_admin=f"Entrega cancelada: {motivo.strip()}",
+            sol_fec_resp=timezone.now(),
         )
     transaction.on_commit(lambda: _avisar(entrega, "Cancelado"))
     return entrega

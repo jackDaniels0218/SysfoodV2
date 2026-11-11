@@ -12,15 +12,27 @@ ANONIMO = "Donante anónimo"
 class Donacion(models.Model):
     """Encabezado de la donación (Actividad 5)."""
 
-    DISPONIBLE, RESERVADA, ENTREGADA, VENCIDA, CANCELADA = "disponible", "reservada", "entregada", "vencida", "cancelada"
+    DISPONIBLE, RESERVADA, ENTREGADA, VENCIDA, CANCELADA = (
+        "disponible",
+        "reservada",
+        "entregada",
+        "vencida",
+        "cancelada",
+    )
     ESTADOS = [
-        (DISPONIBLE, "Disponible"), (RESERVADA, "Reservada"), (ENTREGADA, "Entregada"),
-        (VENCIDA, "Vencida"), (CANCELADA, "Cancelada"),
+        (DISPONIBLE, "Disponible"),
+        (RESERVADA, "Reservada"),
+        (ENTREGADA, "Entregada"),
+        (VENCIDA, "Vencida"),
+        (CANCELADA, "Cancelada"),
     ]
 
     dona_id = models.AutoField(primary_key=True)
     donante = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="usu_id", related_name="donaciones",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        db_column="usu_id",
+        related_name="donaciones",
     )
     dona_anonima = models.BooleanField("donación anónima", default=False)
     dona_estado = models.CharField("estado", max_length=10, choices=ESTADOS, default=DISPONIBLE, db_index=True)
@@ -92,13 +104,19 @@ class DetalleDonacion(models.Model):
     dd_id = models.AutoField(primary_key=True)
     donacion = models.ForeignKey(Donacion, on_delete=models.PROTECT, db_column="dona_id", related_name="detalles")
     categoria = models.ForeignKey(
-        "catalogo.Categoria", on_delete=models.PROTECT, db_column="cat_id", related_name="detalles_donacion",
+        "catalogo.Categoria",
+        on_delete=models.PROTECT,
+        db_column="cat_id",
+        related_name="detalles_donacion",
         verbose_name="categoría",
     )
     dd_nom = models.CharField("producto", max_length=120)
     dd_desc = models.CharField("descripción", max_length=255, blank=True)
     dd_cantidad = models.DecimalField(
-        "cantidad", max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))],
+        "cantidad",
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
     )
     dd_unidad = models.CharField("unidad de medida", max_length=30)
     dd_divisible = models.BooleanField("admite decimales", default=True)

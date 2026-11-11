@@ -10,6 +10,7 @@ peso_i × valor_i / Σ peso_i, de modo que el desglose suma exactamente el punta
 
 El puntaje apoya la decisión del administrador; no la reemplaza.
 """
+
 from collections import OrderedDict
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -21,16 +22,24 @@ from core import parametros
 from core.formato import numero
 from core.servicios import auditar
 
-CRITERIOS = OrderedDict([
-    ("sisben", ("Nivel de Sisbén", "puntaje_peso_sisben")),
-    ("estrato", ("Estrato social", "puntaje_peso_estrato")),
-    ("personas", ("Personas en el hogar", "puntaje_peso_personas")),
-    ("discapacidad", ("Discapacidad", "puntaje_peso_discapacidad")),
-    ("solicitudes", ("Solicitudes recientes", "puntaje_peso_solicitudes")),
-    ("tiempo", ("Tiempo sin recibir ayuda", "puntaje_peso_tiempo")),
-])
+CRITERIOS = OrderedDict(
+    [
+        ("sisben", ("Nivel de Sisbén", "puntaje_peso_sisben")),
+        ("estrato", ("Estrato social", "puntaje_peso_estrato")),
+        ("personas", ("Personas en el hogar", "puntaje_peso_personas")),
+        ("discapacidad", ("Discapacidad", "puntaje_peso_discapacidad")),
+        ("solicitudes", ("Solicitudes recientes", "puntaje_peso_solicitudes")),
+        ("tiempo", ("Tiempo sin recibir ayuda", "puntaje_peso_tiempo")),
+    ]
+)
 
-NOMBRES_SISBEN = {"A": "A (pobreza extrema)", "B": "B (pobreza moderada)", "C": "C (vulnerable)", "D": "D (no pobre)", "NR": "No registrado"}
+NOMBRES_SISBEN = {
+    "A": "A (pobreza extrema)",
+    "B": "B (pobreza moderada)",
+    "C": "C (vulnerable)",
+    "D": "D (no pobre)",
+    "NR": "No registrado",
+}
 
 
 class Config:
@@ -63,6 +72,7 @@ def _proporcion(n, tope):
 
 # ---------------------------------------------------------------- Datos de entrada
 
+
 def datos_de(perfil, hoy=None, cfg=None):
     """Toma del sistema los datos que usa el puntaje (solo del propio beneficiario)."""
     from entregas.models import Entrega
@@ -76,15 +86,25 @@ def datos_de(perfil, hoy=None, cfg=None):
     desde = timezone.now() - timedelta(days=cfg.dias_solicitudes)
     solicitudes = (
         Solicitud.objects.filter(beneficiario_id=usuario_id, sol_fec_envio__gte=desde)
-        .exclude(sol_estado=Solicitud.CANCELADA).count()
+        .exclude(sol_estado=Solicitud.CANCELADA)
+        .count()
     )
     ultima = (
-        Entrega.objects.filter(solicitud__beneficiario_id=usuario_id, ent_estado=Entrega.ENTREGADO, ent_fec_entrega__isnull=False)
-        .order_by("-ent_fec_entrega").values_list("ent_fec_entrega", flat=True).first()
+        Entrega.objects.filter(
+            solicitud__beneficiario_id=usuario_id, ent_estado=Entrega.ENTREGADO, ent_fec_entrega__isnull=False
+        )
+        .order_by("-ent_fec_entrega")
+        .values_list("ent_fec_entrega", flat=True)
+        .first()
     )
-    soporte = perfil.ben_discapacidad and DocumentoValidacion.objects.filter(
-        usuario_id=usuario_id, docv_tipo=DocumentoValidacion.DISCAPACIDAD, docv_estado=DocumentoValidacion.APROBADO,
-    ).exists()
+    soporte = (
+        perfil.ben_discapacidad
+        and DocumentoValidacion.objects.filter(
+            usuario_id=usuario_id,
+            docv_tipo=DocumentoValidacion.DISCAPACIDAD,
+            docv_estado=DocumentoValidacion.APROBADO,
+        ).exists()
+    )
     return {
         "sisben": perfil.ben_sisben,
         "estrato": perfil.ben_estrato,
@@ -98,6 +118,7 @@ def datos_de(perfil, hoy=None, cfg=None):
 
 # ---------------------------------------------------------------- Cálculo (función pura)
 
+
 def calcular(datos, cfg):
     """Devuelve (puntaje, desglose). No consulta la base de datos: se puede usar en ejemplos y pruebas."""
     valores = OrderedDict()
@@ -106,7 +127,10 @@ def calcular(datos, cfg):
     estrato = str(datos["estrato"])
     valores["estrato"] = (cfg.escala_estrato.get(estrato, 0), f"Estrato {estrato}")
     personas = datos["personas"] or 0
-    valores["personas"] = (_proporcion(personas, cfg.personas_tope), f"{personas} persona{'s' if personas != 1 else ''} (100 desde {cfg.personas_tope})")
+    valores["personas"] = (
+        _proporcion(personas, cfg.personas_tope),
+        f"{personas} persona{'s' if personas != 1 else ''} (100 desde {cfg.personas_tope})",
+    )
     if not datos["discapacidad"]:
         valores["discapacidad"] = (0, "No declara discapacidad")
     elif datos["soporte_discapacidad"]:
@@ -122,7 +146,10 @@ def calcular(datos, cfg):
     if dias is None:
         valores["tiempo"] = (100, "Nunca ha recibido una entrega")
     else:
-        valores["tiempo"] = (_proporcion(dias, cfg.dias_sin_ayuda_tope), f"{dias} día{'s' if dias != 1 else ''} desde la última entrega (100 desde {cfg.dias_sin_ayuda_tope})")
+        valores["tiempo"] = (
+            _proporcion(dias, cfg.dias_sin_ayuda_tope),
+            f"{dias} día{'s' if dias != 1 else ''} desde la última entrega (100 desde {cfg.dias_sin_ayuda_tope})",
+        )
 
     suma = cfg.suma_pesos
     desglose, total = [], Decimal("0")
@@ -132,10 +159,17 @@ def calcular(datos, cfg):
         puntos = _redondear(peso * escala / suma) if suma else Decimal("0")
         maximo = _redondear(peso * 100 / suma) if suma else Decimal("0")
         total += puntos
-        desglose.append({
-            "clave": clave, "nombre": nombre, "valor": texto, "escala": float(_redondear(escala, "0.1")),
-            "peso": peso, "puntos": float(puntos), "maximo": float(maximo),
-        })
+        desglose.append(
+            {
+                "clave": clave,
+                "nombre": nombre,
+                "valor": texto,
+                "escala": float(_redondear(escala, "0.1")),
+                "peso": peso,
+                "puntos": float(puntos),
+                "maximo": float(maximo),
+            }
+        )
     return min(total, Decimal("100.00")), desglose
 
 
@@ -157,6 +191,7 @@ def texto_desglose(desglose):
 
 # ---------------------------------------------------------------- Persistencia y auditoría
 
+
 def recalcular(perfil, motivo, cfg=None, usuario=None, request=None, hoy=None):
     """Calcula, guarda y audita el puntaje y el grupo. Devuelve (cambio_puntaje, cambio_grupo)."""
     from .models import PerfilBeneficiario
@@ -168,20 +203,39 @@ def recalcular(perfil, motivo, cfg=None, usuario=None, request=None, hoy=None):
     puntaje_ant, grupo_ant = anterior.get("ben_puntaje"), anterior.get("ben_grupo") or ""
     ahora = timezone.now()
     PerfilBeneficiario.objects.filter(pk=perfil.pk).update(
-        ben_puntaje=puntaje, ben_grupo=grupo["clave"], ben_puntaje_detalle=desglose, ben_fec_puntaje=ahora,
+        ben_puntaje=puntaje,
+        ben_grupo=grupo["clave"],
+        ben_puntaje_detalle=desglose,
+        ben_fec_puntaje=ahora,
     )
-    perfil.ben_puntaje, perfil.ben_grupo, perfil.ben_puntaje_detalle, perfil.ben_fec_puntaje = puntaje, grupo["clave"], desglose, ahora
+    perfil.ben_puntaje, perfil.ben_grupo, perfil.ben_puntaje_detalle, perfil.ben_fec_puntaje = (
+        puntaje,
+        grupo["clave"],
+        desglose,
+        ahora,
+    )
     cambio_puntaje = puntaje_ant is None or _redondear(puntaje_ant) != puntaje
     cambio_grupo = grupo_ant != grupo["clave"]
     if cambio_puntaje:
         previo = "sin puntaje" if puntaje_ant is None else numero(puntaje_ant)
-        auditar(request, "calculo_puntaje", "beneficiario", perfil.pk,
-                f"Puntaje {previo} → {numero(puntaje)}. Motivo: {motivo}. Desglose: {texto_desglose(desglose)}"[:4000], usuario=usuario)
+        auditar(
+            request,
+            "calculo_puntaje",
+            "beneficiario",
+            perfil.pk,
+            f"Puntaje {previo} → {numero(puntaje)}. Motivo: {motivo}. Desglose: {texto_desglose(desglose)}"[:4000],
+            usuario=usuario,
+        )
     if cambio_grupo:
         nombre_ant = (grupo_por_clave(grupo_ant, cfg.grupos) or {}).get("nombre", grupo_ant or "sin grupo")
-        auditar(request, "clasificacion", "beneficiario", perfil.pk,
-                f"Grupo «{nombre_ant}» → «{grupo['nombre']}» (puntaje {numero(puntaje)}, mínimo del grupo {numero(grupo['minimo'])}). Motivo: {motivo}.",
-                usuario=usuario)
+        auditar(
+            request,
+            "clasificacion",
+            "beneficiario",
+            perfil.pk,
+            f"Grupo «{nombre_ant}» → «{grupo['nombre']}» (puntaje {numero(puntaje)}, mínimo del grupo {numero(grupo['minimo'])}). Motivo: {motivo}.",
+            usuario=usuario,
+        )
     return cambio_puntaje, cambio_grupo
 
 
@@ -216,22 +270,51 @@ def tarea_recalculo_nocturno():
 @parametros.al_cambiar("grupos_necesidad")
 def _al_cambiar_parametro(clave, usuario):
     r = recalcular_todos(f"Cambio del parámetro {clave}", usuario=usuario)
-    return (f"Se recalculó el puntaje de {r['recalculados']} beneficiario(s): {r['puntajes_cambiados']} cambiaron de puntaje "
-            f"y {r['grupos_cambiados']} de grupo.")
+    return (
+        f"Se recalculó el puntaje de {r['recalculados']} beneficiario(s): {r['puntajes_cambiados']} cambiaron de puntaje "
+        f"y {r['grupos_cambiados']} de grupo."
+    )
 
 
 # ---------------------------------------------------------------- Ejemplos para la ayuda
 
 EJEMPLOS = [
-    ("Hogar numeroso en pobreza extrema que nunca ha recibido ayuda",
-     {"sisben": "A", "estrato": 1, "personas": 6, "discapacidad": True, "soporte_discapacidad": True,
-      "solicitudes_recientes": 1, "dias_sin_ayuda": None}),
-    ("Familia vulnerable que recibió una entrega hace 20 días",
-     {"sisben": "C", "estrato": 2, "personas": 4, "discapacidad": False, "soporte_discapacidad": False,
-      "solicitudes_recientes": 2, "dias_sin_ayuda": 20}),
-    ("Persona sola de estrato 3 atendida hace 5 días",
-     {"sisben": "D", "estrato": 3, "personas": 1, "discapacidad": False, "soporte_discapacidad": False,
-      "solicitudes_recientes": 3, "dias_sin_ayuda": 5}),
+    (
+        "Hogar numeroso en pobreza extrema que nunca ha recibido ayuda",
+        {
+            "sisben": "A",
+            "estrato": 1,
+            "personas": 6,
+            "discapacidad": True,
+            "soporte_discapacidad": True,
+            "solicitudes_recientes": 1,
+            "dias_sin_ayuda": None,
+        },
+    ),
+    (
+        "Familia vulnerable que recibió una entrega hace 20 días",
+        {
+            "sisben": "C",
+            "estrato": 2,
+            "personas": 4,
+            "discapacidad": False,
+            "soporte_discapacidad": False,
+            "solicitudes_recientes": 2,
+            "dias_sin_ayuda": 20,
+        },
+    ),
+    (
+        "Persona sola de estrato 3 atendida hace 5 días",
+        {
+            "sisben": "D",
+            "estrato": 3,
+            "personas": 1,
+            "discapacidad": False,
+            "soporte_discapacidad": False,
+            "solicitudes_recientes": 3,
+            "dias_sin_ayuda": 5,
+        },
+    ),
 ]
 
 
@@ -240,5 +323,7 @@ def ejemplos(cfg=None):
     resultado = []
     for titulo, datos in EJEMPLOS:
         puntaje, desglose = calcular(datos, cfg)
-        resultado.append({"titulo": titulo, "puntaje": puntaje, "desglose": desglose, "grupo": grupo_para(puntaje, cfg.grupos)})
+        resultado.append(
+            {"titulo": titulo, "puntaje": puntaje, "desglose": desglose, "grupo": grupo_para(puntaje, cfg.grupos)}
+        )
     return resultado

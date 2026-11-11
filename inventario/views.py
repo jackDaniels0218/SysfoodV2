@@ -21,7 +21,12 @@ def filtrar_inventario(request, qs):
     q = request.GET.get("q", "").strip()
     if q:
         qs = qs.filter(Q(inv_nom__icontains=q) | Q(detalle__dd_lote__icontains=q) | Q(detalle__dd_desc__icontains=q))
-    for param, campo in (("categoria", "categoria_id"), ("bodega", "bodega_id"), ("estado", "inv_estado"), ("vigencia", "inv_est_venc")):
+    for param, campo in (
+        ("categoria", "categoria_id"),
+        ("bodega", "bodega_id"),
+        ("estado", "inv_estado"),
+        ("vigencia", "inv_est_venc"),
+    ):
         valor = request.GET.get(param, "")
         if valor and (not campo.endswith("_id") or valor.isdigit()):
             qs = qs.filter(**{campo: valor})
@@ -61,24 +66,46 @@ def lista(request):
     dias = parametros.entero("dias_alerta_vencimiento")
     alertas = (
         Inventario.objects.filter(inv_est_venc=Inventario.PROXIMO, inv_cant_disp__gt=0)
-        .exclude(inv_estado=Inventario.RETIRADO).select_related("bodega").order_by("inv_fec_venc")[:5]
+        .exclude(inv_estado=Inventario.RETIRADO)
+        .select_related("bodega")
+        .order_by("inv_fec_venc")[:5]
     )
-    return render(request, "inventario/lista.html", {
-        "pagina": pagina, "categorias": Categoria.objects.all(), "bodegas": Bodega.objects.all(),
-        "estados": Inventario.ESTADOS, "vigencias": Inventario.VIGENCIAS, "kpi": indicadores(),
-        "alertas": alertas, "dias_alerta": dias, "vista": vista,
-        "filtros": FiltroGuardado.objects.filter(usuario=request.user, fil_vista="inventario"),
-        "hay_filtros": any(k in request.GET for k in ("q", "categoria", "bodega", "estado", "vigencia", "revisar", "reservado")),
-    })
+    return render(
+        request,
+        "inventario/lista.html",
+        {
+            "pagina": pagina,
+            "categorias": Categoria.objects.all(),
+            "bodegas": Bodega.objects.all(),
+            "estados": Inventario.ESTADOS,
+            "vigencias": Inventario.VIGENCIAS,
+            "kpi": indicadores(),
+            "alertas": alertas,
+            "dias_alerta": dias,
+            "vista": vista,
+            "filtros": FiltroGuardado.objects.filter(usuario=request.user, fil_vista="inventario"),
+            "hay_filtros": any(
+                k in request.GET for k in ("q", "categoria", "bodega", "estado", "vigencia", "revisar", "reservado")
+            ),
+        },
+    )
 
 
 @solo_admin
 def detalle(request, pk):
-    inv = get_object_or_404(Inventario.objects.select_related("categoria", "bodega", "detalle__donacion__donante", "usuario_baja"), pk=pk)
-    return render(request, "inventario/detalle.html", {
-        "inv": inv, "kardex": inv.kardex.select_related("usuario", "entrega").order_by("kar_fecha", "kar_id"),
-        "ajuste_form": AjusteForm(initial={"nueva_cantidad": inv.inv_cant_disp}, inventario=inv), "baja_form": BajaForm(),
-    })
+    inv = get_object_or_404(
+        Inventario.objects.select_related("categoria", "bodega", "detalle__donacion__donante", "usuario_baja"), pk=pk
+    )
+    return render(
+        request,
+        "inventario/detalle.html",
+        {
+            "inv": inv,
+            "kardex": inv.kardex.select_related("usuario", "entrega").order_by("kar_fecha", "kar_id"),
+            "ajuste_form": AjusteForm(initial={"nueva_cantidad": inv.inv_cant_disp}, inventario=inv),
+            "baja_form": BajaForm(),
+        },
+    )
 
 
 @solo_admin
@@ -93,13 +120,25 @@ def ajustar(request, pk):
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
-            auditar(request, "editar", "inventario", pk,
-                    f"Ajuste {inv.cantidad_texto(anterior)} → {inv.cantidad_texto(inv.inv_cant_disp)}: {form.cleaned_data['motivo']}")
-            messages.success(request, f"Ajuste registrado en el kardex: «{inv.inv_nom}» queda con {inv.cantidad_texto(inv.inv_cant_disp)}.")
+            auditar(
+                request,
+                "editar",
+                "inventario",
+                pk,
+                f"Ajuste {inv.cantidad_texto(anterior)} → {inv.cantidad_texto(inv.inv_cant_disp)}: {form.cleaned_data['motivo']}",
+            )
+            messages.success(
+                request,
+                f"Ajuste registrado en el kardex: «{inv.inv_nom}» queda con {inv.cantidad_texto(inv.inv_cant_disp)}.",
+            )
     else:
         errores = form.errors.get("nueva_cantidad")
-        messages.error(request, errores[0] if errores and "unidades completas" in errores[0]
-                       else "El ajuste exige una cantidad válida (no negativa) y un motivo.")
+        messages.error(
+            request,
+            errores[0]
+            if errores and "unidades completas" in errores[0]
+            else "El ajuste exige una cantidad válida (no negativa) y un motivo.",
+        )
     siguiente = request.POST.get("siguiente", "")
     if siguiente and url_has_allowed_host_and_scheme(siguiente, {request.get_host()}, request.is_secure()):
         return redirect(siguiente)
@@ -117,7 +156,13 @@ def baja(request, pk):
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
-            auditar(request, "cambio_estado", "inventario", pk, f"Baja: {form.cleaned_data['motivo']} {form.cleaned_data['detalle']}".strip())
+            auditar(
+                request,
+                "cambio_estado",
+                "inventario",
+                pk,
+                f"Baja: {form.cleaned_data['motivo']} {form.cleaned_data['detalle']}".strip(),
+            )
             messages.success(request, "Producto retirado del inventario.")
     else:
         for errores in form.errors.values():

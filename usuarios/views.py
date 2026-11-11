@@ -20,15 +20,25 @@ from core.servicios import auditar, enviar_correo
 
 from . import puntaje, servicios, ubicacion, verificacion
 from .forms import (
-    AdminUsuarioForm, DocumentoForm, LoginForm, NuevaPasswordForm, PerfilBeneficiarioForm,
-    PerfilDonanteForm, PerfilUsuarioForm, RecuperarForm, RegistroForm, RevisionDocumentoForm,
+    AdminUsuarioForm,
+    DocumentoForm,
+    LoginForm,
+    NuevaPasswordForm,
+    PerfilBeneficiarioForm,
+    PerfilDonanteForm,
+    PerfilUsuarioForm,
+    RecuperarForm,
+    RegistroForm,
+    RevisionDocumentoForm,
 )
 from .models import DocumentoValidacion, PerfilBeneficiario, PerfilDonante, Usuario
 
 
 def _formularios_perfil(rol, data=None, usuario=None):
     don = PerfilDonanteForm(data, prefix="don", instance=getattr(usuario, "perfil_donante", None) if usuario else None)
-    ben = PerfilBeneficiarioForm(data, prefix="ben", instance=getattr(usuario, "perfil_beneficiario", None) if usuario else None)
+    ben = PerfilBeneficiarioForm(
+        data, prefix="ben", instance=getattr(usuario, "perfil_beneficiario", None) if usuario else None
+    )
     return don, ben
 
 
@@ -53,6 +63,7 @@ def _perfil_valido(rol, don, ben):
 
 # ---------------------------------------------------------------- Acceso
 
+
 def iniciar_sesion(request):
     if request.user.is_authenticated:
         return redirect("core:inicio")
@@ -61,7 +72,12 @@ def iniciar_sesion(request):
         correo = form.cleaned_data["correo"].strip().lower()
         usuario = Usuario.objects.filter(usu_correo__iexact=correo).first()
         ahora = timezone.now()
-        if usuario and usuario.usu_estado == Usuario.BLOQUEADO and usuario.usu_bloqueo_hasta and usuario.usu_bloqueo_hasta <= ahora:
+        if (
+            usuario
+            and usuario.usu_estado == Usuario.BLOQUEADO
+            and usuario.usu_bloqueo_hasta
+            and usuario.usu_bloqueo_hasta <= ahora
+        ):
             usuario.usu_estado = Usuario.ACTIVO
             usuario.usu_intentos = 0
             usuario.usu_bloqueo_hasta = None
@@ -78,9 +94,23 @@ def iniciar_sesion(request):
                     usuario.usu_bloqueo_hasta = ahora + timedelta(minutes=minutos)
                     campos += ["usu_estado", "usu_bloqueo_hasta"]
                     mensaje = f"Superó {maximo} intentos fallidos. La cuenta quedó bloqueada por {minutos} minutos."
-                    auditar(request, "cambio_estado", "usuario", usuario.pk, "Bloqueo temporal por intentos fallidos", usuario=usuario)
+                    auditar(
+                        request,
+                        "cambio_estado",
+                        "usuario",
+                        usuario.pk,
+                        "Bloqueo temporal por intentos fallidos",
+                        usuario=usuario,
+                    )
                 usuario.save(update_fields=campos)
-            auditar(request, "ingreso_fallido", "usuario", usuario.pk if usuario else "", f"Intento de ingreso con {correo}", usuario=usuario)
+            auditar(
+                request,
+                "ingreso_fallido",
+                "usuario",
+                usuario.pk if usuario else "",
+                f"Intento de ingreso con {correo}",
+                usuario=usuario,
+            )
             form.add_error(None, mensaje)
         elif usuario.usu_estado == Usuario.INACTIVO:
             form.add_error(None, "Su cuenta está inactiva. Comuníquese con el administrador.")
@@ -126,11 +156,20 @@ def registro(request):
                 usuario.usu_fec_acepta = timezone.now()
                 usuario.save()
                 _guardar_perfil(usuario, don, ben)
-                auditar(request, "crear", "usuario", usuario.pk, f"Registro de {usuario.get_usu_rol_display()}", usuario=usuario)
+                auditar(
+                    request,
+                    "crear",
+                    "usuario",
+                    usuario.pk,
+                    f"Registro de {usuario.get_usu_rol_display()}",
+                    usuario=usuario,
+                )
             login(request, usuario, backend="django.contrib.auth.backends.ModelBackend")
             auditar(request, "ingreso", "usuario", usuario.pk, "Inicio de sesión tras el registro")
             if usuario.es_beneficiario:
-                messages.success(request, "Cuenta creada. Cargue sus documentos para que el administrador verifique su cuenta.")
+                messages.success(
+                    request, "Cuenta creada. Cargue sus documentos para que el administrador verifique su cuenta."
+                )
                 return redirect("usuarios:documentos")
             messages.success(request, "Cuenta creada. ¡Gracias por unirse a SysFood!")
             return redirect("core:inicio")
@@ -147,12 +186,20 @@ def recuperar(request):
             token = usuario.generar_token_recuperacion(minutos)
             enlace = settings.SITE_URL + reverse("usuarios:restablecer", args=[token])
             enviar_correo(
-                [usuario.usu_correo], "Recuperación de contraseña",
+                [usuario.usu_correo],
+                "Recuperación de contraseña",
                 f"Hola {usuario.usu_nom},\n\nPara definir una nueva contraseña ingrese a:\n{enlace}\n\n"
                 f"El enlace se puede usar una sola vez y vence en {minutos} minutos. "
                 "Si usted no lo solicitó, ignore este mensaje.",
             )
-            auditar(request, "recuperacion", "usuario", usuario.pk, "Solicitud de recuperación de contraseña", usuario=usuario)
+            auditar(
+                request,
+                "recuperacion",
+                "usuario",
+                usuario.pk,
+                "Solicitud de recuperación de contraseña",
+                usuario=usuario,
+            )
         messages.info(request, "Si el correo está registrado, recibirá un enlace para restablecer la contraseña.")
         return redirect("usuarios:login")
     return render(request, "usuarios/recuperar.html", {"form": form})
@@ -180,6 +227,7 @@ def restablecer(request, token):
 
 # ---------------------------------------------------------------- Perfil propio
 
+
 @login_required
 def perfil(request):
     usuario = request.user
@@ -203,19 +251,25 @@ def perfil(request):
 
 # ---------------------------------------------------------------- Documentos del titular
 
+
 @login_required
 def documentos(request):
     usuario = request.user
     tipos = servicios.tipos_permitidos(usuario)
     if not tipos:
         raise PermissionDenied("Su cuenta no requiere documentos de validación.")
-    form = DocumentoForm(tipos, request.POST or None, request.FILES or None, initial={"docv_tipo": request.GET.get("tipo")})
+    form = DocumentoForm(
+        tipos, request.POST or None, request.FILES or None, initial={"docv_tipo": request.GET.get("tipo")}
+    )
     quiere_json = "application/json" in request.headers.get("Accept", "")
     if request.method == "POST":
         if form.is_valid():
             try:
                 doc = servicios.cargar_documento(
-                    usuario, form.cleaned_data["docv_tipo"], form.cleaned_data["archivo"], form.cleaned_data["docv_fec_venc"],
+                    usuario,
+                    form.cleaned_data["docv_tipo"],
+                    form.cleaned_data["archivo"],
+                    form.cleaned_data["docv_fec_venc"],
                 )
             except ValidationError as error:
                 form.add_error("archivo", error)
@@ -226,7 +280,9 @@ def documentos(request):
                 nivel, mensaje = _mensaje_carga(doc)
                 getattr(messages, nivel)(request, mensaje)
                 if quiere_json:
-                    return JsonResponse({"ok": True, "nivel": nivel, "mensaje": mensaje, "destino": reverse("usuarios:documentos")})
+                    return JsonResponse(
+                        {"ok": True, "nivel": nivel, "mensaje": mensaje, "destino": reverse("usuarios:documentos")}
+                    )
                 return redirect("usuarios:documentos")
         if quiere_json:
             errores = [e for lista in form.errors.values() for e in lista]
@@ -241,7 +297,9 @@ def documentos(request):
         "formatos": ", ".join(f.upper() for f in parametros.lista("formatos_permitidos")),
         "formatos_lista": parametros.lista("formatos_permitidos"),
         "obligatorios_total": len(obligatorios),
-        "obligatorios_listos": sum(1 for r in obligatorios if r["doc"] and r["doc"].docv_estado in ("cargado", "aprobado")),
+        "obligatorios_listos": sum(
+            1 for r in obligatorios if r["doc"] and r["doc"].docv_estado in ("cargado", "aprobado")
+        ),
         "obligatorios_aprobados": sum(1 for r in obligatorios if r["doc"] and r["doc"].docv_estado == "aprobado"),
     }
     return render(request, "usuarios/documentos.html", contexto)
@@ -255,7 +313,10 @@ def _mensaje_carga(doc):
     if doc.docv_estado == DocumentoValidacion.RECHAZADO and doc.docv_verif_auto:
         return "warning", f"{nombre} no fue aceptado. {doc.docv_obs.replace('Rechazado automáticamente. ', '')}"
     if doc.docv_decision_auto == DocumentoValidacion.MEDIA:
-        return "success", f"{nombre} cargado. El administrador lo revisará porque algunos datos no se leyeron con claridad."
+        return (
+            "success",
+            f"{nombre} cargado. El administrador lo revisará porque algunos datos no se leyeron con claridad.",
+        )
     return "success", f"{nombre} cargado correctamente. El administrador lo revisará."
 
 
@@ -291,28 +352,43 @@ def ver_documento(request, pk):
 
 # ---------------------------------------------------------------- Administración de usuarios
 
+
 @solo_admin
 def lista(request):
     usuarios = Usuario.objects.select_related("perfil_beneficiario", "perfil_donante").order_by("-usu_fec_reg")
     q = request.GET.get("q", "").strip()
     if q:
         usuarios = usuarios.filter(
-            Q(usu_nom__icontains=q) | Q(usu_ape__icontains=q) | Q(usu_correo__icontains=q)
-            | Q(perfil_donante__don_doc_nit__icontains=q) | Q(perfil_beneficiario__ben_num_doc__icontains=q)
+            Q(usu_nom__icontains=q)
+            | Q(usu_ape__icontains=q)
+            | Q(usu_correo__icontains=q)
+            | Q(perfil_donante__don_doc_nit__icontains=q)
+            | Q(perfil_beneficiario__ben_num_doc__icontains=q)
             | Q(perfil_donante__don_raz_soc__icontains=q)
         )
-    for campo, filtro in (("rol", "usu_rol"), ("estado", "usu_estado"), ("verif", "perfil_beneficiario__ben_estado_verif"),
-                          ("grupo", "perfil_beneficiario__ben_grupo")):
+    for campo, filtro in (
+        ("rol", "usu_rol"),
+        ("estado", "usu_estado"),
+        ("verif", "perfil_beneficiario__ben_estado_verif"),
+        ("grupo", "perfil_beneficiario__ben_grupo"),
+    ):
         valor = request.GET.get(campo)
         if valor:
             usuarios = usuarios.filter(**{filtro: valor})
     if request.GET.get("orden") == "puntaje":
         usuarios = usuarios.order_by(F("perfil_beneficiario__ben_puntaje").desc(nulls_last=True), "usu_nom")
     pagina = Paginator(usuarios, 20).get_page(request.GET.get("page"))
-    return render(request, "usuarios/admin_lista.html", {
-        "pagina": pagina, "roles": Usuario.ROLES, "estados": Usuario.ESTADOS,
-        "verifs": PerfilBeneficiario.ESTADOS_VERIF, "grupos": parametros.grupos(),
-    })
+    return render(
+        request,
+        "usuarios/admin_lista.html",
+        {
+            "pagina": pagina,
+            "roles": Usuario.ROLES,
+            "estados": Usuario.ESTADOS,
+            "verifs": PerfilBeneficiario.ESTADOS_VERIF,
+            "grupos": parametros.grupos(),
+        },
+    )
 
 
 @solo_admin
@@ -328,11 +404,19 @@ def crear(request):
                 usuario.usu_fec_acepta = timezone.now()
                 usuario.save()
                 _guardar_perfil(usuario, don, ben)
-                auditar(request, "crear", "usuario", usuario.pk, f"Creación de {usuario.get_usu_rol_display()} {usuario.usu_correo}")
+                auditar(
+                    request,
+                    "crear",
+                    "usuario",
+                    usuario.pk,
+                    f"Creación de {usuario.get_usu_rol_display()} {usuario.usu_correo}",
+                )
             messages.success(request, f"Usuario {usuario.nombre_completo} creado.")
             return redirect("usuarios:revisar_usuario", usuario.pk)
         messages.error(request, "Revise los campos marcados.")
-    return render(request, "usuarios/admin_form.html", {"form": form, "don": don, "ben": ben, "titulo": "Nuevo usuario"})
+    return render(
+        request, "usuarios/admin_form.html", {"form": form, "don": don, "ben": ben, "titulo": "Nuevo usuario"}
+    )
 
 
 @solo_admin
@@ -361,7 +445,11 @@ def editar(request, pk):
             messages.success(request, "Usuario actualizado.")
             return redirect("usuarios:revisar_usuario", usuario.pk)
         messages.error(request, "Revise los campos marcados.")
-    return render(request, "usuarios/admin_form.html", {"form": form, "don": don, "ben": ben, "objeto": usuario, "titulo": "Editar usuario"})
+    return render(
+        request,
+        "usuarios/admin_form.html",
+        {"form": form, "don": don, "ben": ben, "objeto": usuario, "titulo": "Editar usuario"},
+    )
 
 
 @solo_admin
@@ -413,13 +501,17 @@ def eliminar(request, pk):
 @solo_admin
 def revisar_usuario(request, pk):
     usuario = get_object_or_404(Usuario.objects.select_related("perfil_beneficiario", "perfil_donante"), pk=pk)
-    return render(request, "usuarios/admin_detalle.html", {
-        "objeto": usuario,
-        "resumen": servicios.resumen_documentos(usuario),
-        "documentos": usuario.documentos.select_related("revisor"),
-        "estados": Usuario.ESTADOS,
-        "mapa_config": ubicacion.configuracion_mapa() if usuario.es_beneficiario else None,
-    })
+    return render(
+        request,
+        "usuarios/admin_detalle.html",
+        {
+            "objeto": usuario,
+            "resumen": servicios.resumen_documentos(usuario),
+            "documentos": usuario.documentos.select_related("revisor"),
+            "estados": Usuario.ESTADOS,
+            "mapa_config": ubicacion.configuracion_mapa() if usuario.es_beneficiario else None,
+        },
+    )
 
 
 @solo_admin
@@ -427,7 +519,9 @@ def revisar_usuario(request, pk):
 def recalcular_puntaje(request, pk):
     perfil = get_object_or_404(PerfilBeneficiario, pk=pk)
     with transaction.atomic():
-        cambio_puntaje, cambio_grupo = puntaje.recalcular(perfil, "Recálculo solicitado por el administrador", request=request)
+        cambio_puntaje, cambio_grupo = puntaje.recalcular(
+            perfil, "Recálculo solicitado por el administrador", request=request
+        )
     if cambio_puntaje or cambio_grupo:
         messages.success(request, "Puntaje recalculado. El cambio quedó registrado en la bitácora.")
     else:
@@ -441,7 +535,9 @@ def ubicar(request, pk):
     """El administrador corrige la ubicación (coordenadas) o pide reintentar la geocodificación."""
     perfil = get_object_or_404(PerfilBeneficiario, pk=pk)
     if request.POST.get("accion") == "reintentar":
-        PerfilBeneficiario.objects.filter(pk=pk).update(ben_geo_estado=PerfilBeneficiario.GEO_PENDIENTE, ben_geo_intentos=0)
+        PerfilBeneficiario.objects.filter(pk=pk).update(
+            ben_geo_estado=PerfilBeneficiario.GEO_PENDIENTE, ben_geo_intentos=0
+        )
         estado = ubicacion.geocodificar_beneficiario(pk, "Reintento solicitado por el administrador")
         if estado == PerfilBeneficiario.GEO_OK:
             messages.success(request, "Dirección ubicada en el mapa.")
@@ -471,28 +567,50 @@ def ayuda_puntaje(request):
     rangos = []
     for i, g in enumerate(grupos):
         rangos.append({**g, "hasta": 100 if i == 0 else grupos[i - 1]["minimo"]})
-    return render(request, "usuarios/ayuda_puntaje.html", {
-        "cfg": cfg, "criterios": criterios, "suma": cfg.suma_pesos, "grupos": rangos,
-        "ejemplos": puntaje.ejemplos(cfg), "nombres_sisben": puntaje.NOMBRES_SISBEN,
-    })
+    return render(
+        request,
+        "usuarios/ayuda_puntaje.html",
+        {
+            "cfg": cfg,
+            "criterios": criterios,
+            "suma": cfg.suma_pesos,
+            "grupos": rangos,
+            "ejemplos": puntaje.ejemplos(cfg),
+            "nombres_sisben": puntaje.NOMBRES_SISBEN,
+        },
+    )
 
 
 @solo_admin
 def documentos_pendientes(request):
     """Cola del administrador: primero los de confianza media (con discrepancias), luego los de revisión manual."""
-    docs = (DocumentoValidacion.objects.filter(docv_estado=DocumentoValidacion.CARGADO)
-            .select_related("usuario__perfil_beneficiario").order_by("docv_fec_carga"))
+    docs = (
+        DocumentoValidacion.objects.filter(docv_estado=DocumentoValidacion.CARGADO)
+        .select_related("usuario__perfil_beneficiario")
+        .order_by("docv_fec_carga")
+    )
     orden = {DocumentoValidacion.MEDIA: 0, "": 1}
     docs = sorted(docs, key=lambda d: (orden.get(d.docv_decision_auto, 2), d.docv_fec_carga))
     usuarios = {}
     for d in docs:
         usuarios.setdefault(d.usuario, []).append(d)
-    automaticos = (DocumentoValidacion.objects.filter(docv_verif_auto=True, docv_fec_revision__gte=timezone.now() - timedelta(days=30))
-                   .select_related("usuario").order_by("-docv_fec_revision")[:30])
-    return render(request, "usuarios/admin_documentos.html", {
-        "usuarios": usuarios.items(), "total": len(docs), "automaticos": automaticos,
-        "media": sum(1 for d in docs if d.docv_decision_auto == DocumentoValidacion.MEDIA),
-    })
+    automaticos = (
+        DocumentoValidacion.objects.filter(
+            docv_verif_auto=True, docv_fec_revision__gte=timezone.now() - timedelta(days=30)
+        )
+        .select_related("usuario")
+        .order_by("-docv_fec_revision")[:30]
+    )
+    return render(
+        request,
+        "usuarios/admin_documentos.html",
+        {
+            "usuarios": usuarios.items(),
+            "total": len(docs),
+            "automaticos": automaticos,
+            "media": sum(1 for d in docs if d.docv_decision_auto == DocumentoValidacion.MEDIA),
+        },
+    )
 
 
 @solo_admin
@@ -510,8 +628,13 @@ def revisar_documento(request, pk):
     except ValidationError as error:
         messages.error(request, error.messages[0])
     else:
-        auditar(request, "cambio_estado", "documento_validacion", doc.pk,
-                f"{doc.get_docv_tipo_display()} {'aprobado' if aprobar else 'rechazado'}. {doc.docv_obs}".strip())
+        auditar(
+            request,
+            "cambio_estado",
+            "documento_validacion",
+            doc.pk,
+            f"{doc.get_docv_tipo_display()} {'aprobado' if aprobar else 'rechazado'}. {doc.docv_obs}".strip(),
+        )
         messages.success(request, f"Documento {'aprobado' if aprobar else 'rechazado'}.")
     siguiente = request.POST.get("siguiente")
     if siguiente == "pendientes":

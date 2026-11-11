@@ -7,12 +7,30 @@ from usuarios.forms import Fecha
 
 
 class AprobarForm(forms.Form):
-    modalidad = forms.ChoiceField(label="Modalidad", choices=Entrega.MODALIDADES, widget=forms.Select(attrs={"class": "form-select", "data-modalidad": "dir-aprobar"}))
-    direccion = forms.CharField(label="Dirección de entrega", required=False, max_length=200, widget=forms.TextInput(attrs={"class": "form-control"}))
-    fecha_prog = forms.DateField(label="Fecha programada", required=False, widget=Fecha(attrs={"class": "form-control"}))
-    bodega = forms.ModelChoiceField(label="Bodega de origen", queryset=Bodega.objects.filter(bod_estado="activa"), required=False,
-                                    empty_label="La de los productos", widget=forms.Select(attrs={"class": "form-select"}))
-    observacion = forms.CharField(label="Observación", required=False, widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}))
+    modalidad = forms.ChoiceField(
+        label="Modalidad",
+        choices=Entrega.MODALIDADES,
+        widget=forms.Select(attrs={"class": "form-select", "data-modalidad": "dir-aprobar"}),
+    )
+    direccion = forms.CharField(
+        label="Dirección de entrega",
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    fecha_prog = forms.DateField(
+        label="Fecha programada", required=False, widget=Fecha(attrs={"class": "form-control"})
+    )
+    bodega = forms.ModelChoiceField(
+        label="Bodega de origen",
+        queryset=Bodega.objects.filter(bod_estado="activa"),
+        required=False,
+        empty_label="La de los productos",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    observacion = forms.CharField(
+        label="Observación", required=False, widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"})
+    )
 
     def clean(self):
         datos = super().clean()
@@ -24,5 +42,8 @@ class AprobarForm(forms.Form):
 
 
 class MotivoForm(forms.Form):
-    observacion = forms.CharField(label="Motivo", widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
-                                  error_messages={"required": "El motivo es obligatorio."})
+    observacion = forms.CharField(
+        label="Motivo",
+        widget=forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
+        error_messages={"required": "El motivo es obligatorio."},
+    )

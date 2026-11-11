@@ -120,16 +120,27 @@ class PerfilDonante(models.Model):
 
     NATURAL, JURIDICA = "natural", "juridica"
     TIPOS_PERSONA = [(NATURAL, "Persona natural"), (JURIDICA, "Persona jurídica")]
-    TIPOS_DOC = [("CC", "Cédula de ciudadanía"), ("CE", "Cédula de extranjería"), ("NIT", "NIT"), ("Pasaporte", "Pasaporte")]
+    TIPOS_DOC = [
+        ("CC", "Cédula de ciudadanía"),
+        ("CE", "Cédula de extranjería"),
+        ("NIT", "NIT"),
+        ("Pasaporte", "Pasaporte"),
+    ]
     FRECUENCIAS = [("", "Sin definir"), ("mensual", "Mensual"), ("trimestral", "Trimestral"), ("anual", "Anual")]
 
     usuario = models.OneToOneField(
-        Usuario, on_delete=models.CASCADE, primary_key=True, db_column="usu_id", related_name="perfil_donante",
+        Usuario,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        db_column="usu_id",
+        related_name="perfil_donante",
     )
     don_tipo_persona = models.CharField("tipo de persona", max_length=10, choices=TIPOS_PERSONA)
     don_tipo_doc = models.CharField("tipo de documento", max_length=10, choices=TIPOS_DOC)
     don_doc_nit = models.CharField(
-        "número de documento o NIT", max_length=20, unique=True,
+        "número de documento o NIT",
+        max_length=20,
+        unique=True,
         error_messages={"unique": "Ya existe un donante registrado con este documento o NIT."},
     )
     don_raz_soc = models.CharField("razón social", max_length=150, blank=True)
@@ -158,14 +169,28 @@ class PerfilDonante(models.Model):
 class PerfilBeneficiario(models.Model):
     """Datos adicionales del rol Beneficiario."""
 
-    TIPOS_DOC = [("CC", "Cédula de ciudadanía"), ("TI", "Tarjeta de identidad"), ("CE", "Cédula de extranjería"), ("Pasaporte", "Pasaporte")]
+    TIPOS_DOC = [
+        ("CC", "Cédula de ciudadanía"),
+        ("TI", "Tarjeta de identidad"),
+        ("CE", "Cédula de extranjería"),
+        ("Pasaporte", "Pasaporte"),
+    ]
     SISBEN = [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("NR", "No registrado")]
     ESTRATOS = [(i, str(i)) for i in range(1, 7)]
     PENDIENTE, EN_REVISION, VERIFICADO, RECHAZADO = "pendiente", "en_revision", "verificado", "rechazado"
-    ESTADOS_VERIF = [(PENDIENTE, "Pendiente"), (EN_REVISION, "En revisión"), (VERIFICADO, "Verificado"), (RECHAZADO, "Rechazado")]
+    ESTADOS_VERIF = [
+        (PENDIENTE, "Pendiente"),
+        (EN_REVISION, "En revisión"),
+        (VERIFICADO, "Verificado"),
+        (RECHAZADO, "Rechazado"),
+    ]
 
     usuario = models.OneToOneField(
-        Usuario, on_delete=models.CASCADE, primary_key=True, db_column="usu_id", related_name="perfil_beneficiario",
+        Usuario,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        db_column="usu_id",
+        related_name="perfil_beneficiario",
     )
     ben_tipo_doc = models.CharField("tipo de documento", max_length=10, choices=TIPOS_DOC)
     ben_num_doc = models.CharField("número de documento", max_length=20)
@@ -176,31 +201,59 @@ class PerfilBeneficiario(models.Model):
     ben_estrato = models.PositiveSmallIntegerField("estrato social", choices=ESTRATOS)
     ben_discapacidad = models.BooleanField("tiene discapacidad", default=False)
     ben_estado_verif = models.CharField(
-        "estado de verificación", max_length=12, choices=ESTADOS_VERIF, default=PENDIENTE, db_index=True,
+        "estado de verificación",
+        max_length=12,
+        choices=ESTADOS_VERIF,
+        default=PENDIENTE,
+        db_index=True,
     )
     ben_fec_verif = models.DateTimeField("fecha de verificación", null=True, blank=True)
     # Puntaje automático de necesidad (usuarios/puntaje.py). Lo calcula el sistema, nunca el usuario.
-    ben_puntaje = models.DecimalField("puntaje de necesidad", max_digits=5, decimal_places=2, null=True, blank=True, db_index=True)
+    ben_puntaje = models.DecimalField(
+        "puntaje de necesidad", max_digits=5, decimal_places=2, null=True, blank=True, db_index=True
+    )
     ben_grupo = models.CharField("grupo de necesidad", max_length=30, blank=True, db_index=True)
     ben_puntaje_detalle = models.JSONField("desglose del puntaje", default=list, blank=True)
     ben_fec_puntaje = models.DateTimeField("fecha del cálculo", null=True, blank=True)
     # Ubicación automática (usuarios/ubicacion.py). Solo la ve el administrador.
-    GEO_PENDIENTE, GEO_OK, GEO_REINTENTAR, GEO_REVISION, GEO_MANUAL = "pendiente", "ubicado", "reintentar", "revision", "manual"
+    GEO_PENDIENTE, GEO_OK, GEO_REINTENTAR, GEO_REVISION, GEO_MANUAL = (
+        "pendiente",
+        "ubicado",
+        "reintentar",
+        "revision",
+        "manual",
+    )
     ESTADOS_GEO = [
-        (GEO_PENDIENTE, "Pendiente"), (GEO_OK, "Ubicado automáticamente"), (GEO_REINTENTAR, "Falló, se reintentará"),
-        (GEO_REVISION, "Requiere revisión"), (GEO_MANUAL, "Ubicado por el administrador"),
+        (GEO_PENDIENTE, "Pendiente"),
+        (GEO_OK, "Ubicado automáticamente"),
+        (GEO_REINTENTAR, "Falló, se reintentará"),
+        (GEO_REVISION, "Requiere revisión"),
+        (GEO_MANUAL, "Ubicado por el administrador"),
     ]
     ben_lat = models.DecimalField("latitud", max_digits=9, decimal_places=6, null=True, blank=True)
     ben_lng = models.DecimalField("longitud", max_digits=9, decimal_places=6, null=True, blank=True)
     ben_zona = models.CharField("zona o barrio", max_length=80, blank=True, db_index=True)
-    ben_geo_estado = models.CharField("estado de la ubicación", max_length=12, choices=ESTADOS_GEO, default=GEO_PENDIENTE, db_index=True)
+    ben_geo_estado = models.CharField(
+        "estado de la ubicación", max_length=12, choices=ESTADOS_GEO, default=GEO_PENDIENTE, db_index=True
+    )
     ben_geo_intentos = models.PositiveSmallIntegerField("intentos de geocodificación", default=0)
     ben_geo_fecha = models.DateTimeField("último intento de geocodificación", null=True, blank=True)
     ben_geo_detalle = models.CharField("resultado de la geocodificación", max_length=255, blank=True)
 
     CAMPOS_AUTOMATICOS = {
-        "ben_estado_verif", "ben_fec_verif", "ben_puntaje", "ben_grupo", "ben_puntaje_detalle", "ben_fec_puntaje",
-        "ben_lat", "ben_lng", "ben_zona", "ben_geo_estado", "ben_geo_intentos", "ben_geo_fecha", "ben_geo_detalle",
+        "ben_estado_verif",
+        "ben_fec_verif",
+        "ben_puntaje",
+        "ben_grupo",
+        "ben_puntaje_detalle",
+        "ben_fec_puntaje",
+        "ben_lat",
+        "ben_lng",
+        "ben_zona",
+        "ben_geo_estado",
+        "ben_geo_intentos",
+        "ben_geo_fecha",
+        "ben_geo_detalle",
     }
 
     class Meta:
@@ -208,16 +261,21 @@ class PerfilBeneficiario(models.Model):
         verbose_name = "beneficiario"
         constraints = [
             models.UniqueConstraint(
-                fields=["ben_tipo_doc", "ben_num_doc"], name="ben_documento_unico",
+                fields=["ben_tipo_doc", "ben_num_doc"],
+                name="ben_documento_unico",
                 violation_error_message="Ya existe un beneficiario registrado con este documento.",
             ),
-            models.CheckConstraint(condition=models.Q(ben_estrato__gte=1, ben_estrato__lte=6), name="ben_estrato_rango"),
+            models.CheckConstraint(
+                condition=models.Q(ben_estrato__gte=1, ben_estrato__lte=6), name="ben_estrato_rango"
+            ),
             models.CheckConstraint(condition=models.Q(ben_num_personas__gte=1), name="ben_personas_minimo"),
             models.CheckConstraint(
-                condition=models.Q(ben_puntaje__isnull=True) | models.Q(ben_puntaje__gte=0, ben_puntaje__lte=100), name="ben_puntaje_rango",
+                condition=models.Q(ben_puntaje__isnull=True) | models.Q(ben_puntaje__gte=0, ben_puntaje__lte=100),
+                name="ben_puntaje_rango",
             ),
             models.CheckConstraint(
-                condition=models.Q(ben_lat__isnull=True) | models.Q(ben_lat__gte=-90, ben_lat__lte=90, ben_lng__gte=-180, ben_lng__lte=180),
+                condition=models.Q(ben_lat__isnull=True)
+                | models.Q(ben_lat__gte=-90, ben_lat__lte=90, ben_lng__gte=-180, ben_lng__lte=180),
                 name="ben_coordenadas_rango",
             ),
         ]
@@ -268,7 +326,12 @@ class DocumentoValidacion(models.Model):
     docv_id = models.AutoField(primary_key=True)
     usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column="usu_id", related_name="documentos")
     revisor = models.ForeignKey(
-        Usuario, on_delete=models.PROTECT, null=True, blank=True, db_column="usu_id_revisor", related_name="+",
+        Usuario,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="usu_id_revisor",
+        related_name="+",
     )
     docv_tipo = models.CharField("tipo de documento", max_length=20, choices=TIPOS)
     docv_nom_archivo = models.CharField("nombre del archivo", max_length=255)
@@ -282,19 +345,38 @@ class DocumentoValidacion(models.Model):
     docv_fec_revision = models.DateTimeField("fecha de revisión", null=True, blank=True)
     docv_fec_venc = models.DateField("fecha de vencimiento", null=True, blank=True)
     # Verificación automática (usuarios/verificacion.py)
-    OCR_PENDIENTE, OCR_PROCESADO, OCR_NO_DISPONIBLE, OCR_ERROR, OCR_NO_APLICA = "pendiente", "procesado", "no_disponible", "error", "no_aplica"
+    OCR_PENDIENTE, OCR_PROCESADO, OCR_NO_DISPONIBLE, OCR_ERROR, OCR_NO_APLICA = (
+        "pendiente",
+        "procesado",
+        "no_disponible",
+        "error",
+        "no_aplica",
+    )
     ESTADOS_OCR = [
-        (OCR_PENDIENTE, "Pendiente de lectura"), (OCR_PROCESADO, "Leído automáticamente"),
-        (OCR_NO_DISPONIBLE, "Lectura automática no disponible"), (OCR_ERROR, "Error de lectura (se reintentará)"),
+        (OCR_PENDIENTE, "Pendiente de lectura"),
+        (OCR_PROCESADO, "Leído automáticamente"),
+        (OCR_NO_DISPONIBLE, "Lectura automática no disponible"),
+        (OCR_ERROR, "Error de lectura (se reintentará)"),
         (OCR_NO_APLICA, "Revisión manual"),
     ]
     ALTA, MEDIA, BAJA, ILEGIBLE = "alta", "media", "baja", "ilegible"
-    DECISIONES = [(ALTA, "Confianza alta"), (MEDIA, "Confianza media"), (BAJA, "Confianza baja"), (ILEGIBLE, "Ilegible")]
-    docv_ocr_estado = models.CharField("lectura automática", max_length=14, choices=ESTADOS_OCR, default=OCR_NO_APLICA, db_index=True)
+    DECISIONES = [
+        (ALTA, "Confianza alta"),
+        (MEDIA, "Confianza media"),
+        (BAJA, "Confianza baja"),
+        (ILEGIBLE, "Ilegible"),
+    ]
+    docv_ocr_estado = models.CharField(
+        "lectura automática", max_length=14, choices=ESTADOS_OCR, default=OCR_NO_APLICA, db_index=True
+    )
     docv_ocr_texto = models.TextField("texto leído", blank=True)
-    docv_ocr_confianza = models.DecimalField("confianza de la verificación", max_digits=5, decimal_places=1, null=True, blank=True)
+    docv_ocr_confianza = models.DecimalField(
+        "confianza de la verificación", max_digits=5, decimal_places=1, null=True, blank=True
+    )
     docv_ocr_resultado = models.JSONField("resultado de la comparación", default=dict, blank=True)
-    docv_decision_auto = models.CharField("decisión automática", max_length=10, choices=DECISIONES, blank=True, db_index=True)
+    docv_decision_auto = models.CharField(
+        "decisión automática", max_length=10, choices=DECISIONES, blank=True, db_index=True
+    )
     docv_verif_auto = models.BooleanField("resuelto automáticamente", default=False, db_index=True)
     docv_ocr_intentos = models.PositiveSmallIntegerField("intentos de lectura", default=0)
     docv_fec_ocr = models.DateTimeField("fecha de lectura", null=True, blank=True)
@@ -317,7 +399,9 @@ class DocumentoValidacion(models.Model):
     @property
     def semaforo(self):
         """verde, amarillo o rojo según la decisión automática (vacío si no hubo)."""
-        return {self.ALTA: "verde", self.MEDIA: "amarillo", self.BAJA: "rojo", self.ILEGIBLE: "rojo"}.get(self.docv_decision_auto, "")
+        return {self.ALTA: "verde", self.MEDIA: "amarillo", self.BAJA: "rojo", self.ILEGIBLE: "rojo"}.get(
+            self.docv_decision_auto, ""
+        )
 
     @property
     def discrepancias(self):

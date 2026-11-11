@@ -1,4 +1,5 @@
 """Carrito y ciclo de vida de las solicitudes."""
+
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
@@ -78,7 +79,8 @@ def enviar_solicitud(beneficiario):
     )
     CarritoItem.objects.filter(beneficiario=beneficiario).delete()
     notificar_administradores(
-        "solicitud", f"Nueva solicitud #{solicitud.pk}",
+        "solicitud",
+        f"Nueva solicitud #{solicitud.pk}",
         f"{beneficiario.nombre_completo} envió una solicitud con {len(items)} producto(s).",
         reverse("solicitudes:admin_detalle", args=[solicitud.pk]),
     )
@@ -103,7 +105,10 @@ def aprobar(solicitud, admin, modalidad, direccion="", fecha_prog=None, bodega=N
             conteo[d.inventario.bodega] = conteo.get(d.inventario.bodega, 0) + 1
         bodega = max(conteo, key=conteo.get)
     entrega = Entrega.objects.create(
-        solicitud=solicitud, bodega=bodega, responsable=admin, ent_modalidad=modalidad,
+        solicitud=solicitud,
+        bodega=bodega,
+        responsable=admin,
+        ent_modalidad=modalidad,
         ent_dir_entrega=direccion.strip() if modalidad == Entrega.DOMICILIO else "",
         ent_fec_prog=fecha_prog,
     )
@@ -111,7 +116,10 @@ def aprobar(solicitud, admin, modalidad, direccion="", fecha_prog=None, bodega=N
         inv_srv.reservar(d.inventario, d.sd_cant, admin, entrega)
         EntregaDetalle.objects.create(entrega=entrega, inventario=d.inventario, de_cant_asig=d.sd_cant)
     HistorialEntrega.objects.create(
-        entrega=entrega, usuario=admin, his_estado_ant="", his_estado_nuevo=Entrega.EN_REVISION,
+        entrega=entrega,
+        usuario=admin,
+        his_estado_ant="",
+        his_estado_nuevo=Entrega.EN_REVISION,
         his_obs="Entrega generada al aprobar la solicitud",
     )
     solicitud.sol_estado = Solicitud.APROBADA
@@ -122,7 +130,9 @@ def aprobar(solicitud, admin, modalidad, direccion="", fecha_prog=None, bodega=N
 
     def _avisar():
         notificar(
-            solicitud.beneficiario, "solicitud", f"Solicitud #{solicitud.pk} aprobada",
+            solicitud.beneficiario,
+            "solicitud",
+            f"Solicitud #{solicitud.pk} aprobada",
             f"Su solicitud fue aprobada. Código de seguimiento de la entrega: {entrega.ent_cod}.",
             reverse("entregas:seguimiento") + f"?codigo={entrega.ent_cod}",
         )
@@ -132,7 +142,9 @@ def aprobar(solicitud, admin, modalidad, direccion="", fecha_prog=None, bodega=N
         for donante, items in donantes.items():
             nombres = ", ".join(f"{i.inventario.inv_nom} ({i.sd_cant} {i.inventario.inv_unidad})" for i in items)
             notificar(
-                donante, "reserva", "Sus productos fueron reservados",
+                donante,
+                "reserva",
+                "Sus productos fueron reservados",
                 f"Se reservaron productos de su donación para una entrega: {nombres}.",
                 reverse("donaciones:mis_donaciones"),
             )
@@ -153,10 +165,15 @@ def rechazar(solicitud, admin, observacion):
     solicitud.sol_obs_admin = observacion.strip()
     solicitud.sol_fec_resp = timezone.now()
     solicitud.save()
-    transaction.on_commit(lambda: notificar(
-        solicitud.beneficiario, "solicitud", f"Solicitud #{solicitud.pk} rechazada",
-        f"Su solicitud fue rechazada. Motivo: {solicitud.sol_obs_admin}", reverse("solicitudes:mis_solicitudes"),
-    ))
+    transaction.on_commit(
+        lambda: notificar(
+            solicitud.beneficiario,
+            "solicitud",
+            f"Solicitud #{solicitud.pk} rechazada",
+            f"Su solicitud fue rechazada. Motivo: {solicitud.sol_obs_admin}",
+            reverse("solicitudes:mis_solicitudes"),
+        )
+    )
     return solicitud
 
 
@@ -181,8 +198,13 @@ def cancelar(solicitud, admin, observacion):
     solicitud.sol_obs_admin = observacion.strip()
     solicitud.sol_fec_resp = timezone.now()
     solicitud.save()
-    transaction.on_commit(lambda: notificar(
-        solicitud.beneficiario, "solicitud", f"Solicitud #{solicitud.pk} cancelada",
-        f"Su solicitud fue cancelada. Motivo: {solicitud.sol_obs_admin}", reverse("solicitudes:mis_solicitudes"),
-    ))
+    transaction.on_commit(
+        lambda: notificar(
+            solicitud.beneficiario,
+            "solicitud",
+            f"Solicitud #{solicitud.pk} cancelada",
+            f"Su solicitud fue cancelada. Motivo: {solicitud.sol_obs_admin}",
+            reverse("solicitudes:mis_solicitudes"),
+        )
+    )
     return solicitud

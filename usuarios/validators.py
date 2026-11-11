@@ -17,7 +17,9 @@ class ComplejidadValidator:
         if not re.search(r"[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]", password):
             faltantes.append("un carácter especial")
         if faltantes:
-            raise ValidationError("La contraseña debe contener " + ", ".join(faltantes) + ".", code="password_complejidad")
+            raise ValidationError(
+                "La contraseña debe contener " + ", ".join(faltantes) + ".", code="password_complejidad"
+            )
 
     def get_help_text(self):
         return "Use al menos 8 caracteres con mayúscula, minúscula, número y carácter especial."

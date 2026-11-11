@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utilidad de línea de comandos de Django para SysFood V2."""
+
 import os
 import sys
 

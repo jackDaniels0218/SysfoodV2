@@ -4,6 +4,7 @@ Proveedor por defecto: Nominatim (OpenStreetMap), gratuito. Se respeta su polít
 de uso: un agente de usuario propio, como máximo una consulta por segundo y caché
 local para no repetir consultas. No se envían datos personales: solo la dirección.
 """
+
 import json
 import logging
 import re
@@ -53,17 +54,37 @@ def consulta_completa(direccion):
 
 
 def _zona(direccion_osm):
-    for clave in ("neighbourhood", "suburb", "quarter", "hamlet", "village", "city_district", "town", "city", "municipality"):
+    for clave in (
+        "neighbourhood",
+        "suburb",
+        "quarter",
+        "hamlet",
+        "village",
+        "city_district",
+        "town",
+        "city",
+        "municipality",
+    ):
         if direccion_osm.get(clave):
             return str(direccion_osm[clave])[:80]
     return ""
 
 
 def _nominatim(consulta):
-    url = parametros.texto("geo_url") + "?" + urllib.parse.urlencode({
-        "q": consulta, "format": "jsonv2", "limit": 1, "addressdetails": 1,
-        "countrycodes": parametros.texto("geo_pais"), "accept-language": "es",
-    })
+    url = (
+        parametros.texto("geo_url")
+        + "?"
+        + urllib.parse.urlencode(
+            {
+                "q": consulta,
+                "format": "jsonv2",
+                "limit": 1,
+                "addressdetails": 1,
+                "countrycodes": parametros.texto("geo_pais"),
+                "accept-language": "es",
+            }
+        )
+    )
     with _candado:  # Política de uso: máximo una consulta por segundo.
         espera = 1.1 - (time.monotonic() - _ultima_consulta[0])
         if espera > 0:
@@ -79,8 +100,11 @@ def _nominatim(consulta):
         return Resultado(False, fuente="nominatim")
     primero = datos[0]
     return Resultado(
-        True, Decimal(primero["lat"]).quantize(Decimal("0.000001")), Decimal(primero["lon"]).quantize(Decimal("0.000001")),
-        _zona(primero.get("address") or {}), "nominatim",
+        True,
+        Decimal(primero["lat"]).quantize(Decimal("0.000001")),
+        Decimal(primero["lon"]).quantize(Decimal("0.000001")),
+        _zona(primero.get("address") or {}),
+        "nominatim",
     )
 
 
@@ -96,15 +120,23 @@ def geocodificar(direccion):
         return Resultado(False, fuente="vacía")
     cache = GeoCache.objects.filter(geo_direccion=clave).first()
     if cache is not None:
-        return Resultado(cache.geo_encontrada, cache.geo_lat, cache.geo_lng, cache.geo_zona, f"caché ({cache.geo_proveedor})")
+        return Resultado(
+            cache.geo_encontrada, cache.geo_lat, cache.geo_lng, cache.geo_zona, f"caché ({cache.geo_proveedor})"
+        )
     proveedor = parametros.texto("geo_proveedor")
     if proveedor not in PROVEEDORES:
         raise ErrorGeocodificacion("La geocodificación automática está desactivada en Parámetros.")
     resultado = PROVEEDORES[proveedor](consulta_completa(direccion))
     if not resultado.encontrada:
         return resultado  # Lo no encontrado no se guarda: el reintento vuelve a consultar.
-    GeoCache.objects.update_or_create(geo_direccion=clave, defaults={
-        "geo_encontrada": resultado.encontrada, "geo_lat": resultado.lat, "geo_lng": resultado.lng,
-        "geo_zona": resultado.zona, "geo_proveedor": proveedor,
-    })
+    GeoCache.objects.update_or_create(
+        geo_direccion=clave,
+        defaults={
+            "geo_encontrada": resultado.encontrada,
+            "geo_lat": resultado.lat,
+            "geo_lng": resultado.lng,
+            "geo_zona": resultado.zona,
+            "geo_proveedor": proveedor,
+        },
+    )
     return resultado

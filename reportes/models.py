@@ -13,11 +13,14 @@ class ReporteProgramado(models.Model):
     FORMATOS = [("pdf", "PDF"), ("xlsx", "Excel"), ("csv", "CSV")]
 
     rep_id = models.AutoField(primary_key=True)
-    creador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="usu_id", related_name="+")
+    creador = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column="usu_id", related_name="+"
+    )
     rep_estadistica = models.CharField("estadística", max_length=40)
     rep_filtros = models.JSONField("filtros", default=dict, blank=True)
     rep_relativo = models.BooleanField(
-        "solo el último periodo", default=True,
+        "solo el último periodo",
+        default=True,
         help_text="Si está marcado, cada envío cubre el último día, semana o mes en lugar de las fechas fijas.",
     )
     rep_frecuencia = models.CharField("frecuencia", max_length=10, choices=FRECUENCIAS, default=SEMANAL)

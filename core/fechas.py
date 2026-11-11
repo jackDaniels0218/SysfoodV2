@@ -3,6 +3,7 @@
 Se calculan los límites en Python (inicio y fin del día en la zona horaria local)
 para no depender de las tablas de zonas horarias del servidor MySQL.
 """
+
 from datetime import datetime, time, timedelta
 
 from django.utils import timezone

@@ -9,19 +9,34 @@ class ConsultaChat(models.Model):
     """
 
     REGLA, BUSQUEDA, CLAUDE, CONTEXTO, PRIVACIDAD, SIN_RESPUESTA, LIMITE = (
-        "regla", "busqueda", "claude", "contexto", "privacidad", "sin_respuesta", "limite",
+        "regla",
+        "busqueda",
+        "claude",
+        "contexto",
+        "privacidad",
+        "sin_respuesta",
+        "limite",
     )
     FUENTES = [
-        (REGLA, "Regla"), (BUSQUEDA, "Búsqueda en la base de conocimiento"), (CLAUDE, "API de Claude"),
-        (CONTEXTO, "Datos propios del usuario"), (PRIVACIDAD, "Bloqueada por privacidad"),
-        (SIN_RESPUESTA, "Sin respuesta"), (LIMITE, "Límite de consultas"),
+        (REGLA, "Regla"),
+        (BUSQUEDA, "Búsqueda en la base de conocimiento"),
+        (CLAUDE, "API de Claude"),
+        (CONTEXTO, "Datos propios del usuario"),
+        (PRIVACIDAD, "Bloqueada por privacidad"),
+        (SIN_RESPUESTA, "Sin respuesta"),
+        (LIMITE, "Límite de consultas"),
     ]
     WEB, WHATSAPP = "web", "whatsapp"
     CANALES = [(WEB, "Web"), (WHATSAPP, "WhatsApp")]
 
     con_id = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, db_column="usu_id", related_name="+",
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="usu_id",
+        related_name="+",
     )
     con_sesion = models.CharField("sesión (huella)", max_length=64, blank=True, db_index=True)
     con_canal = models.CharField("canal", max_length=10, choices=CANALES, default=WEB)

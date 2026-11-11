@@ -5,6 +5,7 @@ se crean automáticamente los que falten (ver core.apps), de modo que agregar un
 parámetro nuevo es solo declararlo aquí. El administrador los edita en
 Sistema › Parámetros, agrupados por sección, y cada cambio queda en la bitácora.
 """
+
 import re
 from collections import OrderedDict, namedtuple
 
@@ -21,141 +22,507 @@ def _p(valor, desc, tipo="texto", grupo="General", minimo=None, maximo=None):
 
 
 # Secciones en el orden en que se muestran en Sistema › Parámetros.
-GRUPOS = OrderedDict([
-    ("General", "Reglas generales del sistema"),
-    ("Seguridad", "Ingreso, bloqueo y recuperación de contraseña"),
-    ("Documentos", "Carga de documentos de validación"),
-    ("Inventario", "Unidades, bodegas y vencimientos"),
-    ("Puntaje de necesidad", "Pesos y escalas del puntaje automático de beneficiarios"),
-    ("Grupos de necesidad", "Clasificación automática según el puntaje"),
-    ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
-    ("Verificación automática", "Lectura de documentos con OCR, calidad de imagen y decisión por semáforo"),
-    ("Asistente de ayuda", "Chat de ayuda: modo de respuesta, umbral de búsqueda, límites y retención"),
-    ("Reportes y estadísticas", "Rango por defecto, exportación CSV y envíos programados por correo"),
-])
+GRUPOS = OrderedDict(
+    [
+        ("General", "Reglas generales del sistema"),
+        ("Seguridad", "Ingreso, bloqueo y recuperación de contraseña"),
+        ("Documentos", "Carga de documentos de validación"),
+        ("Inventario", "Unidades, bodegas y vencimientos"),
+        ("Puntaje de necesidad", "Pesos y escalas del puntaje automático de beneficiarios"),
+        ("Grupos de necesidad", "Clasificación automática según el puntaje"),
+        ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
+        ("Verificación automática", "Lectura de documentos con OCR, calidad de imagen y decisión por semáforo"),
+        ("Asistente de ayuda", "Chat de ayuda: modo de respuesta, umbral de búsqueda, límites y retención"),
+        ("Reportes y estadísticas", "Rango por defecto, exportación CSV y envíos programados por correo"),
+    ]
+)
 
 # Valores permitidos de los parámetros de tipo «opcion».
 OPCIONES = {
     "geo_proveedor": [("nominatim", "Nominatim (OpenStreetMap, gratuito)"), ("desactivado", "Desactivado")],
     "reportes_separador_csv": [(";", "Punto y coma (Excel en español)"), (",", "Coma")],
-    "chat_modo": [("reglas", "Reglas y búsqueda (gratuito, sin internet)"), ("claude", "API de Claude (requiere ANTHROPIC_API_KEY)")],
+    "chat_modo": [
+        ("reglas", "Reglas y búsqueda (gratuito, sin internet)"),
+        ("claude", "API de Claude (requiere ANTHROPIC_API_KEY)"),
+    ],
 }
 
-DEFINICIONES = OrderedDict([
-    # --- General
-    ("max_productos_solicitud", _p("5", "Máximo de productos distintos por solicitud (carrito).", "entero", "General", 1, 50)),
-    # --- Seguridad
-    ("intentos_ingreso", _p("5", "Intentos fallidos de ingreso antes de bloquear la cuenta.", "entero", "Seguridad", 1, 20)),
-    ("minutos_bloqueo", _p("15", "Minutos que dura el bloqueo temporal de la cuenta.", "entero", "Seguridad", 1, 1440)),
-    ("vigencia_token_minutos", _p("60", "Vigencia en minutos del enlace de recuperación de contraseña.", "entero", "Seguridad", 5, 1440)),
-    # --- Documentos
-    ("tam_max_archivo_mb", _p("5", "Tamaño máximo de los documentos cargados, en MB.", "entero", "Documentos", 1, 25)),
-    ("formatos_permitidos", _p("pdf,jpg,png", "Formatos de archivo permitidos (pdf, jpg, png) separados por comas.", "formatos", "Documentos")),
-    # --- Inventario
-    ("dias_alerta_vencimiento", _p("7", "Días generales de anticipación para la alerta de vencimiento.", "entero", "Inventario", 1, 365)),
-    ("unidades_medida", _p(
-        "kilogramos,gramos,libras,litros,mililitros,unidades,paquetes,cajas,bolsas,latas",
-        "Lista de unidades de medida separadas por comas.", "lista", "Inventario",
-    )),
-    ("unidades_divisibles", _p(
-        "kilogramos,gramos,libras,litros,mililitros",
-        "Unidades que admiten decimales (peso y volumen). Las demás unidades se cuentan en enteros (24 latas, no 24,5).",
-        "lista", "Inventario",
-    )),
-    ("unidades_abreviaturas", _p(
-        "kilogramos:kg, gramos:g, libras:lb, litros:L, mililitros:mL",
-        "Abreviatura con que se muestra cada unidad (por ejemplo 50 kg, 2,5 L). Las unidades sin abreviatura se escriben completas.",
-        "pares", "Inventario",
-    )),
-    ("bodega_predeterminada", _p("", "Bodega donde ingresan los productos donados (identificador).", "bodega", "Inventario")),
-    # --- Puntaje de necesidad: pesos (se normalizan: no es obligatorio que sumen 100)
-    ("puntaje_peso_sisben", _p("25", "Peso del nivel de Sisbén en el puntaje (0 lo desactiva).", "entero", "Puntaje de necesidad", 0, 100)),
-    ("puntaje_peso_estrato", _p("20", "Peso del estrato social en el puntaje.", "entero", "Puntaje de necesidad", 0, 100)),
-    ("puntaje_peso_personas", _p("20", "Peso del número de personas en el hogar.", "entero", "Puntaje de necesidad", 0, 100)),
-    ("puntaje_peso_discapacidad", _p("15", "Peso de la condición de discapacidad.", "entero", "Puntaje de necesidad", 0, 100)),
-    ("puntaje_peso_solicitudes", _p("5", "Peso de las solicitudes recientes (necesidad activa).", "entero", "Puntaje de necesidad", 0, 100)),
-    ("puntaje_peso_tiempo", _p("15", "Peso del tiempo sin recibir ayuda.", "entero", "Puntaje de necesidad", 0, 100)),
-    # --- Puntaje de necesidad: escalas
-    ("puntaje_escala_sisben", _p(
-        "A:100, B:70, C:35, D:10, NR:50",
-        "Escala 0-100 por nivel de Sisbén (A pobreza extrema … D no pobre; NR no registrado).", "escala", "Puntaje de necesidad",
-    )),
-    ("puntaje_escala_estrato", _p(
-        "1:100, 2:80, 3:50, 4:25, 5:0, 6:0", "Escala 0-100 por estrato social.", "escala", "Puntaje de necesidad",
-    )),
-    ("puntaje_personas_tope", _p("8", "Personas en el hogar a partir de las cuales el criterio vale 100.", "entero", "Puntaje de necesidad", 1, 30)),
-    ("puntaje_discapacidad_sin_soporte", _p(
-        "50", "Valor (0-100) de la discapacidad declarada mientras el certificado no esté aprobado.", "entero", "Puntaje de necesidad", 0, 100,
-    )),
-    ("puntaje_dias_solicitudes", _p("90", "Ventana en días para contar las solicitudes recientes.", "entero", "Puntaje de necesidad", 1, 730)),
-    ("puntaje_solicitudes_tope", _p("4", "Solicitudes recientes a partir de las cuales el criterio vale 100.", "entero", "Puntaje de necesidad", 1, 50)),
-    ("puntaje_dias_sin_ayuda_tope", _p(
-        "60", "Días sin recibir una entrega a partir de los cuales el criterio vale 100 (quien nunca ha recibido vale 100).",
-        "entero", "Puntaje de necesidad", 1, 730,
-    )),
-    # --- Grupos de necesidad
-    ("grupos_necesidad", _p(
-        "Prioridad crítica|75|#b42318; Prioridad alta|55|#d9480f; Prioridad media|35|#b07d05; Prioridad baja|0|#2b8a3e",
-        "Grupos «Nombre|puntaje mínimo|color» separados por punto y coma. Debe existir uno con mínimo 0.",
-        "grupos", "Grupos de necesidad",
-    )),
-    ("solicitudes_orden_prioridad", _p(
-        "si", "Ordenar las solicitudes pendientes por puntaje de necesidad (si) o solo por fecha de envío (no).", "booleano", "Grupos de necesidad",
-    )),
-    # --- Mapa y geocodificación
-    ("geo_proveedor", _p("nominatim", "Servicio que convierte direcciones en coordenadas.", "opcion", "Mapa y geocodificación")),
-    ("geo_url", _p("https://nominatim.openstreetmap.org/search", "Dirección del servicio de geocodificación (compatible con Nominatim).", "url", "Mapa y geocodificación")),
-    ("geo_contexto", _p("Facatativá, Cundinamarca, Colombia", "Municipio, departamento y país que se agregan a las direcciones para ubicarlas.", "texto", "Mapa y geocodificación")),
-    ("geo_pais", _p("co", "Códigos de país (ISO) donde se buscan las direcciones, separados por comas.", "texto", "Mapa y geocodificación")),
-    ("geo_max_intentos", _p("5", "Intentos automáticos de geocodificación antes de marcar el caso para revisión.", "entero", "Mapa y geocodificación", 1, 20)),
-    ("mapa_tiles_url", _p("https://tile.openstreetmap.org/{z}/{x}/{y}.png", "Plantilla de las teselas del mapa base (proveedor gratuito).", "url", "Mapa y geocodificación")),
-    ("mapa_atribucion", _p("© colaboradores de OpenStreetMap", "Texto de atribución del mapa base.", "texto", "Mapa y geocodificación")),
-    ("mapa_centro", _p("4.8143,-74.3546", "Centro inicial del mapa (latitud,longitud).", "coordenadas", "Mapa y geocodificación")),
-    ("mapa_zoom", _p("13", "Acercamiento inicial del mapa (1 a 18).", "entero", "Mapa y geocodificación", 1, 18)),
-    ("mapa_desplazamiento_m", _p(
-        "300", "Desplazamiento aleatorio máximo, en metros, de los puntos al exportar el mapa (protege la ubicación exacta).",
-        "entero", "Mapa y geocodificación", 0, 5000,
-    )),
-    ("calor_peso_puntaje", _p("60", "Peso del puntaje de necesidad en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
-    ("calor_peso_solicitudes", _p("25", "Peso del número de solicitudes en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
-    ("calor_peso_personas", _p("15", "Peso de las personas en el hogar en la intensidad del mapa de calor.", "entero", "Mapa y geocodificación", 0, 100)),
-    ("calor_tope_solicitudes", _p("5", "Solicitudes a partir de las cuales ese componente del calor es máximo.", "entero", "Mapa y geocodificación", 1, 100)),
-    # --- Verificación automática de documentos (OCR)
-    ("ocr_activo", _p("si", "Leer automáticamente los documentos cargados (si) o dejar todo a la revisión manual (no).", "booleano", "Verificación automática")),
-    ("ocr_umbral_alto", _p(
-        "85", "Confianza (0-100) desde la cual el documento queda pre-aprobado automáticamente (semáforo verde).",
-        "entero", "Verificación automática", 1, 100,
-    )),
-    ("ocr_umbral_bajo", _p(
-        "40", "Confianza por debajo de la cual el documento se rechaza automáticamente (semáforo rojo). Entre ambos umbrales va a la cola del administrador.",
-        "entero", "Verificación automática", 0, 99,
-    )),
-    ("ocr_auto_aprobar", _p("si", "Pre-aprobar automáticamente los documentos de confianza alta.", "booleano", "Verificación automática")),
-    ("ocr_auto_rechazar", _p("si", "Rechazar automáticamente los documentos de confianza baja o ilegibles, con el motivo.", "booleano", "Verificación automática")),
-    ("ocr_nitidez_minima", _p(
-        "45", "Nitidez mínima (0-256) de una foto; por debajo se pide repetirla de inmediato por borrosa.", "entero", "Verificación automática", 0, 256,
-    )),
-    ("ocr_resolucion_minima", _p("500", "Lado menor mínimo de la imagen, en píxeles.", "entero", "Verificación automática", 100, 4000)),
-    ("ocr_idioma", _p("spa", "Idioma de Tesseract (spa = español).", "texto", "Verificación automática")),
-    # --- Asistente de ayuda (chat)
-    ("chat_activo", _p("si", "Mostrar el asistente de ayuda en todas las páginas, también antes de ingresar.", "booleano", "Asistente de ayuda")),
-    ("chat_modo", _p("reglas", "Cómo responde el asistente. Con «claude» usa la API de Claude si está configurada y, si falla, vuelve a reglas.", "opcion", "Asistente de ayuda")),
-    ("chat_umbral", _p("35", "Similitud mínima (0-100) para responder con un artículo; por debajo ofrece escribir al administrador.", "entero", "Asistente de ayuda", 5, 100)),
-    ("chat_max_por_hora", _p("40", "Preguntas máximas por sesión en una hora (evita abusos).", "entero", "Asistente de ayuda", 1, 1000)),
-    ("chat_retencion_dias", _p("180", "Días que se guardan las consultas del asistente antes de borrarse solas.", "entero", "Asistente de ayuda", 1, 3650)),
-    ("chat_bienvenida", _p("¡Hola{nombre}! Soy el asistente de SysFood. Pregúnteme cómo usar el sistema.", "Saludo inicial del asistente ({nombre} se reemplaza por el nombre de quien ingresó).", "texto", "Asistente de ayuda")),
-    # --- Reportes y estadísticas
-    ("reportes_dias_por_defecto", _p(
-        "0", "Si no se eligen fechas, los reportes muestran los últimos N días (0 = todo el historial).",
-        "entero", "Reportes y estadísticas", 0, 3650,
-    )),
-    ("reportes_separador_csv", _p(";", "Separador de columnas de los archivos CSV.", "opcion", "Reportes y estadísticas")),
-    ("reportes_hora_envio", _p(
-        "7", "Hora del día (0 a 23) a partir de la cual se envían los reportes programados por correo.",
-        "entero", "Reportes y estadísticas", 0, 23,
-    )),
-    ("ocr_tiempo_maximo", _p("40", "Segundos máximos de lectura por documento.", "entero", "Verificación automática", 5, 300)),
-])
+DEFINICIONES = OrderedDict(
+    [
+        # --- General
+        (
+            "max_productos_solicitud",
+            _p("5", "Máximo de productos distintos por solicitud (carrito).", "entero", "General", 1, 50),
+        ),
+        # --- Seguridad
+        (
+            "intentos_ingreso",
+            _p("5", "Intentos fallidos de ingreso antes de bloquear la cuenta.", "entero", "Seguridad", 1, 20),
+        ),
+        (
+            "minutos_bloqueo",
+            _p("15", "Minutos que dura el bloqueo temporal de la cuenta.", "entero", "Seguridad", 1, 1440),
+        ),
+        (
+            "vigencia_token_minutos",
+            _p("60", "Vigencia en minutos del enlace de recuperación de contraseña.", "entero", "Seguridad", 5, 1440),
+        ),
+        # --- Documentos
+        (
+            "tam_max_archivo_mb",
+            _p("5", "Tamaño máximo de los documentos cargados, en MB.", "entero", "Documentos", 1, 25),
+        ),
+        (
+            "formatos_permitidos",
+            _p(
+                "pdf,jpg,png",
+                "Formatos de archivo permitidos (pdf, jpg, png) separados por comas.",
+                "formatos",
+                "Documentos",
+            ),
+        ),
+        # --- Inventario
+        (
+            "dias_alerta_vencimiento",
+            _p("7", "Días generales de anticipación para la alerta de vencimiento.", "entero", "Inventario", 1, 365),
+        ),
+        (
+            "unidades_medida",
+            _p(
+                "kilogramos,gramos,libras,litros,mililitros,unidades,paquetes,cajas,bolsas,latas",
+                "Lista de unidades de medida separadas por comas.",
+                "lista",
+                "Inventario",
+            ),
+        ),
+        (
+            "unidades_divisibles",
+            _p(
+                "kilogramos,gramos,libras,litros,mililitros",
+                "Unidades que admiten decimales (peso y volumen). Las demás unidades se cuentan en enteros (24 latas, no 24,5).",
+                "lista",
+                "Inventario",
+            ),
+        ),
+        (
+            "unidades_abreviaturas",
+            _p(
+                "kilogramos:kg, gramos:g, libras:lb, litros:L, mililitros:mL",
+                "Abreviatura con que se muestra cada unidad (por ejemplo 50 kg, 2,5 L). Las unidades sin abreviatura se escriben completas.",
+                "pares",
+                "Inventario",
+            ),
+        ),
+        (
+            "bodega_predeterminada",
+            _p("", "Bodega donde ingresan los productos donados (identificador).", "bodega", "Inventario"),
+        ),
+        # --- Puntaje de necesidad: pesos (se normalizan: no es obligatorio que sumen 100)
+        (
+            "puntaje_peso_sisben",
+            _p(
+                "25",
+                "Peso del nivel de Sisbén en el puntaje (0 lo desactiva).",
+                "entero",
+                "Puntaje de necesidad",
+                0,
+                100,
+            ),
+        ),
+        (
+            "puntaje_peso_estrato",
+            _p("20", "Peso del estrato social en el puntaje.", "entero", "Puntaje de necesidad", 0, 100),
+        ),
+        (
+            "puntaje_peso_personas",
+            _p("20", "Peso del número de personas en el hogar.", "entero", "Puntaje de necesidad", 0, 100),
+        ),
+        (
+            "puntaje_peso_discapacidad",
+            _p("15", "Peso de la condición de discapacidad.", "entero", "Puntaje de necesidad", 0, 100),
+        ),
+        (
+            "puntaje_peso_solicitudes",
+            _p("5", "Peso de las solicitudes recientes (necesidad activa).", "entero", "Puntaje de necesidad", 0, 100),
+        ),
+        (
+            "puntaje_peso_tiempo",
+            _p("15", "Peso del tiempo sin recibir ayuda.", "entero", "Puntaje de necesidad", 0, 100),
+        ),
+        # --- Puntaje de necesidad: escalas
+        (
+            "puntaje_escala_sisben",
+            _p(
+                "A:100, B:70, C:35, D:10, NR:50",
+                "Escala 0-100 por nivel de Sisbén (A pobreza extrema … D no pobre; NR no registrado).",
+                "escala",
+                "Puntaje de necesidad",
+            ),
+        ),
+        (
+            "puntaje_escala_estrato",
+            _p(
+                "1:100, 2:80, 3:50, 4:25, 5:0, 6:0",
+                "Escala 0-100 por estrato social.",
+                "escala",
+                "Puntaje de necesidad",
+            ),
+        ),
+        (
+            "puntaje_personas_tope",
+            _p(
+                "8",
+                "Personas en el hogar a partir de las cuales el criterio vale 100.",
+                "entero",
+                "Puntaje de necesidad",
+                1,
+                30,
+            ),
+        ),
+        (
+            "puntaje_discapacidad_sin_soporte",
+            _p(
+                "50",
+                "Valor (0-100) de la discapacidad declarada mientras el certificado no esté aprobado.",
+                "entero",
+                "Puntaje de necesidad",
+                0,
+                100,
+            ),
+        ),
+        (
+            "puntaje_dias_solicitudes",
+            _p(
+                "90", "Ventana en días para contar las solicitudes recientes.", "entero", "Puntaje de necesidad", 1, 730
+            ),
+        ),
+        (
+            "puntaje_solicitudes_tope",
+            _p(
+                "4",
+                "Solicitudes recientes a partir de las cuales el criterio vale 100.",
+                "entero",
+                "Puntaje de necesidad",
+                1,
+                50,
+            ),
+        ),
+        (
+            "puntaje_dias_sin_ayuda_tope",
+            _p(
+                "60",
+                "Días sin recibir una entrega a partir de los cuales el criterio vale 100 (quien nunca ha recibido vale 100).",
+                "entero",
+                "Puntaje de necesidad",
+                1,
+                730,
+            ),
+        ),
+        # --- Grupos de necesidad
+        (
+            "grupos_necesidad",
+            _p(
+                "Prioridad crítica|75|#b42318; Prioridad alta|55|#d9480f; Prioridad media|35|#b07d05; Prioridad baja|0|#2b8a3e",
+                "Grupos «Nombre|puntaje mínimo|color» separados por punto y coma. Debe existir uno con mínimo 0.",
+                "grupos",
+                "Grupos de necesidad",
+            ),
+        ),
+        (
+            "solicitudes_orden_prioridad",
+            _p(
+                "si",
+                "Ordenar las solicitudes pendientes por puntaje de necesidad (si) o solo por fecha de envío (no).",
+                "booleano",
+                "Grupos de necesidad",
+            ),
+        ),
+        # --- Mapa y geocodificación
+        (
+            "geo_proveedor",
+            _p("nominatim", "Servicio que convierte direcciones en coordenadas.", "opcion", "Mapa y geocodificación"),
+        ),
+        (
+            "geo_url",
+            _p(
+                "https://nominatim.openstreetmap.org/search",
+                "Dirección del servicio de geocodificación (compatible con Nominatim).",
+                "url",
+                "Mapa y geocodificación",
+            ),
+        ),
+        (
+            "geo_contexto",
+            _p(
+                "Facatativá, Cundinamarca, Colombia",
+                "Municipio, departamento y país que se agregan a las direcciones para ubicarlas.",
+                "texto",
+                "Mapa y geocodificación",
+            ),
+        ),
+        (
+            "geo_pais",
+            _p(
+                "co",
+                "Códigos de país (ISO) donde se buscan las direcciones, separados por comas.",
+                "texto",
+                "Mapa y geocodificación",
+            ),
+        ),
+        (
+            "geo_max_intentos",
+            _p(
+                "5",
+                "Intentos automáticos de geocodificación antes de marcar el caso para revisión.",
+                "entero",
+                "Mapa y geocodificación",
+                1,
+                20,
+            ),
+        ),
+        (
+            "mapa_tiles_url",
+            _p(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                "Plantilla de las teselas del mapa base (proveedor gratuito).",
+                "url",
+                "Mapa y geocodificación",
+            ),
+        ),
+        (
+            "mapa_atribucion",
+            _p(
+                "© colaboradores de OpenStreetMap",
+                "Texto de atribución del mapa base.",
+                "texto",
+                "Mapa y geocodificación",
+            ),
+        ),
+        (
+            "mapa_centro",
+            _p(
+                "4.8143,-74.3546",
+                "Centro inicial del mapa (latitud,longitud).",
+                "coordenadas",
+                "Mapa y geocodificación",
+            ),
+        ),
+        ("mapa_zoom", _p("13", "Acercamiento inicial del mapa (1 a 18).", "entero", "Mapa y geocodificación", 1, 18)),
+        (
+            "mapa_desplazamiento_m",
+            _p(
+                "300",
+                "Desplazamiento aleatorio máximo, en metros, de los puntos al exportar el mapa (protege la ubicación exacta).",
+                "entero",
+                "Mapa y geocodificación",
+                0,
+                5000,
+            ),
+        ),
+        (
+            "calor_peso_puntaje",
+            _p(
+                "60",
+                "Peso del puntaje de necesidad en la intensidad del mapa de calor.",
+                "entero",
+                "Mapa y geocodificación",
+                0,
+                100,
+            ),
+        ),
+        (
+            "calor_peso_solicitudes",
+            _p(
+                "25",
+                "Peso del número de solicitudes en la intensidad del mapa de calor.",
+                "entero",
+                "Mapa y geocodificación",
+                0,
+                100,
+            ),
+        ),
+        (
+            "calor_peso_personas",
+            _p(
+                "15",
+                "Peso de las personas en el hogar en la intensidad del mapa de calor.",
+                "entero",
+                "Mapa y geocodificación",
+                0,
+                100,
+            ),
+        ),
+        (
+            "calor_tope_solicitudes",
+            _p(
+                "5",
+                "Solicitudes a partir de las cuales ese componente del calor es máximo.",
+                "entero",
+                "Mapa y geocodificación",
+                1,
+                100,
+            ),
+        ),
+        # --- Verificación automática de documentos (OCR)
+        (
+            "ocr_activo",
+            _p(
+                "si",
+                "Leer automáticamente los documentos cargados (si) o dejar todo a la revisión manual (no).",
+                "booleano",
+                "Verificación automática",
+            ),
+        ),
+        (
+            "ocr_umbral_alto",
+            _p(
+                "85",
+                "Confianza (0-100) desde la cual el documento queda pre-aprobado automáticamente (semáforo verde).",
+                "entero",
+                "Verificación automática",
+                1,
+                100,
+            ),
+        ),
+        (
+            "ocr_umbral_bajo",
+            _p(
+                "40",
+                "Confianza por debajo de la cual el documento se rechaza automáticamente (semáforo rojo). Entre ambos umbrales va a la cola del administrador.",
+                "entero",
+                "Verificación automática",
+                0,
+                99,
+            ),
+        ),
+        (
+            "ocr_auto_aprobar",
+            _p(
+                "si",
+                "Pre-aprobar automáticamente los documentos de confianza alta.",
+                "booleano",
+                "Verificación automática",
+            ),
+        ),
+        (
+            "ocr_auto_rechazar",
+            _p(
+                "si",
+                "Rechazar automáticamente los documentos de confianza baja o ilegibles, con el motivo.",
+                "booleano",
+                "Verificación automática",
+            ),
+        ),
+        (
+            "ocr_nitidez_minima",
+            _p(
+                "45",
+                "Nitidez mínima (0-256) de una foto; por debajo se pide repetirla de inmediato por borrosa.",
+                "entero",
+                "Verificación automática",
+                0,
+                256,
+            ),
+        ),
+        (
+            "ocr_resolucion_minima",
+            _p("500", "Lado menor mínimo de la imagen, en píxeles.", "entero", "Verificación automática", 100, 4000),
+        ),
+        ("ocr_idioma", _p("spa", "Idioma de Tesseract (spa = español).", "texto", "Verificación automática")),
+        # --- Asistente de ayuda (chat)
+        (
+            "chat_activo",
+            _p(
+                "si",
+                "Mostrar el asistente de ayuda en todas las páginas, también antes de ingresar.",
+                "booleano",
+                "Asistente de ayuda",
+            ),
+        ),
+        (
+            "chat_modo",
+            _p(
+                "reglas",
+                "Cómo responde el asistente. Con «claude» usa la API de Claude si está configurada y, si falla, vuelve a reglas.",
+                "opcion",
+                "Asistente de ayuda",
+            ),
+        ),
+        (
+            "chat_umbral",
+            _p(
+                "35",
+                "Similitud mínima (0-100) para responder con un artículo; por debajo ofrece escribir al administrador.",
+                "entero",
+                "Asistente de ayuda",
+                5,
+                100,
+            ),
+        ),
+        (
+            "chat_max_por_hora",
+            _p(
+                "40",
+                "Preguntas máximas por sesión en una hora (evita abusos).",
+                "entero",
+                "Asistente de ayuda",
+                1,
+                1000,
+            ),
+        ),
+        (
+            "chat_retencion_dias",
+            _p(
+                "180",
+                "Días que se guardan las consultas del asistente antes de borrarse solas.",
+                "entero",
+                "Asistente de ayuda",
+                1,
+                3650,
+            ),
+        ),
+        (
+            "chat_bienvenida",
+            _p(
+                "¡Hola{nombre}! Soy el asistente de SysFood. Pregúnteme cómo usar el sistema.",
+                "Saludo inicial del asistente ({nombre} se reemplaza por el nombre de quien ingresó).",
+                "texto",
+                "Asistente de ayuda",
+            ),
+        ),
+        # --- Reportes y estadísticas
+        (
+            "reportes_dias_por_defecto",
+            _p(
+                "0",
+                "Si no se eligen fechas, los reportes muestran los últimos N días (0 = todo el historial).",
+                "entero",
+                "Reportes y estadísticas",
+                0,
+                3650,
+            ),
+        ),
+        (
+            "reportes_separador_csv",
+            _p(";", "Separador de columnas de los archivos CSV.", "opcion", "Reportes y estadísticas"),
+        ),
+        (
+            "reportes_hora_envio",
+            _p(
+                "7",
+                "Hora del día (0 a 23) a partir de la cual se envían los reportes programados por correo.",
+                "entero",
+                "Reportes y estadísticas",
+                0,
+                23,
+            ),
+        ),
+        (
+            "ocr_tiempo_maximo",
+            _p("40", "Segundos máximos de lectura por documento.", "entero", "Verificación automática", 5, 300),
+        ),
+    ]
+)
 
 TIPOS_AYUDA = {
     "escala": "Formato: clave:valor separados por comas, con valores de 0 a 100. Ejemplo: A:100, B:70.",
@@ -174,6 +541,7 @@ def definicion(clave):
 
 # ---------------------------------------------------------------- Lectura
 
+
 def _obtener(clave):
     from .models import Parametro
 
@@ -188,7 +556,9 @@ def todos():
     from .models import Parametro
 
     valores = {clave: d.valor for clave, d in DEFINICIONES.items()}
-    valores.update(dict(Parametro.objects.filter(par_clave__in=list(DEFINICIONES)).values_list("par_clave", "par_valor")))
+    valores.update(
+        dict(Parametro.objects.filter(par_clave__in=list(DEFINICIONES)).values_list("par_clave", "par_valor"))
+    )
     return valores
 
 
@@ -271,6 +641,7 @@ def grupos(clave="grupos_necesidad", cache=None):
 
 # ---------------------------------------------------------------- Formatos compuestos
 
+
 def _parse_escala(valor):
     resultado = OrderedDict()
     for parte in (valor or "").split(","):
@@ -327,6 +698,7 @@ def _parse_grupos(valor):
 
 
 # ---------------------------------------------------------------- Validación
+
 
 def validar(clave, valor):
     """Valida y normaliza el valor de un parámetro antes de guardarlo."""
@@ -458,7 +830,8 @@ def sincronizar(Parametro=None):
     existentes = set(Parametro.objects.values_list("par_clave", flat=True))
     nuevos = [
         Parametro(par_clave=clave, par_valor=d.valor, par_desc=d.desc)
-        for clave, d in DEFINICIONES.items() if clave not in existentes
+        for clave, d in DEFINICIONES.items()
+        if clave not in existentes
     ]
     Parametro.objects.bulk_create(nuevos)
     return len(nuevos)

@@ -1,4 +1,5 @@
 """Registro, edición y cancelación de donaciones."""
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.urls import reverse
@@ -25,11 +26,14 @@ def registrar(donacion, detalles, usuario):
         det.save()
         inv_srv.ingresar_detalle(det, usuario, bodega)
     donacion.recalcular_estado()
-    transaction.on_commit(lambda: notificar_administradores(
-        "donacion", f"Nueva donación #{donacion.pk}",
-        f"Se registró una donación con {len(detalles)} producto(s) de {donacion.nombre_publico}.",
-        reverse("donaciones:detalle", args=[donacion.pk]),
-    ))
+    transaction.on_commit(
+        lambda: notificar_administradores(
+            "donacion",
+            f"Nueva donación #{donacion.pk}",
+            f"Se registró una donación con {len(detalles)} producto(s) de {donacion.nombre_publico}.",
+            reverse("donaciones:detalle", args=[donacion.pk]),
+        )
+    )
     return donacion
 
 

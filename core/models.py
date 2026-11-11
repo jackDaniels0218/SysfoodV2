@@ -15,8 +15,13 @@ class Parametro(models.Model):
     par_valor = models.CharField("valor", max_length=500)
     par_desc = models.CharField("descripción", max_length=255)
     usuario_mod = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        db_column="usu_id_mod", related_name="+", verbose_name="modificado por",
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="usu_id_mod",
+        related_name="+",
+        verbose_name="modificado por",
     )
     par_fec_mod = models.DateTimeField("última modificación", auto_now=True)
 
@@ -75,8 +80,12 @@ class Bitacora(_SoloInsercion):
 
     bit_id = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
-        db_column="usu_id", related_name="+",
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        db_column="usu_id",
+        related_name="+",
     )
     bit_accion = models.CharField("acción", max_length=30, choices=ACCIONES)
     bit_entidad = models.CharField("entidad", max_length=60)
@@ -106,7 +115,10 @@ class Notificacion(models.Model):
 
     not_id = models.BigAutoField(primary_key=True)
     destinatario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column="usu_id", related_name="notificaciones",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        db_column="usu_id",
+        related_name="notificaciones",
     )
     not_tipo = models.CharField("tipo", max_length=20, choices=TIPOS)
     not_titulo = models.CharField("título", max_length=150)
@@ -162,7 +174,9 @@ class FiltroGuardado(models.Model):
     }
 
     fil_id = models.BigAutoField(primary_key=True)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column="usu_id", related_name="filtros")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column="usu_id", related_name="filtros"
+    )
     fil_vista = models.CharField("lista", max_length=30)
     fil_nombre = models.CharField("nombre", max_length=60)
     fil_consulta = models.CharField("filtros", max_length=500)
@@ -171,7 +185,9 @@ class FiltroGuardado(models.Model):
     class Meta:
         db_table = "filtro_guardado"
         ordering = ["fil_nombre"]
-        constraints = [models.UniqueConstraint(fields=["usuario", "fil_vista", "fil_nombre"], name="filtro_unico_por_usuario")]
+        constraints = [
+            models.UniqueConstraint(fields=["usuario", "fil_vista", "fil_nombre"], name="filtro_unico_por_usuario")
+        ]
 
     def __str__(self):
         return self.fil_nombre

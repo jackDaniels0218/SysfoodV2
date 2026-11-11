@@ -16,8 +16,10 @@ class DonacionForm(BootstrapMixin, forms.ModelForm):
         fields = ["dona_anonima", "dona_obs"]
         widgets = {"dona_obs": forms.Textarea(attrs={"rows": 2})}
         labels = {"dona_anonima": "Registrar esta donación de forma anónima"}
-        help_texts = {"dona_anonima": "Los beneficiarios y las consultas públicas verán «Donante anónimo». "
-                                      "Solo el administrador puede conocer su identidad."}
+        help_texts = {
+            "dona_anonima": "Los beneficiarios y las consultas públicas verán «Donante anónimo». "
+            "Solo el administrador puede conocer su identidad."
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,14 +41,18 @@ class DetalleForm(BootstrapMixin, forms.ModelForm):
         unidades = parametros.lista("unidades_medida")
         if self.instance.pk and self.instance.dd_unidad not in unidades:
             unidades.append(self.instance.dd_unidad)
-        self.fields["dd_unidad"] = forms.ChoiceField(label="Unidad", choices=[("", "---------")] + [(u, u.capitalize()) for u in unidades])
+        self.fields["dd_unidad"] = forms.ChoiceField(
+            label="Unidad", choices=[("", "---------")] + [(u, u.capitalize()) for u in unidades]
+        )
         divisibles = [u for u in unidades if uds.es_divisible(u)]
         # El JS (sysfood.js) cambia el paso del campo cantidad al elegir la unidad: 1 en contables, 0,01 en divisibles.
         self.fields["dd_unidad"].widget.attrs["data-divisibles"] = ",".join(divisibles)
         actual = self.instance.dd_unidad if self.instance.pk else ""
         paso = uds.paso(actual) if actual else "0.01"
         self.fields["dd_cantidad"].widget.attrs.update({"min": paso, "step": paso, "data-cantidad": "1"})
-        self.fields["dd_cantidad"].help_text = "Kilos, litros y demás medidas admiten decimales; latas, cajas y unidades van en enteros."
+        self.fields[
+            "dd_cantidad"
+        ].help_text = "Kilos, litros y demás medidas admiten decimales; latas, cajas y unidades van en enteros."
         self.fields["dd_fec_venc"].widget.attrs["min"] = (timezone.localdate() + timezone.timedelta(days=1)).isoformat()
         self._estilizar()
 
@@ -74,10 +80,20 @@ class DetalleFormSet(BaseInlineFormSet):
 
 
 DetalleFormSetCrear = inlineformset_factory(
-    Donacion, DetalleDonacion, form=DetalleForm, formset=DetalleFormSet, extra=1, can_delete=False,
+    Donacion,
+    DetalleDonacion,
+    form=DetalleForm,
+    formset=DetalleFormSet,
+    extra=1,
+    can_delete=False,
 )
 DetalleFormSetEditar = inlineformset_factory(
-    Donacion, DetalleDonacion, form=DetalleForm, formset=DetalleFormSet, extra=0, can_delete=True,
+    Donacion,
+    DetalleDonacion,
+    form=DetalleForm,
+    formset=DetalleFormSet,
+    extra=0,
+    can_delete=True,
 )
 
 

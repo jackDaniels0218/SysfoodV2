@@ -2,7 +2,13 @@ from django.urls import reverse
 
 from core import busqueda, guia
 from core.tests.utilidades import (
-    PruebaBase, crear_admin, crear_beneficiario, crear_bodega, crear_categoria, crear_donacion, crear_donante,
+    PruebaBase,
+    crear_admin,
+    crear_beneficiario,
+    crear_bodega,
+    crear_categoria,
+    crear_donacion,
+    crear_donante,
 )
 from entregas.models import Entrega
 from inventario.models import Inventario

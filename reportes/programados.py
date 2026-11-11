@@ -1,4 +1,5 @@
 """Envío por correo de los reportes programados (tarea horaria `reportes_programados`)."""
+
 import logging
 
 from django.conf import settings
@@ -13,7 +14,14 @@ from .models import ReporteProgramado
 
 log = logging.getLogger("sysfood")
 
-NOMBRES_FILTROS = {"desde": "Desde", "hasta": "Hasta", "estado": "Estado", "categoria": "Categoría", "donante": "Donante", "bodega": "Bodega"}
+NOMBRES_FILTROS = {
+    "desde": "Desde",
+    "hasta": "Hasta",
+    "estado": "Estado",
+    "categoria": "Categoría",
+    "donante": "Donante",
+    "bodega": "Bodega",
+}
 
 
 def filtros_de(reporte, ahora=None):
@@ -53,11 +61,16 @@ def enviar(reporte, usuario=None, ahora=None):
             + f"\n\nVer en SysFood: {settings.SITE_URL}/reportes/?tipo={reporte.rep_estadistica}\n"
             "Este envío se configura en Sistema › Reportes › Envíos programados."
         )
-        correo = EmailMessage(f"[SysFood] {datos['titulo']}", cuerpo, settings.DEFAULT_FROM_EMAIL, reporte.lista_destinatarios)
+        correo = EmailMessage(
+            f"[SysFood] {datos['titulo']}", cuerpo, settings.DEFAULT_FROM_EMAIL, reporte.lista_destinatarios
+        )
         correo.attach(nombre, contenido, tipo_mime)
         try:
             correo.send(fail_silently=False)
-            ok, mensaje = True, f"Enviado a {len(reporte.lista_destinatarios)} destinatario(s) con {len(datos['filas'])} registro(s)."
+            ok, mensaje = (
+                True,
+                f"Enviado a {len(reporte.lista_destinatarios)} destinatario(s) con {len(datos['filas'])} registro(s).",
+            )
         except Exception as exc:  # El servidor de correo puede fallar: se reintenta en la siguiente hora.
             log.warning("No se pudo enviar el reporte programado %s: %s", reporte.pk, exc)
             ok, mensaje = False, f"Error de correo: {exc}"
@@ -67,7 +80,9 @@ def enviar(reporte, usuario=None, ahora=None):
         reporte.rep_ultimo_envio = ahora
         campos.append("rep_ultimo_envio")
     reporte.save(update_fields=campos)
-    auditar(None, "envio_reporte", "reporte_programado", reporte.pk, f"{reporte.titulo}: {mensaje}"[:500], usuario=usuario)
+    auditar(
+        None, "envio_reporte", "reporte_programado", reporte.pk, f"{reporte.titulo}: {mensaje}"[:500], usuario=usuario
+    )
     return ok, mensaje
 
 

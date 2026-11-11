@@ -1,5 +1,6 @@
 """Reacciones automáticas a los cambios de datos:
 recálculo del puntaje de necesidad y geocodificación de la dirección."""
+
 from django.db.models.signals import post_delete, post_init, post_save
 
 
@@ -28,7 +29,9 @@ def _documento(sender, instance, raw=False, **kwargs):
     from . import puntaje
 
     if instance.docv_tipo in ("identidad", "sisben", "residencia", "discapacidad"):
-        puntaje.recalcular_usuario(instance.usuario_id, f"Cambio en los documentos ({instance.get_docv_tipo_display().lower()})")
+        puntaje.recalcular_usuario(
+            instance.usuario_id, f"Cambio en los documentos ({instance.get_docv_tipo_display().lower()})"
+        )
 
 
 def _solicitud(sender, instance, created, raw=False, **kwargs):

@@ -53,7 +53,8 @@ class NuevasEstadisticasTests(PruebaBase):
         b = crear_beneficiario(verificado=True, admin=self.admin)
         for i, doc in enumerate(b.documentos.all()):
             DocumentoValidacion.objects.filter(pk=doc.pk).update(
-                docv_fec_carga=doc.docv_fec_revision - timedelta(hours=2 * (i + 1)), docv_verif_auto=i == 0,
+                docv_fec_carga=doc.docv_fec_revision - timedelta(hours=2 * (i + 1)),
+                docv_verif_auto=i == 0,
             )
         datos = consultas.generar("tiempo_verificacion", {})
         resumen = dict(datos["resumen"])
@@ -108,11 +109,15 @@ class VistasTests(PruebaBase):
         texto = r.content.decode("utf-8")
         self.assertTrue(texto.startswith("﻿N.º;Fecha;Donante"))
         self.assertIn(".csv", r["Content-Disposition"])
-        self.assertTrue(Bitacora.objects.filter(bit_entidad="reporte", bit_detalle__startswith="Exportación CSV").exists())
+        self.assertTrue(
+            Bitacora.objects.filter(bit_entidad="reporte", bit_detalle__startswith="Exportación CSV").exists()
+        )
         Parametro.objects.filter(par_clave="reportes_separador_csv").update(par_valor=",")
         r = self.client.get(reverse("reportes:exportar", args=["csv"]), {"tipo": "donaciones"})
         self.assertTrue(r.content.decode("utf-8").startswith("﻿N.º,Fecha,Donante"))
-        self.assertEqual(self.client.get(reverse("reportes:exportar", args=["doc"]), {"tipo": "donaciones"}).status_code, 404)
+        self.assertEqual(
+            self.client.get(reverse("reportes:exportar", args=["doc"]), {"tipo": "donaciones"}).status_code, 404
+        )
 
     def test_rango_por_defecto_parametrizado(self):
         Parametro.objects.filter(par_clave="reportes_dias_por_defecto").update(par_valor="30")
@@ -129,7 +134,11 @@ class VistasTests(PruebaBase):
 
     def test_solo_administrador(self):
         self.ingresar(crear_beneficiario())
-        for url in (reverse("reportes:catalogo"), reverse("reportes:programados"), reverse("reportes:exportar", args=["csv"])):
+        for url in (
+            reverse("reportes:catalogo"),
+            reverse("reportes:programados"),
+            reverse("reportes:exportar", args=["csv"]),
+        ):
             self.assertEqual(self.client.get(url).status_code, 403)
 
 
@@ -139,8 +148,13 @@ class ProgramadosTests(PruebaBase):
         crear_donacion(crear_donante())
 
     def programar(self, **datos):
-        base = {"tipo": "donaciones", "destinatarios": "jefe@ejemplo.co, otra@ejemplo.co", "frecuencia": "semanal",
-                "formato": "pdf", "relativo": "1"}
+        base = {
+            "tipo": "donaciones",
+            "destinatarios": "jefe@ejemplo.co, otra@ejemplo.co",
+            "frecuencia": "semanal",
+            "formato": "pdf",
+            "relativo": "1",
+        }
         base.update(datos)
         return self.client.post(reverse("reportes:programar"), base)
 
@@ -183,7 +197,9 @@ class ProgramadosTests(PruebaBase):
         self.programar(frecuencia="diaria")
         rep = ReporteProgramado.objects.get()
         Parametro.objects.filter(par_clave="reportes_hora_envio").update(par_valor="7")
-        temprano = timezone.make_aware(timezone.datetime.combine(timezone.localdate(), timezone.datetime.min.time())) + timedelta(hours=5)
+        temprano = timezone.make_aware(
+            timezone.datetime.combine(timezone.localdate(), timezone.datetime.min.time())
+        ) + timedelta(hours=5)
         self.assertEqual(programados.tarea_envios(temprano)["enviados"], 0)
         tarde = temprano + timedelta(hours=4)
         self.assertEqual(programados.tarea_envios(tarde), {"enviados": 1, "fallidos": 0})
@@ -194,7 +210,9 @@ class ProgramadosTests(PruebaBase):
         self.assertEqual(programados.tarea_envios(tarde + timedelta(days=3))["enviados"], 0)
 
     def test_periodo_relativo(self):
-        rep = ReporteProgramado(rep_estadistica="donaciones", rep_frecuencia="semanal", rep_relativo=True, rep_filtros={"estado": "x"})
+        rep = ReporteProgramado(
+            rep_estadistica="donaciones", rep_frecuencia="semanal", rep_relativo=True, rep_filtros={"estado": "x"}
+        )
         ahora = timezone.now()
         filtros = programados.filtros_de(rep, ahora)
         self.assertEqual(filtros["hasta"], timezone.localtime(ahora).date().isoformat())

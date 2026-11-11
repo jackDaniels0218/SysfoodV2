@@ -1,4 +1,5 @@
 """Actividad 7 y 11: catálogo, carrito y solicitudes."""
+
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
@@ -26,11 +27,13 @@ class CatalogoCarritoTests(PruebaBase):
 
     def test_catalogo_oculta_agotados_retirados_y_vencidos(self):
         from inventario import servicios as inv_srv
+
         inv_srv.ajustar(self.items[0], 0, "Agotado", self.admin)
         inv_srv.dar_baja(self.items[1], "danado", "", self.admin)
         from datetime import timedelta
 
         from django.utils import timezone
+
         Inventario.objects.filter(pk=self.items[2].pk).update(inv_fec_venc=timezone.localdate() - timedelta(days=1))
         r = self.client.get(reverse("solicitudes:catalogo"))
         visibles = {i.pk for i in r.context["pagina"]}
@@ -106,7 +109,10 @@ class RevisionSolicitudesTests(PruebaBase):
 
     def test_aprobar_reserva_y_genera_entrega(self):
         with self.captureOnCommitCallbacks(execute=True):
-            r = self.client.post(self.url, {"accion": "aprobar", "ap-modalidad": "domicilio", "ap-direccion": "Cl 5", "ap-fecha_prog": ""})
+            r = self.client.post(
+                self.url,
+                {"accion": "aprobar", "ap-modalidad": "domicilio", "ap-direccion": "Cl 5", "ap-fecha_prog": ""},
+            )
         entrega = Entrega.objects.get()
         self.assertRedirects(r, reverse("entregas:detalle", args=[entrega.pk]))
         self.sol.refresh_from_db()
@@ -130,6 +136,7 @@ class RevisionSolicitudesTests(PruebaBase):
 
     def test_aprobacion_es_todo_o_nada(self):
         from inventario import servicios as inv_srv
+
         inv_srv.ajustar(self.atun, 1, "Faltante", self.admin)  # Ya no alcanza para el atún.
         r = self.client.post(self.url, {"accion": "aprobar", "ap-modalidad": "recogida"})
         self.assertContains(r, "No hay cantidad suficiente")

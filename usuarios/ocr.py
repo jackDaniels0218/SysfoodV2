@@ -4,6 +4,7 @@ Todo es opcional: si Tesseract, pytesseract o pdf2image no están instalados,
 `disponible()` lo indica y el documento sigue el flujo manual de siempre.
 La revisión de calidad de imagen solo necesita Pillow y funciona siempre.
 """
+
 import io
 import re
 import unicodedata
@@ -13,13 +14,36 @@ from difflib import SequenceMatcher
 from core import parametros
 
 MESES = {
-    "ene": 1, "enero": 1, "feb": 2, "febrero": 2, "mar": 3, "marzo": 3, "abr": 4, "abril": 4, "may": 5, "mayo": 5,
-    "jun": 6, "junio": 6, "jul": 7, "julio": 7, "ago": 8, "agosto": 8, "sep": 9, "sept": 9, "septiembre": 9,
-    "oct": 10, "octubre": 10, "nov": 11, "noviembre": 11, "dic": 12, "diciembre": 12,
+    "ene": 1,
+    "enero": 1,
+    "feb": 2,
+    "febrero": 2,
+    "mar": 3,
+    "marzo": 3,
+    "abr": 4,
+    "abril": 4,
+    "may": 5,
+    "mayo": 5,
+    "jun": 6,
+    "junio": 6,
+    "jul": 7,
+    "julio": 7,
+    "ago": 8,
+    "agosto": 8,
+    "sep": 9,
+    "sept": 9,
+    "septiembre": 9,
+    "oct": 10,
+    "octubre": 10,
+    "nov": 11,
+    "noviembre": 11,
+    "dic": 12,
+    "diciembre": 12,
 }
 
 
 # ---------------------------------------------------------------- Disponibilidad del motor
+
 
 def disponible():
     """(True, versión) si se puede hacer OCR; (False, motivo) si no."""
@@ -35,6 +59,7 @@ def disponible():
 
 
 # ---------------------------------------------------------------- Imágenes
+
 
 def imagenes(contenido, mime, paginas=2):
     """Convierte el archivo en imágenes PIL (las primeras páginas si es PDF)."""
@@ -99,7 +124,9 @@ def calidad(imagen, cfg=None):
     valor_nitidez = nitidez(imagen)
     problemas = []
     if min(imagen.size) < resolucion:
-        problemas.append(f"la imagen es muy pequeña ({imagen.width}×{imagen.height} px); acérquese o use mejor resolución")
+        problemas.append(
+            f"la imagen es muy pequeña ({imagen.width}×{imagen.height} px); acérquese o use mejor resolución"
+        )
     if valor_nitidez < minima:
         problemas.append("la imagen está borrosa; sostenga el celular firme y enfoque el documento")
     if brillo < 45:
@@ -109,12 +136,19 @@ def calidad(imagen, cfg=None):
     elif contraste < 6:
         problemas.append("la imagen no tiene contraste suficiente")
     return {
-        "nitidez": valor_nitidez, "nitidez_minima": minima, "brillo": round(brillo, 1), "contraste": round(contraste, 1),
-        "ancho": imagen.width, "alto": imagen.height, "legible": not problemas, "problemas": problemas,
+        "nitidez": valor_nitidez,
+        "nitidez_minima": minima,
+        "brillo": round(brillo, 1),
+        "contraste": round(contraste, 1),
+        "ancho": imagen.width,
+        "alto": imagen.height,
+        "legible": not problemas,
+        "problemas": problemas,
     }
 
 
 # ---------------------------------------------------------------- Lectura
+
 
 def leer(lista_imagenes):
     """Texto leído y confianza media de Tesseract (0-100)."""
@@ -146,6 +180,7 @@ def leer(lista_imagenes):
 
 
 # ---------------------------------------------------------------- Comparación con lo registrado
+
 
 def plano(texto):
     texto = unicodedata.normalize("NFKD", texto or "").encode("ascii", "ignore").decode().lower()
@@ -246,14 +281,31 @@ def campos_a_comparar(doc):
     ]
     if doc.docv_tipo == "identidad":
         fecha = perfil.ben_fec_exp_doc
-        return base + [("fecha", "Fecha de expedición", fecha.strftime("%d/%m/%Y") if fecha else "",
-                        lambda t: buscar_fecha(t, fecha), 1)]
+        return base + [
+            (
+                "fecha",
+                "Fecha de expedición",
+                fecha.strftime("%d/%m/%Y") if fecha else "",
+                lambda t: buscar_fecha(t, fecha),
+                1,
+            )
+        ]
     if doc.docv_tipo == "sisben":
-        return base + [("sisben", "Grupo de Sisbén", perfil.get_ben_sisben_display(),
-                        lambda t: buscar_grupo_sisben(t, perfil.ben_sisben), 1)]
+        return base + [
+            (
+                "sisben",
+                "Grupo de Sisbén",
+                perfil.get_ben_sisben_display(),
+                lambda t: buscar_grupo_sisben(t, perfil.ben_sisben),
+                1,
+            )
+        ]
     if doc.docv_tipo == "residencia":
-        return [base[1], ("direccion", "Dirección", perfil.ben_dir, lambda t: buscar_nombres(t, perfil.ben_dir), 2),
-                ("estrato", "Estrato", f"Estrato {perfil.ben_estrato}", lambda t: buscar_estrato(t, perfil.ben_estrato), 1)]
+        return [
+            base[1],
+            ("direccion", "Dirección", perfil.ben_dir, lambda t: buscar_nombres(t, perfil.ben_dir), 2),
+            ("estrato", "Estrato", f"Estrato {perfil.ben_estrato}", lambda t: buscar_estrato(t, perfil.ben_estrato), 1),
+        ]
     return base  # Discapacidad: número y nombre.
 
 
@@ -261,8 +313,16 @@ def comparar(doc, texto):
     filas = []
     for clave, etiqueta, esperado, funcion, peso in campos_a_comparar(doc):
         coincide, leido = funcion(texto)
-        filas.append({"campo": clave, "etiqueta": etiqueta, "esperado": str(esperado), "leido": leido,
-                      "coincide": coincide, "peso": peso})
+        filas.append(
+            {
+                "campo": clave,
+                "etiqueta": etiqueta,
+                "esperado": str(esperado),
+                "leido": leido,
+                "coincide": coincide,
+                "peso": peso,
+            }
+        )
     return filas
 
 

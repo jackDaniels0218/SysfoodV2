@@ -13,6 +13,7 @@ Orden de decisión para cada pregunta:
 5. Búsqueda: similitud entre la pregunta y la base de conocimiento.
 6. Si nada supera el umbral, ofrece enviar la pregunta al administrador.
 """
+
 import hashlib
 import logging
 import math
@@ -33,15 +34,36 @@ from .models import ConsultaChat
 
 log = logging.getLogger("sysfood")
 
-PALABRAS_VACIAS = set("""
+PALABRAS_VACIAS = set(
+    """
 a al algo algun alguna como con cual cuales cuando de del donde el ella en es esa ese esta este esto hay la las le
 lo los me mi mis muy necesito no o para pero por puedo puede que se si sin sobre su sus te tengo tiene un una uno
 unos y ya yo quiero hacer hago saber favor ayuda ayudame ayudar porfa hola buenas buenos dias tardes noches gracias
 cuanto cuantos cuanta cuantas tan esta estan estoy ser son fue han he ha debo deberia
-""".split())
+""".split()
+)
 
-SUFIJOS = ("aciones", "iciones", "acion", "icion", "mente", "ando", "iendo", "ados", "idas", "idos", "ado", "ido",
-           "ada", "ida", "ar", "er", "ir", "es", "s")
+SUFIJOS = (
+    "aciones",
+    "iciones",
+    "acion",
+    "icion",
+    "mente",
+    "ando",
+    "iendo",
+    "ados",
+    "idas",
+    "idos",
+    "ado",
+    "ido",
+    "ada",
+    "ida",
+    "ar",
+    "er",
+    "ir",
+    "es",
+    "s",
+)
 
 
 def normalizar(texto):
@@ -79,8 +101,11 @@ class Respuesta:
 
     def como_dict(self):
         return {
-            "texto": self.texto, "fuente": self.fuente, "enlaces": self.enlaces,
-            "sugerencias": self.sugerencias, "ofrecer_contacto": self.ofrecer_contacto,
+            "texto": self.texto,
+            "fuente": self.fuente,
+            "enlaces": self.enlaces,
+            "sugerencias": self.sugerencias,
+            "ofrecer_contacto": self.ofrecer_contacto,
         }
 
 
@@ -101,7 +126,11 @@ class Contexto:
         if ruta:
             try:
                 coincidencia = resolve(ruta)
-                nombre_url = f"{coincidencia.namespace}:{coincidencia.url_name}" if coincidencia.namespace else coincidencia.url_name
+                nombre_url = (
+                    f"{coincidencia.namespace}:{coincidencia.url_name}"
+                    if coincidencia.namespace
+                    else coincidencia.url_name
+                )
             except Resolver404:
                 pass
         return cls(usuario if autenticado else None, rol, ruta, nombre_url, canal)
@@ -115,7 +144,9 @@ _OTRA_PERSONA = re.compile(
     r"de mi vecino|de alguien|de un usuario|de una persona|de el|de ella|de juan|de maria)\b"
 )
 _ANONIMO = re.compile(r"\b(quien|quienes|nombre|identidad|revelar|saber)\b.{0,40}\banonim")
-_LISTADO = re.compile(r"\b(lista|listado|todos los|todas las|base de datos)\b.{0,30}\b(beneficiarios|donantes|usuarios|correos|telefonos|direcciones)\b")
+_LISTADO = re.compile(
+    r"\b(lista|listado|todos los|todas las|base de datos)\b.{0,30}\b(beneficiarios|donantes|usuarios|correos|telefonos|direcciones)\b"
+)
 
 
 def privacidad(texto_norm, contexto):
@@ -129,12 +160,14 @@ def privacidad(texto_norm, contexto):
         return Respuesta(
             "No puedo dar información de otras personas. Solo respondo sobre cómo usar SysFood y sobre sus propios "
             "datos cuando ha ingresado. Si necesita algo de otra persona, escríbale al administrador.",
-            ConsultaChat.PRIVACIDAD, ofrecer_contacto=True,
+            ConsultaChat.PRIVACIDAD,
+            ofrecer_contacto=True,
         )
     return None
 
 
 # ---------------------------------------------------------------- 2. Reglas
+
 
 def _patron(*palabras):
     return re.compile(r"\b(" + "|".join(palabras) + r")\b")
@@ -142,7 +175,9 @@ def _patron(*palabras):
 
 SALUDO = _patron("hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "hey", "saludos")
 GRACIAS = _patron("gracias", "muchas gracias", "listo", "perfecto", "excelente", "ok gracias")
-HUMANO = _patron("hablar con", "contactar", "administrador", "una persona", "humano", "asesor", "soporte", "queja", "reclamo")
+HUMANO = _patron(
+    "hablar con", "contactar", "administrador", "una persona", "humano", "asesor", "soporte", "queja", "reclamo"
+)
 ESTA_PAGINA = re.compile(r"\b(esta pagina|esta pantalla|aqui|que hago|que puedo hacer|para que sirve esto)\b")
 
 
@@ -150,21 +185,34 @@ def reglas(texto_norm, contexto):
     palabras = texto_norm.split()
     if SALUDO.search(texto_norm) and len(palabras) <= 4:
         nombre = f" {contexto.usuario.usu_nom}" if contexto.usuario else ""
-        return Respuesta(f"¡Hola{nombre}! Soy el asistente de SysFood. ¿En qué le ayudo?", ConsultaChat.REGLA,
-                         sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url))
+        return Respuesta(
+            f"¡Hola{nombre}! Soy el asistente de SysFood. ¿En qué le ayudo?",
+            ConsultaChat.REGLA,
+            sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url),
+        )
     if GRACIAS.search(texto_norm) and len(palabras) <= 4:
         return Respuesta("Con gusto. Si necesita algo más, aquí estoy.", ConsultaChat.REGLA)
-    if HUMANO.search(texto_norm) and contexto.rol != kb.ADMIN and not re.search(r"\b(como|que)\b.{0,15}\badministrador\b.{0,15}\b(revisa|aprueba)", texto_norm):
+    if (
+        HUMANO.search(texto_norm)
+        and contexto.rol != kb.ADMIN
+        and not re.search(r"\b(como|que)\b.{0,15}\badministrador\b.{0,15}\b(revisa|aprueba)", texto_norm)
+    ):
         return Respuesta(
             "Puedo enviarle su consulta al administrador. Pulse «Escribir al administrador», cuéntele qué necesita"
-            + (" y deje un correo o teléfono para responderle." if contexto.usuario is None else "; le responderá por notificación o correo."),
-            ConsultaChat.REGLA, ofrecer_contacto=True,
+            + (
+                " y deje un correo o teléfono para responderle."
+                if contexto.usuario is None
+                else "; le responderá por notificación o correo."
+            ),
+            ConsultaChat.REGLA,
+            ofrecer_contacto=True,
         )
     if ESTA_PAGINA.search(texto_norm) and contexto.nombre_url:
         datos = kb.pagina(contexto.nombre_url)
         if datos:
             return Respuesta(
-                f"Está en {datos[0]}. Estas son las preguntas más comunes aquí:", ConsultaChat.REGLA,
+                f"Está en {datos[0]}. Estas son las preguntas más comunes aquí:",
+                ConsultaChat.REGLA,
                 sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url),
             )
     return None
@@ -174,9 +222,20 @@ def reglas(texto_norm, contexto):
 
 MIS = r"\b(mi|mis|tengo|tiene|me)\b"
 INTENCIONES_PROPIAS = [
-    ("solicitudes", re.compile(MIS + r".{0,40}\b(solicitud|solicitudes|pedido|pedidos)\b|\bestado\b.{0,20}\bsolicitud")),
-    ("entregas", re.compile(MIS + r".{0,40}\b(entrega|entregas|mercado|codigo)\b|\bdonde esta\b.{0,20}\b(entrega|pedido)")),
-    ("documentos", re.compile(MIS + r".{0,40}\b(documento|documentos|verificacion|verificado|cuenta)\b|\bestado\b.{0,20}\bdocumentos")),
+    (
+        "solicitudes",
+        re.compile(MIS + r".{0,40}\b(solicitud|solicitudes|pedido|pedidos)\b|\bestado\b.{0,20}\bsolicitud"),
+    ),
+    (
+        "entregas",
+        re.compile(MIS + r".{0,40}\b(entrega|entregas|mercado|codigo)\b|\bdonde esta\b.{0,20}\b(entrega|pedido)"),
+    ),
+    (
+        "documentos",
+        re.compile(
+            MIS + r".{0,40}\b(documento|documentos|verificacion|verificado|cuenta)\b|\bestado\b.{0,20}\bdocumentos"
+        ),
+    ),
     ("donaciones", re.compile(MIS + r".{0,40}\b(donacion|donaciones)\b|\bestado\b.{0,20}\bdonaciones")),
     ("puntaje", re.compile(MIS + r".{0,40}\b(puntaje|prioridad|grupo)\b")),
 ]
@@ -189,16 +248,22 @@ def _fecha(valor):
 def _mis_solicitudes(usuario):
     solicitudes = list(usuario.solicitudes.order_by("-sol_fec_envio")[:3])
     if not solicitudes:
-        return Respuesta("Aún no ha enviado solicitudes. Puede pedir alimentos desde el catálogo.", ConsultaChat.CONTEXTO,
-                         enlaces=[{"texto": "Ir al catálogo", "url": reverse("solicitudes:catalogo")}])
+        return Respuesta(
+            "Aún no ha enviado solicitudes. Puede pedir alimentos desde el catálogo.",
+            ConsultaChat.CONTEXTO,
+            enlaces=[{"texto": "Ir al catálogo", "url": reverse("solicitudes:catalogo")}],
+        )
     lineas = []
     for s in solicitudes:
         linea = f"• Solicitud #{s.pk} del {_fecha(s.sol_fec_envio)}: {s.get_sol_estado_display()}"
         if s.sol_estado == s.RECHAZADA and s.sol_obs_admin:
             linea += f" (motivo: {s.sol_obs_admin[:120]})"
         lineas.append(linea)
-    return Respuesta("Sus solicitudes más recientes:\n" + "\n".join(lineas), ConsultaChat.CONTEXTO,
-                     enlaces=[{"texto": "Ver mis solicitudes", "url": reverse("solicitudes:mis_solicitudes")}])
+    return Respuesta(
+        "Sus solicitudes más recientes:\n" + "\n".join(lineas),
+        ConsultaChat.CONTEXTO,
+        enlaces=[{"texto": "Ver mis solicitudes", "url": reverse("solicitudes:mis_solicitudes")}],
+    )
 
 
 def _mis_entregas(usuario):
@@ -206,13 +271,21 @@ def _mis_entregas(usuario):
 
     entregas = list(Entrega.objects.filter(solicitud__beneficiario=usuario).order_by("-ent_fec_crea")[:3])
     if not entregas:
-        return Respuesta("No tiene entregas todavía. Se crean cuando el administrador aprueba una solicitud.", ConsultaChat.CONTEXTO)
+        return Respuesta(
+            "No tiene entregas todavía. Se crean cuando el administrador aprueba una solicitud.", ConsultaChat.CONTEXTO
+        )
     lineas = [
-        f"• Código {e.ent_cod}: {e.get_ent_estado_display()}" + (f", programada para el {e.ent_fec_prog:%d/%m/%Y}" if e.ent_fec_prog else "")
+        f"• Código {e.ent_cod}: {e.get_ent_estado_display()}"
+        + (f", programada para el {e.ent_fec_prog:%d/%m/%Y}" if e.ent_fec_prog else "")
         for e in entregas
     ]
-    return Respuesta("Sus entregas:\n" + "\n".join(lineas), ConsultaChat.CONTEXTO,
-                     enlaces=[{"texto": "Ver seguimiento", "url": reverse("entregas:seguimiento") + f"?codigo={entregas[0].ent_cod}"}])
+    return Respuesta(
+        "Sus entregas:\n" + "\n".join(lineas),
+        ConsultaChat.CONTEXTO,
+        enlaces=[
+            {"texto": "Ver seguimiento", "url": reverse("entregas:seguimiento") + f"?codigo={entregas[0].ent_cod}"}
+        ],
+    )
 
 
 def _mis_documentos(usuario):
@@ -222,7 +295,11 @@ def _mis_documentos(usuario):
     if usuario.es_beneficiario:
         perfil = usuario.perfil_beneficiario
         requeridos = list(Doc.TIPOS_BENEFICIARIO[:3]) + ([Doc.DISCAPACIDAD] if perfil.ben_discapacidad else [])
-        estado = perfil.get_ben_estado_verif_display() if hasattr(perfil, "get_ben_estado_verif_display") else perfil.ben_estado_verif
+        estado = (
+            perfil.get_ben_estado_verif_display()
+            if hasattr(perfil, "get_ben_estado_verif_display")
+            else perfil.ben_estado_verif
+        )
         encabezado = f"Estado de su cuenta: {estado}."
     else:
         requeridos = list(Doc.TIPOS_DONANTE_JURIDICO)
@@ -238,30 +315,42 @@ def _mis_documentos(usuario):
             if d.docv_estado == Doc.RECHAZADO and d.docv_obs:
                 linea += f" (motivo: {d.docv_obs[:120]})"
             lineas.append(linea)
-    return Respuesta(encabezado + "\n" + "\n".join(lineas), ConsultaChat.CONTEXTO,
-                     enlaces=[{"texto": "Ir a mis documentos", "url": reverse("usuarios:documentos")}])
+    return Respuesta(
+        encabezado + "\n" + "\n".join(lineas),
+        ConsultaChat.CONTEXTO,
+        enlaces=[{"texto": "Ir a mis documentos", "url": reverse("usuarios:documentos")}],
+    )
 
 
 def _mis_donaciones(usuario):
     donaciones = list(usuario.donaciones.order_by("-pk")[:3]) if hasattr(usuario, "donaciones") else []
     if not donaciones:
-        return Respuesta("Aún no ha registrado donaciones.", ConsultaChat.CONTEXTO,
-                         enlaces=[{"texto": "Registrar una donación", "url": reverse("donaciones:nueva")}])
+        return Respuesta(
+            "Aún no ha registrado donaciones.",
+            ConsultaChat.CONTEXTO,
+            enlaces=[{"texto": "Registrar una donación", "url": reverse("donaciones:nueva")}],
+        )
     lineas = [f"• Donación #{d.pk}: {d.get_dona_estado_display()}" for d in donaciones]
-    return Respuesta("Sus donaciones más recientes:\n" + "\n".join(lineas), ConsultaChat.CONTEXTO,
-                     enlaces=[{"texto": "Ver mis donaciones", "url": reverse("donaciones:mis_donaciones")}])
+    return Respuesta(
+        "Sus donaciones más recientes:\n" + "\n".join(lineas),
+        ConsultaChat.CONTEXTO,
+        enlaces=[{"texto": "Ver mis donaciones", "url": reverse("donaciones:mis_donaciones")}],
+    )
 
 
 def _mi_puntaje(usuario):
     perfil = usuario.perfil_beneficiario
     if perfil.ben_puntaje is None:
-        return Respuesta("Su puntaje de necesidad aún no se ha calculado; se calcula al completar sus datos.", ConsultaChat.CONTEXTO)
+        return Respuesta(
+            "Su puntaje de necesidad aún no se ha calculado; se calcula al completar sus datos.", ConsultaChat.CONTEXTO
+        )
     grupo = perfil.grupo
     texto = f"Su puntaje de necesidad es {kb.formato.numero(perfil.ben_puntaje, 1)} de 100"
     texto += f" (grupo «{grupo['nombre']}»)." if grupo else "."
     texto += " Se recalcula solo cuando cambian sus datos o documentos, y cada noche."
-    return Respuesta(texto, ConsultaChat.CONTEXTO,
-                     enlaces=[{"texto": "¿Cómo se calcula?", "url": reverse("usuarios:ayuda_puntaje")}])
+    return Respuesta(
+        texto, ConsultaChat.CONTEXTO, enlaces=[{"texto": "¿Cómo se calcula?", "url": reverse("usuarios:ayuda_puntaje")}]
+    )
 
 
 def datos_propios(texto_norm, contexto):
@@ -270,10 +359,15 @@ def datos_propios(texto_norm, contexto):
         if not patron.search(texto_norm):
             continue
         if usuario is None:
-            return Respuesta("Para consultar sus propios datos primero debe ingresar con su cuenta.", ConsultaChat.REGLA,
-                             enlaces=[{"texto": "Ingresar", "url": reverse("usuarios:login")}])
+            return Respuesta(
+                "Para consultar sus propios datos primero debe ingresar con su cuenta.",
+                ConsultaChat.REGLA,
+                enlaces=[{"texto": "Ingresar", "url": reverse("usuarios:login")}],
+            )
         if intencion in ("solicitudes", "entregas", "puntaje") and usuario.es_beneficiario:
-            return {"solicitudes": _mis_solicitudes, "entregas": _mis_entregas, "puntaje": _mi_puntaje}[intencion](usuario)
+            return {"solicitudes": _mis_solicitudes, "entregas": _mis_entregas, "puntaje": _mi_puntaje}[intencion](
+                usuario
+            )
         if intencion == "documentos" and (usuario.es_beneficiario or usuario.es_donante):
             return _mis_documentos(usuario)
         if intencion == "donaciones" and usuario.es_donante:
@@ -282,6 +376,7 @@ def datos_propios(texto_norm, contexto):
 
 
 # ---------------------------------------------------------------- 5. Búsqueda
+
 
 def _indice(articulos):
     documentos = []
@@ -352,7 +447,9 @@ def preguntar_a_claude(pregunta, encontrados, contexto):
     except Exception as exc:  # Paquete no instalado o clave inválida.
         log.warning("Asistente: no se pudo crear el cliente de Claude: %s", exc)
         return None
-    articulos = "\n\n".join(f"### {art.titulo}\n{art.texto}" for _, art in encontrados) or "(no se encontraron artículos)"
+    articulos = (
+        "\n\n".join(f"### {art.titulo}\n{art.texto}" for _, art in encontrados) or "(no se encontraron artículos)"
+    )
     rol = {"publico": "visitante sin cuenta"}.get(contexto.rol, contexto.rol)
     pagina = kb.pagina(contexto.nombre_url)
     contenido = (
@@ -381,10 +478,13 @@ def preguntar_a_claude(pregunta, encontrados, contexto):
 
 # ---------------------------------------------------------------- Orquestación
 
+
 def _sin_respuesta(contexto):
     return Respuesta(
         "No encontré una respuesta para eso. Puede reformular la pregunta con otras palabras o enviársela al "
-        "administrador, que le responderá.", ConsultaChat.SIN_RESPUESTA, ofrecer_contacto=True,
+        "administrador, que le responderá.",
+        ConsultaChat.SIN_RESPUESTA,
+        ofrecer_contacto=True,
         sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url),
     )
 
@@ -393,8 +493,11 @@ def responder(pregunta, contexto):
     pregunta = (pregunta or "").strip()[:500]
     texto_norm = normalizar(pregunta)
     if not texto_norm:
-        return Respuesta("Escriba su pregunta, por ejemplo: «¿Cómo cargo mis documentos?».", ConsultaChat.REGLA,
-                         sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url))
+        return Respuesta(
+            "Escriba su pregunta, por ejemplo: «¿Cómo cargo mis documentos?».",
+            ConsultaChat.REGLA,
+            sugerencias=kb.sugerencias(contexto.rol, contexto.nombre_url),
+        )
     for paso in (privacidad, reglas, datos_propios):
         respuesta = paso(texto_norm, contexto)
         if respuesta is not None:
@@ -408,9 +511,13 @@ def responder(pregunta, contexto):
         texto = preguntar_a_claude(pregunta, utiles or encontrados, contexto)
         if texto:
             mejor = utiles[0][1] if utiles else None
-            return Respuesta(texto, ConsultaChat.CLAUDE,
-                             enlaces=[{"texto": mejor.titulo, "url": mejor.url}] if mejor and mejor.url else [],
-                             articulo=mejor.clave if mejor else "", similitud=utiles[0][0] if utiles else None)
+            return Respuesta(
+                texto,
+                ConsultaChat.CLAUDE,
+                enlaces=[{"texto": mejor.titulo, "url": mejor.url}] if mejor and mejor.url else [],
+                articulo=mejor.clave if mejor else "",
+                similitud=utiles[0][0] if utiles else None,
+            )
 
     if not utiles:
         respuesta = _sin_respuesta(contexto)
@@ -419,8 +526,14 @@ def responder(pregunta, contexto):
     similitud, mejor = utiles[0]
     enlaces = [{"texto": "Ir a la página", "url": mejor.url}] if mejor.url else []
     relacionados = [a.titulo for _, a in utiles[1:3]]
-    return Respuesta(f"{mejor.titulo}\n{mejor.texto}", ConsultaChat.BUSQUEDA, enlaces=enlaces,
-                     sugerencias=relacionados, articulo=mejor.clave, similitud=similitud)
+    return Respuesta(
+        f"{mejor.titulo}\n{mejor.texto}",
+        ConsultaChat.BUSQUEDA,
+        enlaces=enlaces,
+        sugerencias=relacionados,
+        articulo=mejor.clave,
+        similitud=similitud,
+    )
 
 
 def huella_sesion(clave):
@@ -429,9 +542,16 @@ def huella_sesion(clave):
 
 def registrar(pregunta, respuesta, contexto, sesion=""):
     return ConsultaChat.objects.create(
-        usuario=contexto.usuario, con_sesion=sesion, con_canal=contexto.canal, con_rol=contexto.rol,
-        con_pagina=contexto.pagina[:200], con_pregunta=enmascarar(pregunta)[:500], con_respuesta=respuesta.texto,
-        con_fuente=respuesta.fuente, con_articulo=respuesta.articulo[:60], con_similitud=respuesta.similitud,
+        usuario=contexto.usuario,
+        con_sesion=sesion,
+        con_canal=contexto.canal,
+        con_rol=contexto.rol,
+        con_pagina=contexto.pagina[:200],
+        con_pregunta=enmascarar(pregunta)[:500],
+        con_respuesta=respuesta.texto,
+        con_fuente=respuesta.fuente,
+        con_articulo=respuesta.articulo[:60],
+        con_similitud=respuesta.similitud,
     )
 
 

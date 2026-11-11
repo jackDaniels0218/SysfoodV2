@@ -51,7 +51,7 @@ def porcentaje(parte, total):
 def texto_sobre(color):
     """Color de texto (blanco u oscuro) con contraste suficiente sobre un fondo #RRGGBB (WCAG)."""
     try:
-        r, g, b = (int(color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        r, g, b = (int(color[i : i + 2], 16) / 255 for i in (1, 3, 5))
     except (TypeError, ValueError):
         return "#fff"
 
@@ -70,10 +70,18 @@ def grupo_badge(perfil, mostrar_puntaje=True):
     grupo = perfil.grupo
     if grupo is None:
         return format_html('<span class="badge bg-secondary">{}</span>', formato.numero(perfil.ben_puntaje, 1))
-    puntaje = format_html(' <span class="sf-badge-puntaje">{}</span>', formato.numero(perfil.ben_puntaje, 1)) if mostrar_puntaje else ""
+    puntaje = (
+        format_html(' <span class="sf-badge-puntaje">{}</span>', formato.numero(perfil.ben_puntaje, 1))
+        if mostrar_puntaje
+        else ""
+    )
     return format_html(
         '<span class="badge sf-grupo" style="background:{};color:{}" title="Puntaje de necesidad: {} de 100">{}{}</span>',
-        grupo["color"], texto_sobre(grupo["color"]), formato.numero(perfil.ben_puntaje, 1), grupo["nombre"], puntaje,
+        grupo["color"],
+        texto_sobre(grupo["color"]),
+        formato.numero(perfil.ben_puntaje, 1),
+        grupo["nombre"],
+        puntaje,
     )
 
 

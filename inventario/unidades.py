@@ -8,6 +8,7 @@ todas las demás de `unidades_medida` son contables. Cada producto guarda si su
 unidad era divisible al registrarse (dd_divisible, inv_divisible) y la base de
 datos rechaza decimales en los contables (restricciones CHECK).
 """
+
 import time
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
 
@@ -132,15 +133,24 @@ def no_conformes():
         "Productos donados": con_decimales(contables(DetalleDonacion.objects.all(), "dd_unidad"), "dd_cantidad"),
         "Inventario": con_decimales(
             contables(Inventario.objects.exclude(inv_estado=Inventario.RETIRADO), "inv_unidad"),
-            "inv_cant_inicial", "inv_cant_disp", "inv_cant_reserv",
+            "inv_cant_inicial",
+            "inv_cant_disp",
+            "inv_cant_reserv",
         ),
-        "Carritos": con_decimales(contables(CarritoItem.objects.select_related("inventario"), "inventario.inv_unidad"), "car_cant"),
+        "Carritos": con_decimales(
+            contables(CarritoItem.objects.select_related("inventario"), "inventario.inv_unidad"), "car_cant"
+        ),
         "Solicitudes": con_decimales(
-            contables(SolicitudDetalle.objects.select_related("inventario").filter(solicitud__sol_estado="pendiente"), "inventario.inv_unidad"),
+            contables(
+                SolicitudDetalle.objects.select_related("inventario").filter(solicitud__sol_estado="pendiente"),
+                "inventario.inv_unidad",
+            ),
             "sd_cant",
         ),
         "Entregas": con_decimales(
-            contables(EntregaDetalle.objects.select_related("inventario"), "inventario.inv_unidad"), "de_cant_asig", "de_cant_entregada",
+            contables(EntregaDetalle.objects.select_related("inventario"), "inventario.inv_unidad"),
+            "de_cant_asig",
+            "de_cant_entregada",
         ),
     }
 
