@@ -1,9 +1,12 @@
 # SysFood V2
 
+[![CI](https://github.com/jackDaniels0218/SysfoodV2/actions/workflows/ci.yml/badge.svg)](https://github.com/jackDaniels0218/SysfoodV2/actions/workflows/ci.yml)
+
 Sistema de información web para la gestión de donaciones de alimentos.
 Conecta a **donantes** (personas naturales o jurídicas, públicos o anónimos) con **beneficiarios** en condición de vulnerabilidad, bajo la supervisión de un **administrador**.
 
-- **Tecnología:** Python 3.10+ · Django 5.2 · MySQL 8 · Bootstrap 5 · Chart.js
+- **Tecnología:** Python 3.10+ · Django 5.2 · PostgreSQL 14+ (también MySQL 8) · Bootstrap 5 · Chart.js · Leaflet
+- **Despliegue:** Docker y Render (`render.yaml`), con integración continua en GitHub Actions
 - **Funciona en:** Windows, Linux y macOS · Chrome, Edge y Firefox · computador, tableta y celular
 - **Interfaz:** en español
 
@@ -21,6 +24,13 @@ Estilo propio «Cosecha»: crema cálido, verde bosque y naranja cítrico, con t
 - **Animaciones:** fondo aurora en movimiento, barra de navegación de cristal flotante, aparición escalonada de las tarjetas al hacer scroll, contadores que suben hasta su valor, gráficos que se dibujan, brillo que sigue al cursor, ondas en los botones, avisos que entran y se retiran solos, y pasos de entrega con pulso.
 - **Accesible:** si el sistema operativo tiene activado «reducir movimiento», las animaciones se desactivan.
 - Funciona en computador, tableta y celular.
+
+### Contenido
+
+- [Inicio rápido](#inicio-rápido-sin-configurar-nada) · [Instalación completa](#1-instalación-completa-con-postgresql-local) · [Cuentas de demostración](#2-cuentas-de-demostración)
+- [Cómo probarlo](#3-cómo-probarlo-paso-a-paso): [puntaje](#31-cómo-se-calcula-el-puntaje-de-necesidad) · [mapa](#32-mapa-de-beneficiarios-y-mapa-de-calor) · [documentos y OCR](#33-carga-y-verificación-automática-de-documentos) · [asistente](#34-asistente-de-ayuda-chat) · [inventario](#35-inventario-con-cantidades-coherentes) · [estadísticas](#36-reportes-y-estadísticas) · [usabilidad](#37-usabilidad)
+- [Pruebas automáticas](#4-pruebas-automáticas) · [Tareas programadas](#5-tareas-programadas) · [Correo](#6-correo-electrónico-smtp)
+- [Puesta en producción (Render o servidor propio)](#7-puesta-en-producción) · [Desarrollo y calidad del código](#8-desarrollo-y-calidad-del-código) · [Estructura del proyecto](#9-estructura-del-proyecto)
 
 ---
 
@@ -55,7 +65,7 @@ La primera vez instala las dependencias; las siguientes solo arranca. Esta opci�
 
 ## 1. Instalación completa (con PostgreSQL local)
 
-PostgreSQL es el motor recomendado: es el mismo que usa el despliegue en Render (sección 9). El proyecto también funciona con MySQL 8 (`DB_ENGINE=mysql`) y con SQLite para pruebas rápidas (`DB_ENGINE=sqlite`).
+PostgreSQL es el motor recomendado: es el mismo que usa el despliegue en Render ([sección 7.1](#71-render-recomendado)). El proyecto también funciona con MySQL 8 (`DB_ENGINE=mysql`) y con SQLite para pruebas rápidas (`DB_ENGINE=sqlite`).
 
 ### Requisitos
 
@@ -339,7 +349,7 @@ El proyecto incluye **256 pruebas** que cubren los 22 requerimientos y las mejor
 python manage.py test
 ```
 
-Resultado esperado: `Ran 256 tests ... OK`.
+Resultado esperado: `Ran 256 tests ... OK`. La cobertura es del **88 %** (`coverage run manage.py test && coverage report`). Las pruebas corren en cada *push* en GitHub Actions sobre PostgreSQL 16 ([sección 8](#8-desarrollo-y-calidad-del-código)).
 
 Además se verificó:
 
@@ -402,44 +412,9 @@ DEFAULT_FROM_EMAIL=SysFood <su_correo@gmail.com>
 
 ---
 
-## 7. Puesta en producción (HTTPS)
+## 7. Puesta en producción
 
-1. En `.env`: `DJANGO_DEBUG=0`, una `DJANGO_SECRET_KEY` larga y aleatoria, `DJANGO_ALLOWED_HOSTS=su-dominio.com`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://su-dominio.com` y `DJANGO_HTTPS=1`. Esta última activa la redirección a HTTPS, las cookies seguras y HSTS.
-2. `python manage.py collectstatic`
-3. Servidor de aplicación (funciona en Windows y Linux): `waitress-serve --listen=127.0.0.1:8000 --threads=24 sysfood.wsgi:application`
-4. Ponga delante un proxy con certificado TLS (Nginx, Caddy o IIS) que sirva `/static/` desde `staticfiles/` y reenvíe el resto a waitress con la cabecera `X-Forwarded-Proto`.
-5. **Nunca** publique la carpeta `protegido/`: ahí están los documentos de validación. El sistema los entrega solo a su titular y al administrador.
-
----
-
-## 8. Estructura del proyecto
-
-```
-sysfood/        Configuración de Django (settings, urls)
-core/           Parámetros, notificaciones, bitácora, trazabilidad, control diario, respaldo
-usuarios/       Usuarios, registro, autenticación, recuperación, documentos de validación
-catalogo/       Categorías y bodegas
-donaciones/     Donaciones y sus productos
-inventario/     Inventario, kardex, ajustes, bajas y vencimientos
-solicitudes/    Catálogo, carrito y solicitudes
-entregas/       Entregas, estados, historial y seguimiento
-reportes/       Paneles por rol, reportes, exportación PDF/Excel, mapa
-asistente/      Asistente de ayuda (chat): motor, base de conocimiento, WhatsApp
-templates/      Interfaz (Bootstrap 5)
-static/         CSS, JS y librerías locales (Bootstrap, iconos, Chart.js)
-protegido/      Documentos cargados (no público; excluido de Git)
-backups/        Respaldos (excluido de Git)
-docs/           Modelo de datos, trazabilidad de requerimientos y guía de pruebas
-```
-
-Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md)**.
-Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
-Auditoría de usabilidad: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)**.
-Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.
-
----
-
-## 9. Despliegue en Render
+### 7.1 Render (recomendado)
 
 El repositorio incluye **`render.yaml`**, que crea en un solo paso la base **PostgreSQL** y el **servicio web**. El servicio web se construye con Docker e incluye Tesseract para el OCR.
 
@@ -466,5 +441,80 @@ El dominio de Render se autoriza solo, con `RENDER_EXTERNAL_HOSTNAME`, y se usa 
 - El servicio se **duerme** tras 15 minutos sin visitas y tarda unos segundos en despertar. Mientras duerme no corren las tareas automáticas: se ponen al día al despertar.
 - El disco es **temporal**: los documentos cargados se pierden en cada despliegue. Con un plan pago, descomente el bloque `disk` de `render.yaml` para guardarlos en `/app/protegido`.
 
-**Pasar los datos locales a Render.** Genere un respaldo con `python manage.py respaldo` y restáurelo en Render desde la consola *Shell* del servicio con `python manage.py restaurar <archivo.zip>`. También puede usar `pg_dump` y `pg_restore` con la *External Database URL* que muestra Render.
+**Pasar los datos locales a Render.** Con `pg_dump` y `pg_restore`, usando la *External Database URL* que muestra Render en la página de la base:
 
+```bash
+pg_dump -Fc -U postgres -h 127.0.0.1 sysfood > sysfood.dump
+pg_restore --clean --no-owner -d "<External Database URL>" sysfood.dump
+```
+
+En ese caso ponga `CARGAR_DEMO=0`. En los planes pagos también puede usar la consola *Shell* del servicio con `python manage.py restaurar <archivo.zip>` (respaldo hecho con `python manage.py respaldo`).
+
+### 7.2 Servidor propio (HTTPS)
+
+1. En `.env`: `DJANGO_DEBUG=0`, una `DJANGO_SECRET_KEY` larga y aleatoria (sin ella el sistema no arranca en producción), `DJANGO_ALLOWED_HOSTS=su-dominio.com`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://su-dominio.com` y `DJANGO_HTTPS=1`. Esta última activa la redirección a HTTPS, las cookies seguras y HSTS.
+2. `python manage.py collectstatic`
+3. Servidor de aplicación (funciona en Windows y Linux): `waitress-serve --listen=127.0.0.1:8000 --threads=24 sysfood.wsgi:application`
+4. Ponga delante un proxy con certificado TLS (Nginx, Caddy o IIS) que sirva `/static/` desde `staticfiles/` y reenvíe el resto a waitress con la cabecera `X-Forwarded-Proto`.
+5. **Nunca** publique la carpeta `protegido/`: ahí están los documentos de validación. El sistema los entrega solo a su titular y al administrador.
+
+También puede usar la misma imagen Docker de Render en cualquier servidor: `docker compose up -d` y un proxy con TLS delante.
+
+---
+
+## 8. Desarrollo y calidad del código
+
+```bash
+pip install -r requirements-dev.txt    # ruff y coverage, además de las dependencias
+ruff format .                          # formato (configurado en pyproject.toml)
+ruff check .                           # análisis estático: errores, imports, buenas prácticas de Django
+python manage.py test                  # pruebas
+coverage run manage.py test && coverage report
+```
+
+**Integración continua** (`.github/workflows/ci.yml`): en cada *push* y *pull request* se revisan el formato y el análisis estático, se ejecutan `check` de Django, se verifica que no falten migraciones y corren todas las pruebas sobre PostgreSQL 16 con una cobertura mínima del 80 %.
+
+**Convenciones del proyecto**
+
+- **Parámetros:** toda regla configurable se declara una sola vez en `core/parametros.py` (tipo, rango, grupo y descripción) y se crea sola al migrar. Las reacciones a los cambios usan `@parametros.al_cambiar("prefijo")`.
+- **Tareas automáticas:** se registran en `core/tareas.REGISTRO` y corren una vez por periodo, con bloqueo en la base de datos.
+- **Estadísticas:** se declaran en `reportes/consultas.ESTADISTICAS`; la página, las exportaciones y los envíos salen de ahí.
+- **Auditoría:** toda decisión automática o acción sensible se registra con `core.servicios.auditar` (la bitácora es de solo inserción).
+- **Lógica de negocio** en los módulos `servicios.py` de cada app (transaccionales, con `select_for_update` donde hay inventario de por medio). Las vistas solo validan la entrada y muestran el resultado.
+- **Configuración** por variables de entorno (`.env` en local, panel de Render en producción). Nunca se suben secretos al repositorio.
+- **Nombres en español**, coherentes con el dominio y con el modelo de datos documentado.
+
+---
+
+## 9. Estructura del proyecto
+
+```
+sysfood/        Configuración de Django (settings, urls)
+core/           Parámetros, notificaciones, bitácora, trazabilidad, control diario, respaldo
+usuarios/       Usuarios, registro, autenticación, recuperación, documentos de validación
+catalogo/       Categorías y bodegas
+donaciones/     Donaciones y sus productos
+inventario/     Inventario, kardex, ajustes, bajas y vencimientos
+solicitudes/    Catálogo, carrito y solicitudes
+entregas/       Entregas, estados, historial y seguimiento
+reportes/       Paneles por rol, reportes, exportación PDF/Excel, mapa
+asistente/      Asistente de ayuda (chat): motor, base de conocimiento, WhatsApp
+templates/      Interfaz (Bootstrap 5)
+static/         CSS, JS y librerías locales (Bootstrap, iconos, Chart.js)
+protegido/      Documentos cargados (no público; excluido de Git)
+backups/        Respaldos (excluido de Git)
+docs/           Modelo de datos, requerimientos, guía de pruebas, estadísticas y auditoría de usabilidad
+docker/         Script de arranque del contenedor (espera la base, migra, tareas, servidor)
+.github/        Integración continua (GitHub Actions)
+
+Dockerfile          Imagen de producción (Waitress, Tesseract, usuario sin privilegios)
+docker-compose.yml  Entorno local con PostgreSQL 16
+render.yaml         Despliegue en Render (Blueprint): base PostgreSQL + servicio web
+pyproject.toml      Configuración de ruff y coverage
+.env.example        Variables de entorno documentadas
+```
+
+Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md)**.
+Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
+Auditoría de usabilidad: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)**.
+Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.
