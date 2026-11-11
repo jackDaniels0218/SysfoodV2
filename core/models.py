@@ -70,6 +70,7 @@ class Bitacora(_SoloInsercion):
         ("exportacion_mapa", "Exportación del mapa de beneficiarios"),
         ("verificacion_auto", "Verificación automática de documento"),
         ("escalamiento_chat", "Consulta del asistente enviada al administrador"),
+        ("envio_reporte", "Envío programado de reporte"),
     ]
 
     bit_id = models.BigAutoField(primary_key=True)

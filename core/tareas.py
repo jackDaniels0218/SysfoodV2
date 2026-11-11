@@ -34,6 +34,8 @@ REGISTRO = OrderedDict((t.nombre, t) for t in [
           "Ubica en el mapa a los beneficiarios pendientes y reintenta los fallidos; tras varios fallos los marca para revisión."),
     Tarea("verificacion_documentos", "Lectura automática de documentos", "horaria", "usuarios.verificacion.tarea_pendientes",
           "Lee con OCR los documentos que quedaron sin leer (por ejemplo, si el servicio no estaba disponible) y aplica el semáforo."),
+    Tarea("reportes_programados", "Envío de reportes programados", "horaria", "reportes.programados.tarea_envios",
+          "Envía por correo los reportes programados que ya cumplieron su periodo (desde la hora reportes_hora_envio)."),
     Tarea("limpieza_chat", "Limpieza de consultas del asistente", "diaria", "asistente.motor.tarea_limpieza",
           "Borra las consultas del asistente más antiguas que la retención configurada (chat_retencion_dias)."),
 ])

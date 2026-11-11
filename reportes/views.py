@@ -2,11 +2,18 @@ import csv
 import io
 import json
 from collections import OrderedDict
+from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.http import QueryDict
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from catalogo.models import Bodega, Categoria
@@ -22,7 +29,8 @@ from solicitudes.models import Solicitud
 from usuarios import ubicacion
 from usuarios.models import DocumentoValidacion, PerfilBeneficiario, Usuario
 
-from . import consultas, exportar
+from . import consultas, exportar, programados
+from .models import ReporteProgramado
 
 
 def _conteo(qs, campo, opciones):
@@ -107,19 +115,27 @@ def _dashboard_beneficiario(request):
     })
 
 
-def _filtros(request):
-    """Toma solo filtros válidos: fechas AAAA-MM-DD e identificadores numéricos."""
+def _filtros(request, estadistica=None, datos=None):
+    """Toma solo filtros válidos y admitidos por la estadística: fechas AAAA-MM-DD e identificadores numéricos.
+
+    Sin fechas elegidas, aplica el rango por defecto (`reportes_dias_por_defecto`, 0 = todo el historial).
+    """
+    datos = request.GET if datos is None else datos
+    admitidos = estadistica.filtros if estadistica else consultas.TODOS_LOS_FILTROS
     filtros = {}
     for clave in ("desde", "hasta"):
-        valor = request.GET.get(clave, "").strip()
-        if valor and inicio_dia(valor):
+        valor = datos.get(clave, "").strip()
+        if clave in admitidos and valor and inicio_dia(valor):
             filtros[clave] = valor
     for clave in ("categoria", "donante", "bodega"):
-        valor = request.GET.get(clave, "").strip()
-        if valor.isdigit():
+        valor = datos.get(clave, "").strip()
+        if clave in admitidos and valor.isdigit():
             filtros[clave] = valor
-    if request.GET.get("estado", "").strip():
-        filtros["estado"] = request.GET["estado"].strip()
+    if "estado" in admitidos and datos.get("estado", "").strip():
+        filtros["estado"] = datos["estado"].strip()[:30]
+    dias = parametros.entero("reportes_dias_por_defecto")
+    if dias and "desde" in admitidos and not filtros.get("desde") and not filtros.get("hasta") and not datos.get("todo"):
+        filtros["desde"] = (timezone.localdate() - timedelta(days=dias)).isoformat()
     return filtros
 
 
@@ -135,39 +151,123 @@ def _texto_filtros(f):
     return "Filtros: " + (", ".join(f"{nombres[k]}: {v}" for k, v in valores.items()) if valores else "ninguno") + "."
 
 
+def _estadistica(request):
+    tipo = request.GET.get("tipo", "donaciones")
+    if tipo not in consultas.ESTADISTICAS:
+        raise Http404
+    return consultas.ESTADISTICAS[tipo]
+
+
 @solo_admin
 def reportes(request):
-    tipo = request.GET.get("tipo", "donaciones")
-    if tipo not in consultas.TIPOS:
-        raise Http404
-    filtros = _filtros(request)
-    datos = consultas.generar(tipo, filtros)
-    consulta = request.GET.copy()
-    consulta["tipo"] = tipo
+    est = _estadistica(request)
+    filtros = _filtros(request, est)
+    datos = consultas.generar(est.clave, filtros)
+    consulta = QueryDict(mutable=True)
+    consulta.update({k: v for k, v in filtros.items()})
+    consulta["tipo"] = est.clave
     return render(request, "reportes/reportes.html", {
-        "tipos": consultas.TIPOS, "tipo": tipo, "d": datos, "filtros": filtros, "texto_filtros": _texto_filtros(filtros),
+        "grupos": consultas.por_grupo(), "tipo": est.clave, "est": est, "d": datos, "filtros": filtros,
+        "texto_filtros": _texto_filtros(filtros),
         "g1": json.dumps(datos["grafico"]), "g2": json.dumps(datos.get("grafico2")) if datos.get("grafico2") else "",
         "categorias": Categoria.objects.all(), "bodegas": Bodega.objects.all(), "donantes": consultas.donantes_para_filtro(),
-        "query": consulta.urlencode(),
+        "query": consulta.urlencode(), "formatos": exportar.FORMATOS,
+        "frecuencias": ReporteProgramado.FRECUENCIAS, "programados": ReporteProgramado.objects.filter(rep_estadistica=est.clave).count(),
+        "dias_por_defecto": parametros.entero("reportes_dias_por_defecto"),
     })
 
 
 @solo_admin
 def exportar_reporte(request, formato):
-    tipo = request.GET.get("tipo", "donaciones")
-    if tipo not in consultas.TIPOS or formato not in ("pdf", "xlsx"):
+    est = _estadistica(request)
+    if formato not in exportar.FORMATOS:
         raise Http404
-    filtros = _filtros(request)
-    datos = consultas.generar(tipo, filtros)
+    filtros = _filtros(request, est)
+    datos = consultas.generar(est.clave, filtros)
     texto = _texto_filtros(filtros)
-    nombre = f"sysfood_{tipo}_{timezone.localtime():%Y%m%d_%H%M}"
-    if formato == "pdf":
-        respuesta = HttpResponse(exportar.a_pdf(datos, texto), content_type="application/pdf")
-    else:
-        respuesta = HttpResponse(exportar.a_excel(datos, texto), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    nombre = f"sysfood_{est.clave}_{timezone.localtime():%Y%m%d_%H%M}"
+    respuesta = HttpResponse(exportar.generar_archivo(datos, formato, texto), content_type=exportar.FORMATOS[formato][0])
     respuesta["Content-Disposition"] = f'attachment; filename="{nombre}.{formato}"'
-    auditar(request, "crear", "reporte", tipo, f"Exportación {formato.upper()}. {texto}")
+    auditar(request, "crear", "reporte", est.clave, f"Exportación {formato.upper()}. {texto}")
     return respuesta
+
+
+@solo_admin
+def catalogo(request):
+    """Inventario de todas las estadísticas del sistema, generado desde el registro único."""
+    grupos = OrderedDict(
+        (grupo, [dict(e._asdict(), filtros_texto=consultas.filtros_texto(e)) for e in lista])
+        for grupo, lista in consultas.por_grupo().items()
+    )
+    return render(request, "reportes/catalogo.html", {"grupos": grupos, "paneles": consultas.EN_PANELES})
+
+
+# ---------------------------------------------------------------- Envíos programados por correo
+
+@solo_admin
+@require_POST
+def programar(request):
+    est = consultas.ESTADISTICAS.get(request.POST.get("tipo", ""))
+    if est is None:
+        raise Http404
+    destinatarios = [c.strip() for c in request.POST.get("destinatarios", "").replace(";", ",").split(",") if c.strip()]
+    invalidos = []
+    for correo in destinatarios:
+        try:
+            validate_email(correo)
+        except ValidationError:
+            invalidos.append(correo)
+    frecuencia = request.POST.get("frecuencia", "")
+    formato = request.POST.get("formato", "")
+    volver = reverse("reportes:reportes") + "?" + request.POST.get("query", f"tipo={est.clave}")
+    if not destinatarios or invalidos:
+        messages.error(request, "Revise los correos: " + (", ".join(invalidos) if invalidos else "escriba al menos uno") + ".")
+        return redirect(volver)
+    if frecuencia not in dict(ReporteProgramado.FRECUENCIAS) or formato not in dict(ReporteProgramado.FORMATOS):
+        messages.error(request, "Elija la frecuencia y el formato.")
+        return redirect(volver)
+    filtros = _filtros(request, est, request.POST)
+    relativo = request.POST.get("relativo") == "1"
+    if relativo:
+        filtros.pop("desde", None)
+        filtros.pop("hasta", None)
+    reporte = ReporteProgramado.objects.create(
+        creador=request.user, rep_estadistica=est.clave, rep_filtros=filtros, rep_relativo=relativo,
+        rep_frecuencia=frecuencia, rep_formato=formato, rep_destinatarios=", ".join(destinatarios)[:500],
+    )
+    auditar(request, "crear", "reporte_programado", reporte.pk,
+            f"{est.titulo}, {reporte.get_rep_frecuencia_display().lower()}, {formato.upper()}, a {reporte.rep_destinatarios}")
+    messages.success(request, f"Listo: «{est.titulo}» se enviará {reporte.get_rep_frecuencia_display().lower()} a {len(destinatarios)} correo(s).")
+    return redirect("reportes:programados")
+
+
+@solo_admin
+def programados_lista(request):
+    return render(request, "reportes/programados.html", {
+        "reportes": ReporteProgramado.objects.select_related("creador"),
+        "hora": parametros.entero("reportes_hora_envio"), "nombres_filtros": programados.NOMBRES_FILTROS,
+    })
+
+
+@solo_admin
+@require_POST
+def programado_accion(request, pk, accion):
+    reporte = get_object_or_404(ReporteProgramado, pk=pk)
+    if accion == "enviar":
+        ok, mensaje = programados.enviar(reporte, usuario=request.user)
+        (messages.success if ok else messages.error)(request, mensaje)
+    elif accion == "pausar":
+        reporte.rep_activo = not reporte.rep_activo
+        reporte.save(update_fields=["rep_activo"])
+        auditar(request, "editar", "reporte_programado", pk, "Activado" if reporte.rep_activo else "Pausado")
+        messages.success(request, f"Envío {'activado' if reporte.rep_activo else 'pausado'}.")
+    elif accion == "eliminar":
+        auditar(request, "eliminar", "reporte_programado", pk, f"{reporte.titulo} a {reporte.rep_destinatarios}")
+        reporte.delete()
+        messages.success(request, "Envío programado eliminado.")
+    else:
+        raise Http404
+    return redirect("reportes:programados")
 
 
 # ---------------------------------------------------------------- Mapa de beneficiarios (solo administrador)

@@ -133,3 +133,35 @@ def a_excel(datos, filtros_texto=""):
     buffer = io.BytesIO()
     libro.save(buffer)
     return buffer.getvalue()
+
+
+def a_csv(datos, separador=";"):
+    """Tabla del reporte en CSV (UTF-8 con BOM para que Excel respete las tildes)."""
+    import csv
+
+    salida = io.StringIO()
+    escritor = csv.writer(salida, delimiter=separador, lineterminator="\r\n")
+    escritor.writerow(datos["columnas"])
+    for fila in datos["filas"]:
+        escritor.writerow(["" if v is None else v for v in fila])
+    return ("\ufeff" + salida.getvalue()).encode("utf-8")
+
+
+FORMATOS = {
+    "pdf": ("application/pdf", "PDF"),
+    "xlsx": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Excel"),
+    "csv": ("text/csv; charset=utf-8", "CSV"),
+}
+
+
+def generar_archivo(datos, formato, filtros_texto=""):
+    """Contenido del archivo en el formato pedido: pdf, xlsx o csv."""
+    from core import parametros
+
+    if formato == "pdf":
+        return a_pdf(datos, filtros_texto)
+    if formato == "xlsx":
+        return a_excel(datos, filtros_texto)
+    if formato == "csv":
+        return a_csv(datos, parametros.texto("reportes_separador_csv") or ";")
+    raise ValueError(formato)

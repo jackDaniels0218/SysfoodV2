@@ -30,6 +30,7 @@ erDiagram
     inventario ||--o{ entrega_detalle : ""
     usuario ||--o{ consulta_chat : "pregunta (opcional)"
     usuario ||--o{ filtro_guardado : "guarda"
+    usuario ||--o{ reporte_programado : "programa"
     entrega ||--o{ historial_entrega : "estados"
     entrega ||--o{ kardex : ""
     usuario ||--o{ bitacora : "acciones"
@@ -277,6 +278,20 @@ erDiagram
         datetime tar_ult_ejecucion
         varchar tar_resultado
         int tar_duracion_ms
+    }
+    reporte_programado {
+        int rep_id PK
+        int usu_id FK "creador"
+        varchar rep_estadistica "clave del registro ESTADISTICAS"
+        json rep_filtros
+        bool rep_relativo "solo el último periodo"
+        varchar rep_frecuencia "diaria|semanal|mensual"
+        varchar rep_formato "pdf|xlsx|csv"
+        varchar rep_destinatarios
+        bool rep_activo
+        datetime rep_ultimo_envio
+        varchar rep_resultado
+        datetime rep_fecha_crea
     }
     filtro_guardado {
         bigint fil_id PK

@@ -299,17 +299,26 @@ Se verifican las firmas de ambos proveedores (`X-Hub-Signature-256` y `X-Twilio-
 - **Filtros guardados:** cada usuario guarda con un nombre la combinación de filtros actual y la vuelve a aplicar con un clic (modelo `FiltroGuardado`, reutilizable en otras listas).
 - **Estados vacíos útiles**, que distinguen un inventario vacío de unos filtros que no encuentran nada.
 
+## 3.6 Reportes y estadísticas
+
+Todas las estadísticas se declaran en un **registro único** (`reportes/consultas.py › ESTADISTICAS`) con su título, grupo, descripción, filtros admitidos y función. De él salen la página de reportes, el catálogo **Todas las estadísticas**, las exportaciones y los envíos por correo. El inventario completo está en **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
+
+- **Diez estadísticas**, cuatro de ellas nuevas: *Beneficiarios por zona* (la versión en tabla del mapa de calor), *Verificaciones automáticas y manuales*, *Tiempo promedio de verificación* y *Consultas del asistente de ayuda*. La distribución por grupo de necesidad ya existía desde la mejora 1.
+- **Filtros según cada estadística:** solo se muestran y aceptan los filtros que la estadística admite. Sin fechas elegidas se aplica `reportes_dias_por_defecto` (0 = todo el historial).
+- **Exportación** a PDF, Excel, **CSV** (separador configurable) y cada gráfico como imagen **PNG**. Cada exportación queda en la bitácora.
+- **Envíos programados por correo:** desde cualquier reporte, «Programar envío» con frecuencia diaria, semanal o mensual, formato y destinatarios. Puede cubrir solo el último periodo. La tarea horaria `reportes_programados` envía desde `reportes_hora_envio`. En *Envíos programados* se puede enviar ahora, pausar o eliminar.
+
 ---
 
 ## 4. Pruebas automáticas
 
-El proyecto incluye **224 pruebas** que cubren los 22 requerimientos y las mejoras: funcionales, seguridad, rendimiento, integridad y respaldo.
+El proyecto incluye **242 pruebas** que cubren los 22 requerimientos y las mejoras: funcionales, seguridad, rendimiento, integridad y respaldo.
 
 ```bash
 python manage.py test
 ```
 
-Resultado esperado: `Ran 224 tests ... OK`.
+Resultado esperado: `Ran 242 tests ... OK`.
 
 Además se verificó:
 
@@ -331,6 +340,7 @@ El sistema decide y actúa solo. Todas las tareas están en un único registro (
 | `recalculo_puntajes` | diaria (nocturna) | Recalcula el puntaje y el grupo de todos los beneficiarios |
 | `geocodificacion` | horaria | Ubica a los beneficiarios pendientes y reintenta los fallidos |
 | `verificacion_documentos` | horaria | Lee con OCR los documentos que quedaron sin leer y aplica el semáforo |
+| `reportes_programados` | horaria | Envía por correo los reportes programados que ya cumplieron su periodo |
 | `limpieza_chat` | diaria | Borra las consultas del asistente más antiguas que `chat_retencion_dias` |
 
 Cada tarea corre **una sola vez por periodo**, aunque varias fuentes intenten lanzarla. Se ejecutan de tres formas:
@@ -402,4 +412,5 @@ docs/           Modelo de datos, trazabilidad de requerimientos y guía de prueb
 ```
 
 Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md)**.
+Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
 Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.

@@ -144,7 +144,16 @@ Con `nuevo@sysfood.local` en *Documentos*:
 - [ ] `python manage.py revisar_cantidades` → «Todas las cantidades son coherentes con su unidad».
 - [ ] En *Parámetros › Inventario*: `unidades_divisibles` no acepta unidades que no estén en `unidades_medida`, y `unidades_abreviaturas` cambia cómo se muestran.
 
-## 15. Pruebas automáticas
+## 15. Reportes y estadísticas (mejora 7)
+
+- [ ] En *Sistema › Reportes* las estadísticas aparecen agrupadas. Abra **Verificaciones automáticas y manuales**, **Tiempo promedio de verificación**, **Beneficiarios por zona** (con el enlace al mapa de calor) y **Consultas del asistente de ayuda**: cada una tiene resumen, gráficos y tabla.
+- [ ] Cada estadística muestra solo sus filtros: «Consultas del asistente» no tiene categoría ni bodega.
+- [ ] **CSV** descarga la tabla y se abre bien en Excel, con tildes y columnas separadas. **PNG** descarga el gráfico con su título.
+- [ ] **Programar envío** con su correo y frecuencia semanal → aparece en *Envíos programados*. **Enviar ahora** → llega el correo con el archivo adjunto (sin SMTP se ve en la consola). Pausar y eliminar funcionan.
+- [ ] **Todas las estadísticas** lista el inventario completo, incluidos los indicadores de los paneles.
+- [ ] En *Parámetros › Reportes y estadísticas*: con `reportes_dias_por_defecto` = 30, los reportes sin fechas muestran los últimos 30 días y ofrecen «Ver todo el historial».
+
+## 16. Pruebas automáticas
 
 ```bash
 python manage.py test

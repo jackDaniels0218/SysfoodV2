@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Envíos programados{% endblock %}
+{% block contenido %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Envíos programados de reportes</h1>
+    <p class="text-muted mb-0">Cada envío llega por correo con el archivo adjunto. La tarea <em>Envío de reportes programados</em> revisa cada hora y envía desde las {{ hora }}:00 (parámetro <code>reportes_hora_envio</code>).</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{% url 'reportes:reportes' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a reportes</a>
+</div>
+
+{% if reportes %}
+<div class="table-responsive"><table class="table bg-white align-middle">
+<caption class="visually-hidden">Reportes programados</caption>
+<thead><tr><th scope="col">Estadística</th><th scope="col">Frecuencia</th><th scope="col">Destinatarios</th><th scope="col">Último envío</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
+<tbody>
+{% for r in reportes %}
+<tr class="{% if not r.rep_activo %}text-muted{% endif %}">
+  <td><a href="{% url 'reportes:reportes' %}?tipo={{ r.rep_estadistica }}" class="fw-semibold">{{ r.titulo }}</a>
+    <div class="small text-muted">{{ r.get_rep_formato_display }} · {% if r.rep_relativo %}solo el último periodo{% else %}fechas fijas{% endif %}{% for k, v in r.rep_filtros.items %} · {{ k }}: {{ v }}{% endfor %}</div>
+    {% if not r.rep_activo %}<span class="badge bg-secondary">Pausado</span>{% endif %}</td>
+  <td>{{ r.get_rep_frecuencia_display }}</td>
+  <td class="small text-break">{{ r.rep_destinatarios }}</td>
+  <td class="small">{{ r.rep_ultimo_envio|date:"d/m/Y h:i a"|default:"Aún no" }}{% if r.rep_resultado %}<div class="text-muted">{{ r.rep_resultado }}</div>{% endif %}</td>
+  <td class="text-nowrap">
+    <form method="post" action="{% url 'reportes:programado_accion' r.pk 'enviar' %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" data-cargando="Enviando…"><i class="bi bi-send" aria-hidden="true"></i> Enviar ahora</button></form>
+    <form method="post" action="{% url 'reportes:programado_accion' r.pk 'pausar' %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{% if r.rep_activo %}<i class="bi bi-pause" aria-hidden="true"></i> Pausar{% else %}<i class="bi bi-play" aria-hidden="true"></i> Activar{% endif %}</button></form>
+    <form method="post" action="{% url 'reportes:programado_accion' r.pk 'eliminar' %}" class="d-inline" data-confirmar="¿Eliminar el envío programado de «{{ r.titulo }}»?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" aria-label="Eliminar el envío de {{ r.titulo }}"><i class="bi bi-trash3" aria-hidden="true"></i></button></form>
+  </td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% else %}
+{% url 'reportes:reportes' as url_reportes %}
+{% include "parciales/vacio.html" with icono="envelope-paper" titulo="Aún no hay envíos programados" texto="Abra cualquier reporte, aplique los filtros y pulse «Programar envío» para recibirlo por correo cada día, semana o mes." url=url_reportes accion="Ir a reportes" %}
+{% endif %}
+{% endblock %}

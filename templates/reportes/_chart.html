@@ -13,6 +13,27 @@ window.SF_COLORES = ["#1f9d68", "#ff8a3d", "#3b82c4", "#d64545", "#7b61c9", "#ff
   aplicarTema();
   document.addEventListener("sf-tema", function () { setTimeout(aplicarTema, 60); });
 })();
+// Descarga el gráfico como PNG, con su título y el fondo del tema actual.
+window.sfDescargarGrafico = function (id, nombre) {
+  var el = document.getElementById(id);
+  if (!el) { return; }
+  var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); };
+  var dpr = el.width / (el.clientWidth || el.width);
+  var margen = Math.round(44 * dpr);
+  var lienzo = document.createElement("canvas");
+  lienzo.width = el.width; lienzo.height = el.height + margen + Math.round(12 * dpr);
+  var ctx = lienzo.getContext("2d");
+  ctx.fillStyle = css("--sf-surface") || "#ffffff";
+  ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+  ctx.fillStyle = css("--sf-ink") || "#14261d";
+  ctx.font = "600 " + Math.round(15 * dpr) + "px 'Plus Jakarta Sans', system-ui, sans-serif";
+  ctx.fillText(el.getAttribute("aria-label") || "", Math.round(12 * dpr), Math.round(28 * dpr));
+  ctx.drawImage(el, 0, margen);
+  var enlace = document.createElement("a");
+  enlace.download = "sysfood_" + (nombre || id) + ".png";
+  enlace.href = lienzo.toDataURL("image/png");
+  document.body.appendChild(enlace); enlace.click(); enlace.remove();
+};
 window.sfGrafico = function (id, tipo, datos, opciones) {
   var el = document.getElementById(id);
   if (!el || !datos) { return; }

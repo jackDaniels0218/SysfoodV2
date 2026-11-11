@@ -31,11 +31,13 @@ GRUPOS = OrderedDict([
     ("Mapa y geocodificación", "Ubicación automática de los beneficiarios, mapa y mapa de calor"),
     ("Verificación automática", "Lectura de documentos con OCR, calidad de imagen y decisión por semáforo"),
     ("Asistente de ayuda", "Chat de ayuda: modo de respuesta, umbral de búsqueda, límites y retención"),
+    ("Reportes y estadísticas", "Rango por defecto, exportación CSV y envíos programados por correo"),
 ])
 
 # Valores permitidos de los parámetros de tipo «opcion».
 OPCIONES = {
     "geo_proveedor": [("nominatim", "Nominatim (OpenStreetMap, gratuito)"), ("desactivado", "Desactivado")],
+    "reportes_separador_csv": [(";", "Punto y coma (Excel en español)"), (",", "Coma")],
     "chat_modo": [("reglas", "Reglas y búsqueda (gratuito, sin internet)"), ("claude", "API de Claude (requiere ANTHROPIC_API_KEY)")],
 }
 
@@ -142,6 +144,16 @@ DEFINICIONES = OrderedDict([
     ("chat_max_por_hora", _p("40", "Preguntas máximas por sesión en una hora (evita abusos).", "entero", "Asistente de ayuda", 1, 1000)),
     ("chat_retencion_dias", _p("180", "Días que se guardan las consultas del asistente antes de borrarse solas.", "entero", "Asistente de ayuda", 1, 3650)),
     ("chat_bienvenida", _p("¡Hola{nombre}! Soy el asistente de SysFood. Pregúnteme cómo usar el sistema.", "Saludo inicial del asistente ({nombre} se reemplaza por el nombre de quien ingresó).", "texto", "Asistente de ayuda")),
+    # --- Reportes y estadísticas
+    ("reportes_dias_por_defecto", _p(
+        "0", "Si no se eligen fechas, los reportes muestran los últimos N días (0 = todo el historial).",
+        "entero", "Reportes y estadísticas", 0, 3650,
+    )),
+    ("reportes_separador_csv", _p(";", "Separador de columnas de los archivos CSV.", "opcion", "Reportes y estadísticas")),
+    ("reportes_hora_envio", _p(
+        "7", "Hora del día (0 a 23) a partir de la cual se envían los reportes programados por correo.",
+        "entero", "Reportes y estadísticas", 0, 23,
+    )),
     ("ocr_tiempo_maximo", _p("40", "Segundos máximos de lectura por documento.", "entero", "Verificación automática", 5, 300)),
 ])
 

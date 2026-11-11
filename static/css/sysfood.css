@@ -542,3 +542,10 @@ section[id] { scroll-margin-top: 6rem; }
 .sf-inv-cantidad { font-family: "Fraunces", serif; font-size: 1.6rem; font-weight: 600; line-height: 1.2; }
 .sf-filtros-guardados .dropdown-menu { min-width: 240px; }
 .sf-inv-acciones .btn { white-space: nowrap; }
+
+/* ---------------------------------------------------------------- Reportes y estadísticas */
+.sf-est-nav { display: flex; flex-direction: column; gap: .4rem; }
+.sf-est-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.sf-est-grupo-nombre { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sf-muted); min-width: 11rem; }
+.sf-est-grupo .nav-link { padding: .3rem .75rem; font-size: .88rem; }
+@media (max-width: 575px) { .sf-est-grupo-nombre { min-width: 100%; } }
