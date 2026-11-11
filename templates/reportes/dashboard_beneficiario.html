@@ -2,6 +2,7 @@
 {% block titulo %}Mi panel{% endblock %}
 {% block contenido %}
 <h1 class="h3">Hola, {{ user.usu_nom }}</h1>
+{% include "parciales/primeros_pasos.html" %}
 <div class="row g-3 mb-4">
   <div class="col-md-4"><div class="card tarjeta-indicador h-100"><div class="card-body">
     <div class="small text-muted">Estado de verificación</div>

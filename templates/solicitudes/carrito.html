@@ -30,6 +30,6 @@
   <a class="btn btn-link" href="{% url 'solicitudes:catalogo' %}">Seguir agregando</a>
 </div>
 {% else %}
-<div class="alert alert-info">Su carrito está vacío. <a href="{% url 'solicitudes:catalogo' %}" class="alert-link">Ir al catálogo</a>.</div>
+{% url "solicitudes:catalogo" as url_cat %}{% include "parciales/vacio.html" with icono="cart3" titulo="Su carrito está vacío" texto="Agregue alimentos desde el catálogo. Si quitó algo por error, use «Deshacer» en el aviso de arriba." url=url_cat accion="Ir al catálogo" %}
 {% endif %}
 {% endblock %}

@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import slugify
@@ -190,3 +190,17 @@ def filtro_eliminar(request, pk):
     filtro.delete()
     messages.success(request, f"Filtro «{filtro.fil_nombre}» eliminado.")
     return redirect(destino)
+
+
+@login_required
+def buscar(request):
+    """Búsqueda global. Devuelve JSON para la paleta (Ctrl+K) y HTML sin JavaScript."""
+    from . import busqueda
+
+    consulta = request.GET.get("q", "").strip()
+    grupos = busqueda.buscar(request.user, consulta)
+    if request.headers.get("Accept", "").startswith("application/json") or request.GET.get("formato") == "json":
+        respuesta = JsonResponse({"consulta": consulta, "grupos": [{"nombre": g, "resultados": r} for g, r in grupos]})
+        respuesta["Cache-Control"] = "private, no-store"
+        return respuesta
+    return render(request, "core/buscar.html", {"consulta": consulta, "grupos": grupos})

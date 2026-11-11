@@ -19,7 +19,7 @@
 <td>{% include "parciales/estado.html" with valor=s.sol_estado texto=s.get_sol_estado_display %}</td>
 <td>{% if s.entrega %}<a href="{% url 'entregas:detalle' s.entrega.pk %}">{{ s.entrega.ent_cod }}</a>{% else %}—{% endif %}</td>
 <td><a class="btn btn-sm btn-outline-primary" href="{% url 'solicitudes:admin_detalle' s.pk %}">{% if s.sol_estado == 'pendiente' %}Revisar{% else %}Ver{% endif %}</a></td></tr>
-{% empty %}<tr><td colspan="8" class="text-muted">No hay solicitudes con esos filtros.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="Ninguna solicitud coincide con los filtros" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% include "parciales/vacio.html" with icono="check2-circle" titulo="No hay solicitudes pendientes" texto="Todo al día. Las nuevas solicitudes aparecerán aquí ordenadas por prioridad." %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 {% include "parciales/paginacion.html" %}
 {% endblock %}

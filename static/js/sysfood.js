@@ -30,10 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
     sel.addEventListener("change", cambiar); cambiar();
   });
 
-  // Confirmaciones.
-  document.querySelectorAll("form[data-confirmar]").forEach(function (f) {
-    f.addEventListener("submit", function (e) { if (!confirm(f.dataset.confirmar)) { e.preventDefault(); } });
-  });
+  // Las confirmaciones (form[data-confirmar]) las maneja ux.js con una ventana accesible.
 
   // Formsets dinámicos (productos de la donación).
   document.querySelectorAll("[data-formset]").forEach(function (contenedor) {
@@ -186,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // --- Los avisos de éxito se retiran solos ---
-    document.querySelectorAll(".alert-success.alert-dismissible, .alert-info.alert-dismissible").forEach(function (a) {
+    document.querySelectorAll(".alert-success.alert-dismissible:not(.sf-con-deshacer), .alert-info.alert-dismissible:not(.sf-con-deshacer)").forEach(function (a) {
       setTimeout(function () {
         a.classList.add("sf-saliendo");
         setTimeout(function () { a.remove(); }, 520);

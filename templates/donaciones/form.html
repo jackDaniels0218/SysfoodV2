@@ -3,21 +3,134 @@
 {% block contenido %}
 <h1 class="h3">{{ titulo }}</h1>
 <p class="text-muted">Registre uno o varios productos. Al guardar, ingresan automáticamente al inventario.</p>
-<form method="post" novalidate>{% csrf_token %}
-  <div class="card mb-3"><div class="card-body">
-    {% include "parciales/form.html" %}
-  </div></div>
-  <h2 class="h5">Productos</h2>
-  {{ formset.management_form }}
-  {% for e in formset.non_form_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
-  <div data-formset="{{ formset.prefix }}">
-    {% for f in formset %}{% include "donaciones/_producto.html" %}{% endfor %}
-  </div>
-  <template id="plantilla-{{ formset.prefix }}">{% with f=formset.empty_form %}{% include "donaciones/_producto.html" %}{% endwith %}</template>
-  <button type="button" class="btn btn-outline-success mb-3" data-agregar="{{ formset.prefix }}"><i class="bi bi-plus-circle"></i> Agregar otro producto</button>
-  <div class="d-flex gap-2">
-    <button class="btn btn-sysfood btn-lg" type="submit">Guardar donación</button>
-    <a class="btn btn-link" href="{% if objeto %}{% url 'donaciones:detalle' objeto.pk %}{% else %}{% url 'donaciones:mis_donaciones' %}{% endif %}">Cancelar</a>
-  </div>
+<ol class="sf-pasos-wizard d-none" id="wizard-pasos" aria-label="Pasos para registrar la donación">
+  <li data-indicador="1">Productos</li>
+  <li data-indicador="2">Opciones</li>
+  <li data-indicador="3">Revisar y guardar</li>
+</ol>
+<form method="post" novalidate data-wizard>{% csrf_token %}
+  <section data-paso="1" aria-labelledby="paso1-titulo">
+    <h2 class="h5" id="paso1-titulo">Productos</h2>
+    {{ formset.management_form }}
+    {% for e in formset.non_form_errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+    <div data-formset="{{ formset.prefix }}">
+      {% for f in formset %}{% include "donaciones/_producto.html" %}{% endfor %}
+    </div>
+    <template id="plantilla-{{ formset.prefix }}">{% with f=formset.empty_form %}{% include "donaciones/_producto.html" %}{% endwith %}</template>
+    <button type="button" class="btn btn-outline-success mb-3" data-agregar="{{ formset.prefix }}"><i class="bi bi-plus-circle" aria-hidden="true"></i> Agregar otro producto</button>
+    <div class="d-none mb-3" data-navegacion><button type="button" class="btn btn-sysfood" data-ir="2">Siguiente: opciones <i class="bi bi-arrow-right" aria-hidden="true"></i></button></div>
+  </section>
+  <section data-paso="2" aria-labelledby="paso2-titulo">
+    <h2 class="h5" id="paso2-titulo">Opciones de la donación</h2>
+    <div class="card mb-3"><div class="card-body">{% include "parciales/form.html" %}</div></div>
+    <div class="d-none mb-3 gap-2" data-navegacion>
+      <button type="button" class="btn btn-outline-secondary" data-ir="1"><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a productos</button>
+      <button type="button" class="btn btn-sysfood" data-ir="3">Siguiente: revisar <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+    </div>
+  </section>
+  <section data-paso="3" aria-labelledby="paso3-titulo">
+    <h2 class="h5 d-none" id="paso3-titulo" data-solo-wizard>Revise antes de guardar</h2>
+    <div id="wizard-resumen" class="mb-3" aria-live="polite"></div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-secondary d-none" data-ir="2" data-solo-wizard><i class="bi bi-arrow-left" aria-hidden="true"></i> Volver</button>
+      <button class="btn btn-sysfood btn-lg" type="submit" data-cargando="Guardando…">Guardar donación</button>
+      <a class="btn btn-link" href="{% if objeto %}{% url 'donaciones:detalle' objeto.pk %}{% else %}{% url 'donaciones:mis_donaciones' %}{% endif %}">Cancelar</a>
+    </div>
+  </section>
 </form>
+{% endblock %}
+{% block scripts %}
+<script>
+// Asistente en tres pasos. Sin JavaScript el formulario se ve completo y funciona igual.
+(function () {
+  var form = document.querySelector("[data-wizard]");
+  if (!form) { return; }
+  form.classList.add("wizard-activo");
+  var pasos = form.querySelectorAll("[data-paso]");
+  var indicadores = document.querySelectorAll("[data-indicador]");
+  document.getElementById("wizard-pasos").classList.remove("d-none");
+  form.querySelectorAll("[data-navegacion]").forEach(function (n) { n.classList.remove("d-none"); n.classList.add("d-flex"); });
+  form.querySelectorAll("[data-solo-wizard]").forEach(function (n) { n.classList.remove("d-none"); });
+
+  function tarjetas() {
+    return Array.prototype.filter.call(form.querySelectorAll("[data-formset] .producto-form"), function (t) { return !t.classList.contains("d-none"); });
+  }
+  function valido(paso) {
+    var campos = pasos[paso - 1].querySelectorAll("input, select, textarea");
+    for (var i = 0; i < campos.length; i++) {
+      var c = campos[i];
+      if (c.type === "hidden" || c.disabled || c.closest(".d-none")) { continue; }
+      if (!c.checkValidity()) { c.reportValidity(); c.focus(); return false; }
+    }
+    if (paso === 1) {
+      // Los formularios del formset no llevan «required»: se revisan los campos obligatorios de cada producto.
+      var obligatorios = { "categoria": "la categoría", "dd_nom": "el nombre", "dd_cantidad": "la cantidad", "dd_unidad": "la unidad", "dd_fec_venc": "la fecha de vencimiento" };
+      var lista = tarjetas();
+      for (var t = 0; t < lista.length; t++) {
+        for (var sufijo in obligatorios) {
+          var campo = lista[t].querySelector("[name$='-" + sufijo + "']");
+          if (campo && !campo.value) {
+            campo.setCustomValidity("Escriba " + obligatorios[sufijo] + " del producto " + (t + 1) + ".");
+            campo.reportValidity(); campo.focus();
+            campo.addEventListener("input", function limpiar() { this.setCustomValidity(""); this.removeEventListener("input", limpiar); });
+            campo.addEventListener("change", function limpiar() { this.setCustomValidity(""); this.removeEventListener("change", limpiar); });
+            return false;
+          }
+        }
+      }
+      if (!lista.length) { return false; }
+    }
+    return true;
+  }
+  function texto(t, sufijo) {
+    var c = t.querySelector("[name$='" + sufijo + "']");
+    if (!c) { return ""; }
+    if (c.tagName === "SELECT") { return c.selectedIndex > 0 ? c.options[c.selectedIndex].text : ""; }
+    return c.value;
+  }
+  function resumen() {
+    var caja = document.getElementById("wizard-resumen");
+    caja.textContent = "";
+    var tabla = document.createElement("table");
+    tabla.className = "table table-sm bg-white mb-2";
+    var cab = tabla.createTHead().insertRow();
+    ["Producto", "Categoría", "Cantidad", "Vence"].forEach(function (h) { var th = document.createElement("th"); th.scope = "col"; th.textContent = h; cab.appendChild(th); });
+    var cuerpo = tabla.createTBody();
+    tarjetas().forEach(function (t) {
+      var fila = cuerpo.insertRow();
+      var fecha = texto(t, "dd_fec_venc");
+      [texto(t, "dd_nom"), texto(t, "categoria"), (texto(t, "dd_cantidad") + " " + texto(t, "dd_unidad").toLowerCase()).trim(),
+       fecha ? fecha.split("-").reverse().join("/") : ""].forEach(function (v) { fila.insertCell().textContent = v || "—"; });
+    });
+    var envoltura = document.createElement("div"); envoltura.className = "table-responsive"; envoltura.appendChild(tabla);
+    caja.appendChild(envoltura);
+    var anonima = form.querySelector("[name='dona_anonima']");
+    var p = document.createElement("p");
+    p.className = "small mb-0";
+    p.textContent = (anonima && anonima.checked) ? "Donación anónima: los beneficiarios verán «Donante anónimo»." : "Donación pública: se mostrará su nombre.";
+    caja.appendChild(p);
+  }
+  function ir(n, enfocar) {
+    pasos.forEach(function (p) { p.classList.toggle("activo", p.dataset.paso === String(n)); });
+    indicadores.forEach(function (li) {
+      var k = Number(li.dataset.indicador);
+      li.classList.toggle("hecho", k < n);
+      if (k === n) { li.setAttribute("aria-current", "step"); } else { li.removeAttribute("aria-current"); }
+    });
+    if (n === 3) { resumen(); }
+    if (enfocar) { var h = pasos[n - 1].querySelector("h2"); if (h) { h.setAttribute("tabindex", "-1"); h.focus(); } }
+  }
+  form.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-ir]");
+    if (!b) { return; }
+    var destino = Number(b.dataset.ir);
+    var actual = Number(form.querySelector("[data-paso].activo").dataset.paso);
+    if (destino > actual && !valido(actual)) { return; }
+    ir(destino, true);
+  });
+  // Si el servidor devolvió errores, se abre el paso donde están.
+  var conError = form.querySelector(".is-invalid, .invalid-feedback, .alert-danger, .errorlist");
+  ir(conError ? Number(conError.closest("[data-paso]").dataset.paso) : 1, false);
+})();
+</script>
 {% endblock %}

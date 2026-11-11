@@ -1,0 +1,61 @@
+{# Ventanas comunes: confirmación, búsqueda global (Ctrl+K) y atajos de teclado (?). Las usa static/js/ux.js. #}
+<div class="modal fade" id="sf-confirmar" tabindex="-1" aria-labelledby="sf-confirmar-titulo" aria-describedby="sf-confirmar-texto" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title h5" id="sf-confirmar-titulo"><i class="bi bi-question-circle" aria-hidden="true"></i> Confirmar</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancelar"></button></div>
+    <div class="modal-body"><p id="sf-confirmar-texto" class="mb-0"></p></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-danger" id="sf-confirmar-si">Sí, continuar</button></div>
+  </div></div>
+</div>
+
+{% if user.is_authenticated %}
+<div class="modal fade" id="sf-paleta" tabindex="-1" aria-label="Búsqueda global" aria-hidden="true" data-url="{% url 'core:buscar' %}">
+  <div class="modal-dialog modal-lg sf-paleta-dialogo"><div class="modal-content">
+    <div class="modal-body p-0">
+      <form class="sf-paleta-buscar" role="search" action="{% url 'core:buscar' %}">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <label class="visually-hidden" for="sf-paleta-q">Buscar en SysFood</label>
+        <input id="sf-paleta-q" name="q" type="search" autocomplete="off" placeholder="Buscar páginas, personas, productos, #solicitud o código de entrega…"
+               role="combobox" aria-expanded="false" aria-controls="sf-paleta-lista" aria-autocomplete="list">
+        <kbd>Esc</kbd>
+      </form>
+      <div id="sf-paleta-lista" class="sf-paleta-lista" role="listbox" aria-label="Resultados"></div>
+      <div class="sf-paleta-pie"><span><kbd>↑</kbd><kbd>↓</kbd> moverse</span><span><kbd>Enter</kbd> abrir</span><span><kbd>?</kbd> atajos</span></div>
+    </div>
+  </div></div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="sf-atajos" tabindex="-1" aria-labelledby="sf-atajos-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title h5" id="sf-atajos-titulo"><i class="bi bi-keyboard" aria-hidden="true"></i> Atajos de teclado</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+    <div class="modal-body">
+      <table class="table table-sm mb-0 sf-atajos-tabla">
+        <tbody>
+          {% if user.is_authenticated %}<tr><td><kbd>/</kbd> o <kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Buscar en todo el sistema</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>p</kbd></td><td>Ir al panel</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>n</kbd></td><td>Ir a notificaciones</td></tr>
+          {% if user.es_admin %}<tr><td><kbd>g</kbd> luego <kbd>i</kbd></td><td>Ir al inventario</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>s</kbd></td><td>Ir a solicitudes</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>d</kbd></td><td>Ir a documentos por revisar</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>r</kbd></td><td>Ir a reportes</td></tr>
+          {% elif user.es_donante %}<tr><td><kbd>g</kbd> luego <kbd>d</kbd></td><td>Registrar una donación</td></tr>
+          {% elif user.es_beneficiario %}<tr><td><kbd>g</kbd> luego <kbd>c</kbd></td><td>Ir al catálogo</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>s</kbd></td><td>Ir a mis solicitudes</td></tr>
+          <tr><td><kbd>g</kbd> luego <kbd>d</kbd></td><td>Ir a mis documentos</td></tr>{% endif %}{% endif %}
+          <tr><td><kbd>Alt</kbd>+<kbd>A</kbd></td><td>Abrir el asistente de ayuda</td></tr>
+          <tr><td><kbd>t</kbd></td><td>Cambiar entre modo claro y oscuro</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Ver esta lista</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Cerrar ventanas</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+</div>
+{% if user.is_authenticated %}
+<script id="sf-atajos-rutas" type="application/json">{
+  "p": "{% url 'reportes:dashboard' %}", "n": "{% url 'core:notificaciones' %}"{% if user.es_admin %},
+  "i": "{% url 'inventario:lista' %}", "s": "{% url 'solicitudes:lista_admin' %}", "d": "{% url 'usuarios:documentos_pendientes' %}", "r": "{% url 'reportes:reportes' %}"{% elif user.es_donante %},
+  "d": "{% url 'donaciones:nueva' %}"{% elif user.es_beneficiario %},
+  "c": "{% url 'solicitudes:catalogo' %}", "s": "{% url 'solicitudes:mis_solicitudes' %}", "d": "{% url 'usuarios:documentos' %}"{% endif %}
+}</script>
+{% endif %}

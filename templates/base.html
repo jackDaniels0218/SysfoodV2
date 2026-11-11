@@ -23,6 +23,7 @@
   {% block head %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
+<a class="sf-saltar" href="#contenido">Saltar al contenido</a>
 <div id="sf-progress" aria-hidden="true"></div>
 <div class="sf-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
 <header class="sf-header sticky-top">
@@ -30,6 +31,7 @@
   <div class="container-fluid px-1">
     <a class="sf-brand" href="{% url 'core:inicio' %}"><span class="sf-logo"><i class="bi bi-basket2-fill"></i></span><b>SysFood</b><small>V2</small></a>
     <div class="d-flex align-items-center gap-2 ms-auto order-lg-last">
+      {% if user.is_authenticated %}<a class="sf-tema sf-buscar" href="{% url 'core:buscar' %}" id="sf-buscar" aria-label="Buscar (atajo: Ctrl+K o /)" title="Buscar (Ctrl+K o /)" aria-keyshortcuts="Control+K /"><i class="bi bi-search" aria-hidden="true"></i></a>{% endif %}
       <button class="sf-tema" type="button" id="sf-tema" aria-label="Cambiar entre modo claro y oscuro" title="Modo claro / oscuro"><i class="bi bi-sun-fill"></i><i class="bi bi-moon-stars-fill"></i></button>
       {% if user.is_authenticated %}
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu" aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
@@ -115,16 +117,17 @@
 </nav>
 </header>
 
-<main class="flex-grow-1 py-4">
+<main class="flex-grow-1 py-4" id="contenido" tabindex="-1">
   <div class="container-xl">
-    {% if messages %}
-      {% for m in messages %}
-      <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ m }}
+    <div class="sf-mensajes" aria-live="polite">
+    {% for m in messages %}
+      <div class="alert alert-{{ m.level_tag|default:'info' }} alert-dismissible fade show d-flex flex-wrap align-items-center gap-2{% if 'deshacer' in m.extra_tags %} sf-con-deshacer{% endif %}" role="{% if m.level_tag == 'danger' %}alert{% else %}status{% endif %}">
+        <span>{{ m }}</span>
+        {% if 'deshacer' in m.extra_tags %}<form method="post" action="{% url 'solicitudes:deshacer' %}" class="ms-1">{% csrf_token %}<button class="btn btn-sm btn-outline-dark py-0"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Deshacer</button></form>{% endif %}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
       </div>
-      {% endfor %}
-    {% endif %}
+    {% endfor %}
+    </div>
     {% block contenido %}{% endblock %}
   </div>
 </main>
@@ -137,6 +140,8 @@
 </footer>
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'js/sysfood.js' %}"></script>
+{% include "parciales/ux_modales.html" %}
+<script src="{% static 'js/ux.js' %}"></script>
 {% if chat_activo %}{% include "asistente/_widget.html" %}{% endif %}
 {% block scripts %}{% endblock %}
 </body>

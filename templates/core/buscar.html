@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Buscar{% endblock %}
+{% block contenido %}
+<h1 class="h3">Buscar</h1>
+<form class="mb-4" role="search" method="get">
+  <label class="visually-hidden" for="q-pagina">Qué busca</label>
+  <div class="input-group input-group-lg">
+    <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+    <input id="q-pagina" class="form-control" type="search" name="q" value="{{ consulta }}" placeholder="Nombre, producto, número de solicitud, código de entrega…" autofocus>
+    <button class="btn btn-sysfood">Buscar</button>
+  </div>
+  <p class="form-text">Atajo: pulse <kbd>/</kbd> o <kbd>Ctrl</kbd>+<kbd>K</kbd> en cualquier página.</p>
+</form>
+{% if consulta %}
+  {% for grupo, resultados in grupos %}
+  <section class="mb-3" aria-labelledby="b-{{ forloop.counter }}">
+    <h2 class="h6 text-muted text-uppercase small" id="b-{{ forloop.counter }}">{{ grupo }}</h2>
+    <div class="list-group">
+      {% for r in resultados %}<a class="list-group-item list-group-item-action d-flex gap-3 align-items-center" href="{{ r.url }}"><i class="bi bi-{{ r.icono }} text-muted" aria-hidden="true"></i><span><strong>{{ r.titulo }}</strong><br><small class="text-muted">{{ r.detalle }}</small></span></a>{% endfor %}
+    </div>
+  </section>
+  {% empty %}
+  {% include "parciales/vacio.html" with icono="search" titulo="Sin resultados" texto="Pruebe con otra palabra, un número de solicitud (#12) o un código de entrega." %}
+  {% endfor %}
+{% endif %}
+{% endblock %}

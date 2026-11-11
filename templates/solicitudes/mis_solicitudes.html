@@ -2,7 +2,7 @@
 {% block titulo %}Mis solicitudes{% endblock %}
 {% block contenido %}
 <h1 class="h3">Mis solicitudes</h1>
-<form class="row g-2 mb-3"><div class="col-8 col-md-3"><select class="form-select" name="estado"><option value="">Todos los estados</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-4 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div></form>
+<form class="row g-2 mb-3"><div class="col-8 col-md-3"><select class="form-select" name="estado" aria-label="Estado"><option value="">Todos los estados</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div><div class="col-4 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div></form>
 <div class="table-responsive"><table class="table table-hover bg-white">
 <thead><tr><th>N.º</th><th>Enviada</th><th>Productos</th><th>Estado</th><th>Entrega</th><th></th></tr></thead>
 <tbody>
@@ -11,7 +11,7 @@
 <td>{% include "parciales/estado.html" with valor=s.sol_estado texto=s.get_sol_estado_display %}</td>
 <td>{% if s.entrega %}<a href="{% url 'entregas:seguimiento' %}?codigo={{ s.entrega.ent_cod }}">{{ s.entrega.ent_cod }}</a> · {{ s.entrega.get_ent_estado_display }}{% else %}—{% endif %}</td>
 <td><a class="btn btn-sm btn-outline-primary" href="{% url 'solicitudes:detalle' s.pk %}">Ver</a></td></tr>
-{% empty %}<tr><td colspan="6" class="text-muted">Aún no ha enviado solicitudes.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="6" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="No tiene solicitudes en ese estado" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% url 'solicitudes:catalogo' as url_cat %}{% include "parciales/vacio.html" with icono="basket" titulo="Aún no ha enviado solicitudes" texto="Elija alimentos del catálogo, agréguelos al carrito y envíe su solicitud." url=url_cat accion="Ir al catálogo" %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 {% include "parciales/paginacion.html" %}
 {% endblock %}

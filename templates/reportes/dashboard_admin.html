@@ -3,6 +3,7 @@
 {% block head %}{% include "parciales/leaflet.html" %}{% endblock %}
 {% block contenido %}
 <h1 class="h3">Panel del administrador</h1>
+{% include "parciales/primeros_pasos.html" %}
 <p class="small text-muted">Control de vencimientos ejecutado por última vez: {{ ultima_ejecucion|date:"d/m/Y h:i a"|default:"nunca" }}</p>
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3"><a class="text-decoration-none text-body" href="{% url 'usuarios:documentos_pendientes' %}"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ docs_pendientes }}</div><div class="small text-muted">Documentos por revisar</div></div></div></a></div>

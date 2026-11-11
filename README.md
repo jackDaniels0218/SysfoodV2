@@ -308,17 +308,30 @@ Todas las estadísticas se declaran en un **registro único** (`reportes/consult
 - **Exportación** a PDF, Excel, **CSV** (separador configurable) y cada gráfico como imagen **PNG**. Cada exportación queda en la bitácora.
 - **Envíos programados por correo:** desde cualquier reporte, «Programar envío» con frecuencia diaria, semanal o mensual, formato y destinatarios. Puede cubrir solo el último periodo. La tarea horaria `reportes_programados` envía desde `reportes_hora_envio`. En *Envíos programados* se puede enviar ahora, pausar o eliminar.
 
+## 3.7 Usabilidad
+
+Antes de cambiar nada se auditaron los flujos principales: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)** registra cada problema y su corrección. Resumen:
+
+- **Búsqueda global** (<kbd>/</kbd> o <kbd>Ctrl</kbd>+<kbd>K</kbd>, o la lupa de la barra): páginas, personas, productos, `#solicitud` y códigos de entrega. Cada rol busca solo en lo que puede ver, y la búsqueda nunca revela a un donante anónimo.
+- **Atajos de teclado:** <kbd>?</kbd> muestra la lista; <kbd>g</kbd> + letra lleva a cada sección; <kbd>t</kbd> cambia el tema.
+- **Guía «Primeros pasos»** en el panel de cada rol, con el avance y el siguiente paso calculados con los datos reales.
+- **Asistente de donación en tres pasos**, con resumen antes de guardar.
+- **Confirmaciones** en una ventana propia y accesible, y **deshacer** al quitar productos del carrito o vaciarlo.
+- **Estados vacíos útiles**, que distinguen «aún no hay nada» de «los filtros no encuentran nada» y ofrecen la siguiente acción.
+- **Esqueletos de carga** en gráficos y búsqueda.
+- **Accesibilidad:** «Saltar al contenido», foco visible, página actual marcada, avisos anunciados por lectores de pantalla y filtros con etiqueta. Todo respeta el modo oscuro y «reducir movimiento».
+
 ---
 
 ## 4. Pruebas automáticas
 
-El proyecto incluye **242 pruebas** que cubren los 22 requerimientos y las mejoras: funcionales, seguridad, rendimiento, integridad y respaldo.
+El proyecto incluye **256 pruebas** que cubren los 22 requerimientos y las mejoras: funcionales, seguridad, rendimiento, integridad y respaldo.
 
 ```bash
 python manage.py test
 ```
 
-Resultado esperado: `Ran 242 tests ... OK`.
+Resultado esperado: `Ran 256 tests ... OK`.
 
 Además se verificó:
 
@@ -413,4 +426,5 @@ docs/           Modelo de datos, trazabilidad de requerimientos y guía de prueb
 
 Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md)**.
 Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
+Auditoría de usabilidad: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)**.
 Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.

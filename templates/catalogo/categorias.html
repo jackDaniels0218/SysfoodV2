@@ -5,8 +5,8 @@
   <h1 class="h3 mb-0">Categorías de producto</h1>
   <a class="btn btn-sysfood" href="{% url 'catalogo:categoria_nueva' %}"><i class="bi bi-plus"></i> Nueva categoría</a>
 </div>
-<form class="row g-2 mb-3"><div class="col-8 col-md-5"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Buscar"></div>
-<div class="col-4 col-md-2"><select class="form-select" name="estado"><option value="">Estado</option><option value="activa" {% if request.GET.estado == 'activa' %}selected{% endif %}>Activa</option><option value="inactiva" {% if request.GET.estado == 'inactiva' %}selected{% endif %}>Inactiva</option></select></div>
+<form class="row g-2 mb-3"><div class="col-8 col-md-5"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Buscar" aria-label="Buscar categoría" type="search"></div>
+<div class="col-4 col-md-2"><select class="form-select" name="estado" aria-label="Estado"><option value="">Estado</option><option value="activa" {% if request.GET.estado == 'activa' %}selected{% endif %}>Activa</option><option value="inactiva" {% if request.GET.estado == 'inactiva' %}selected{% endif %}>Inactiva</option></select></div>
 <div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100">Filtrar</button></div></form>
 <div class="table-responsive"><table class="table table-hover bg-white">
 <thead><tr><th>Nombre</th><th>Descripción</th><th>Perecedero</th><th>Días de alerta</th><th>Productos</th><th>Estado</th><th></th></tr></thead>
@@ -22,7 +22,7 @@
     <form class="d-inline" method="post" action="{% url 'catalogo:categoria_eliminar' c.pk %}" data-confirmar="Si la categoría tiene productos se inactivará. ¿Continuar?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
   </td>
 </tr>
-{% empty %}<tr><td colspan="7" class="text-muted">No hay categorías.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="7" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="Ninguna categoría coincide" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% url 'catalogo:categoria_nueva' as url_nueva %}{% include "parciales/vacio.html" with icono="tags" titulo="Aún no hay categorías" texto="Las categorías clasifican los productos donados y pueden tener su propio aviso de vencimiento." url=url_nueva accion="Crear la primera categoría" %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 <p class="small text-muted">Las unidades de medida se administran en <a href="{% url 'core:parametros' %}">Parámetros</a>.</p>
 {% endblock %}

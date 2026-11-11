@@ -18,6 +18,6 @@
     <form class="d-inline" method="post" action="{% url 'catalogo:bodega_eliminar' b.pk %}" data-confirmar="Si la bodega tiene inventario se inactivará. ¿Continuar?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
   </td>
 </tr>
-{% empty %}<tr><td colspan="7" class="text-muted">No hay bodegas. Cree al menos una para recibir donaciones.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="7" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="Ninguna bodega coincide" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% url 'catalogo:bodega_nueva' as url_nueva %}{% include "parciales/vacio.html" with icono="building" titulo="Aún no hay bodegas" texto="Cree al menos una: las donaciones ingresan a una bodega activa." url=url_nueva accion="Crear la primera bodega" %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}

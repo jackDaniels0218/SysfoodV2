@@ -153,7 +153,19 @@ Con `nuevo@sysfood.local` en *Documentos*:
 - [ ] **Todas las estadísticas** lista el inventario completo, incluidos los indicadores de los paneles.
 - [ ] En *Parámetros › Reportes y estadísticas*: con `reportes_dias_por_defecto` = 30, los reportes sin fechas muestran los últimos 30 días y ofrecen «Ver todo el historial».
 
-## 16. Pruebas automáticas
+## 16. Usabilidad (mejora 5)
+
+- [ ] En cualquier página pulse <kbd>Tab</kbd> una vez: aparece «Saltar al contenido».
+- [ ] Como administrador pulse <kbd>Ctrl</kbd>+<kbd>K</kbd> (o <kbd>/</kbd>) y escriba «arroz»: aparecen la donación y el producto. Con las flechas y <kbd>Enter</kbd> se abre. Busque `#1` y el código de una entrega.
+- [ ] Como beneficiario busque el nombre de otra persona: no aparece.
+- [ ] Pulse <kbd>?</kbd>: se ve la lista de atajos. Pulse <kbd>g</kbd> y luego <kbd>i</kbd>: va al inventario, que queda marcado en el menú.
+- [ ] Como `beneficiario@sysfood.local`, en el carrito pulse **Vaciar carrito**: aparece la ventana de confirmación. Al aceptar, el aviso trae **Deshacer** y los productos vuelven.
+- [ ] Como `nuevo@sysfood.local`, el panel muestra **Primeros pasos** con 2 de 5 pasos listos y el paso 3 resaltado. «Ocultar» lo esconde.
+- [ ] Como donante, en **Donar**: tres pasos. No deja avanzar sin el nombre del producto, y el paso 3 muestra el resumen antes de guardar.
+- [ ] Filtre las entregas por un código inexistente: «Ninguna entrega coincide con los filtros» con **Quitar filtros**.
+- [ ] Todo lo anterior en el celular (390 px) y en modo oscuro, sin desborde horizontal.
+
+## 17. Pruebas automáticas
 
 ```bash
 python manage.py test

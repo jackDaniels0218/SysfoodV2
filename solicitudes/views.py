@@ -59,16 +59,46 @@ def carrito(request):
 @beneficiario_verificado
 @require_POST
 def quitar(request, item_id):
+    _guardar_para_deshacer(request, request.user.carrito.filter(pk=item_id))
     servicios.quitar_del_carrito(request.user, item_id)
-    messages.info(request, "Producto quitado del carrito.")
+    messages.info(request, "Producto quitado del carrito.", extra_tags="deshacer")
+    return redirect("solicitudes:carrito")
+
+
+def _guardar_para_deshacer(request, items):
+    """Recuerda en la sesión lo que se quitó del carrito para poder deshacerlo."""
+    request.session["carrito_deshacer"] = [[i.inventario_id, str(i.car_cant)] for i in items]
+
+
+@beneficiario_verificado
+@require_POST
+def deshacer(request):
+    """Vuelve a poner en el carrito lo último que se quitó o vació (si sigue disponible)."""
+    restaurados, errores = 0, []
+    for inv_id, cantidad in request.session.pop("carrito_deshacer", []):
+        inv = Inventario.objects.filter(pk=inv_id).first()
+        if inv is None:
+            continue
+        try:
+            servicios.agregar_al_carrito(request.user, inv, cantidad)
+            restaurados += 1
+        except ValidationError as error:
+            errores.append(error.messages[0])
+    if restaurados:
+        messages.success(request, f"Listo, se recuperaron {restaurados} producto(s) en el carrito.")
+    for error in errores:
+        messages.warning(request, error)
+    if not restaurados and not errores:
+        messages.info(request, "No hay nada que deshacer.")
     return redirect("solicitudes:carrito")
 
 
 @beneficiario_verificado
 @require_POST
 def vaciar(request):
+    _guardar_para_deshacer(request, request.user.carrito.all())
     servicios.vaciar_carrito(request.user)
-    messages.info(request, "Se vació el carrito.")
+    messages.info(request, "Se vació el carrito.", extra_tags="deshacer")
     return redirect("solicitudes:carrito")
 
 

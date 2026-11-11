@@ -5,6 +5,7 @@
   <h1 class="h3 mb-0">Hola, {{ user.usu_nom }}</h1>
   <a class="btn btn-sysfood btn-lg" href="{% url 'donaciones:nueva' %}"><i class="bi bi-plus-circle"></i> Registrar donación</a>
 </div>
+{% include "parciales/primeros_pasos.html" %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ total }}</div><div class="small text-muted">Donaciones registradas</div></div></div></div>
   {% for estado, n in por_estado.items %}<div class="col-6 col-md"><div class="card h-100"><div class="card-body py-2"><div class="fw-bold fs-4">{{ n }}</div><div class="small text-muted">{{ estado }}</div></div></div></div>{% endfor %}

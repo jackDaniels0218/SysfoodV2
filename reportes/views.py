@@ -44,6 +44,9 @@ def _grafico(conteo):
 
 @login_required
 def dashboard(request):
+    from core import guia
+
+    request.guia = guia.resumen(request.user)
     u = request.user
     if u.es_admin:
         return _dashboard_admin(request)
@@ -81,6 +84,7 @@ def _dashboard_admin(request):
         "etiquetas": ["Vigente", "Próximo a vencer", "Vencido"],
         "datos": [activo.filter(inv_est_venc=Inventario.VIGENTE).count(), contexto["inventario"]["proximo"], contexto["inventario"]["vencido"]],
     })
+    contexto["guia"] = request.guia
     return render(request, "reportes/dashboard_admin.html", contexto)
 
 
@@ -99,7 +103,7 @@ def _dashboard_donante(request):
         "por_estado": por_estado, "g_estado": _grafico(por_estado), "total": mias.count(),
         "cantidades": [dict(c, entregado=entregado.get(c["inv_unidad"], 0)) for c in cantidades],
         "proximos": inventario.filter(inv_est_venc=Inventario.PROXIMO).exclude(inv_estado=Inventario.RETIRADO).order_by("inv_fec_venc"),
-        "recientes": mias.annotate(n=Count("detalles")).order_by("-dona_fec_reg")[:5],
+        "recientes": mias.annotate(n=Count("detalles")).order_by("-dona_fec_reg")[:5], "guia": request.guia,
     })
 
 
@@ -111,7 +115,7 @@ def _dashboard_beneficiario(request):
         "disponibles": Inventario.catalogo().count() if perfil.verificado else None,
         "solicitudes": _conteo(solicitudes, "sol_estado", Solicitud.ESTADOS),
         "entregas": Entrega.objects.filter(solicitud__beneficiario=request.user).order_by("-ent_fec_crea")[:5],
-        "recientes": solicitudes.select_related("entrega")[:5],
+        "recientes": solicitudes.select_related("entrega")[:5], "guia": request.guia,
     })
 
 

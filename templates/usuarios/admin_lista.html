@@ -27,7 +27,7 @@
   <td class="small">{{ u.usu_fec_reg|date:"d/m/Y" }}</td>
   <td><a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:revisar_usuario' u.pk %}">Ver</a></td>
 </tr>
-{% empty %}<tr><td colspan="8" class="text-muted">No hay usuarios con esos filtros.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="Ningún usuario coincide con los filtros" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% url 'usuarios:crear' as url_crear %}{% include "parciales/vacio.html" with icono="people" titulo="Aún no hay usuarios" texto="Los donantes y beneficiarios se registran solos; también puede crearlos." url=url_crear accion="Crear usuario" %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 {% include "parciales/paginacion.html" %}
 {% endblock %}

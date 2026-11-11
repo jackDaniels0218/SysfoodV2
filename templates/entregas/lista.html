@@ -3,11 +3,11 @@
 {% block contenido %}
 <h1 class="h3">Entregas</h1>
 <form class="row g-2 mb-3">
-  <div class="col-12 col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Código o beneficiario"></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="estado"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="modalidad"><option value="">Modalidad</option>{% for k, v in modalidades %}<option value="{{ k }}" {% if request.GET.modalidad == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-6 col-md-2"><input type="date" class="form-control" name="desde" value="{{ request.GET.desde }}"></div>
-  <div class="col-6 col-md-2"><input type="date" class="form-control" name="hasta" value="{{ request.GET.hasta }}"></div>
+  <div class="col-12 col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Código o beneficiario" aria-label="Código o beneficiario" type="search"></div>
+  <div class="col-6 col-md-2"><select class="form-select" name="estado" aria-label="Estado"><option value="">Estado</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><select class="form-select" name="modalidad" aria-label="Modalidad"><option value="">Modalidad</option>{% for k, v in modalidades %}<option value="{{ k }}" {% if request.GET.modalidad == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="desde" value="{{ request.GET.desde }}" aria-label="Desde"></div>
+  <div class="col-6 col-md-2"><input type="date" class="form-control" name="hasta" value="{{ request.GET.hasta }}" aria-label="Hasta"></div>
   <div class="col-12 col-md-1"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
 </form>
 <div class="table-responsive"><table class="table table-hover bg-white">
@@ -18,7 +18,7 @@
 <td>{{ e.ent_fec_prog|date:"d/m/Y"|default:"—" }}</td><td>{{ e.bodega }}</td>
 <td>{% include "parciales/estado.html" with valor=e.ent_estado texto=e.get_ent_estado_display %}</td>
 <td><a class="btn btn-sm btn-outline-primary" href="{% url 'entregas:detalle' e.pk %}">Gestionar</a></td></tr>
-{% empty %}<tr><td colspan="8" class="text-muted">No hay entregas.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="8" class="p-0">{% if request.GET %}{% include "parciales/vacio.html" with icono="funnel" titulo="Ninguna entrega coincide con los filtros" texto="Pruebe con otros filtros." url="?" accion="Quitar filtros" %}{% else %}{% url 'solicitudes:lista_admin' as url_sol %}{% include "parciales/vacio.html" with icono="truck" titulo="Aún no hay entregas" texto="Las entregas se crean al aprobar una solicitud." url=url_sol accion="Ver solicitudes pendientes" %}{% endif %}</td></tr>{% endfor %}
 </tbody></table></div>
 {% include "parciales/paginacion.html" %}
 {% endblock %}

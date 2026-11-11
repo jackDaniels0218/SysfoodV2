@@ -549,3 +549,60 @@ section[id] { scroll-margin-top: 6rem; }
 .sf-est-grupo-nombre { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sf-muted); min-width: 11rem; }
 .sf-est-grupo .nav-link { padding: .3rem .75rem; font-size: .88rem; }
 @media (max-width: 575px) { .sf-est-grupo-nombre { min-width: 100%; } }
+
+/* ---------------------------------------------------------------- Usabilidad (mejora 5) */
+.sf-saltar { position: absolute; left: 12px; top: -60px; z-index: 2000; padding: .6rem 1rem; border-radius: 12px; background: var(--sf-green); color: #fff; font-weight: 700; transition: top .15s; }
+.sf-saltar:focus { top: 12px; color: #fff; outline: 3px solid var(--sf-saffron); }
+main:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--sf-ring); outline-offset: 2px; }
+.btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible, .nav-link:focus-visible { box-shadow: 0 0 0 .25rem var(--sf-ring); }
+.sf-nav .nav-link.active, .sf-nav .nav-link[aria-current="page"] { color: var(--sf-green); font-weight: 700; }
+.sf-nav .dropdown-item[aria-current="page"] { background: color-mix(in srgb, var(--sf-green) 14%, transparent); color: var(--sf-ink); font-weight: 600; }
+kbd { background: var(--sf-surface-2); color: var(--sf-ink); border: 1px solid var(--sf-line); border-bottom-width: 2px; border-radius: 6px; padding: .05rem .4rem; font-size: .78em; font-family: inherit; }
+.sf-buscar { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* Paleta de búsqueda */
+.sf-paleta-dialogo { margin-top: 8vh; }
+.sf-paleta-buscar { display: flex; align-items: center; gap: .6rem; padding: .9rem 1.1rem; border-bottom: 1px solid var(--sf-line); }
+.sf-paleta-buscar input { flex: 1; border: 0; background: transparent; color: var(--sf-ink); font-size: 1.1rem; outline: none; min-width: 0; }
+.sf-paleta-buscar input::-webkit-search-cancel-button { display: none; }
+.sf-paleta-lista { max-height: min(60vh, 460px); overflow-y: auto; padding: .4rem; }
+.sf-paleta-grupo { padding: .55rem .7rem .25rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--sf-muted); }
+.sf-paleta-op { display: flex; align-items: center; gap: .8rem; padding: .55rem .7rem; border-radius: 12px; color: var(--sf-ink); text-decoration: none; }
+.sf-paleta-op span { display: flex; flex-direction: column; min-width: 0; }
+.sf-paleta-op small { color: var(--sf-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-paleta-op[aria-selected="true"], .sf-paleta-op:hover { background: color-mix(in srgb, var(--sf-green) 14%, transparent); color: var(--sf-ink); }
+.sf-paleta-op .bi { font-size: 1.1rem; color: var(--sf-green); }
+.sf-paleta-vacio { margin: 0; padding: 1.4rem 1rem; text-align: center; color: var(--sf-muted); }
+.sf-paleta-pie { display: flex; gap: 1rem; justify-content: flex-end; padding: .5rem 1rem; border-top: 1px solid var(--sf-line); font-size: .75rem; color: var(--sf-muted); }
+@media (max-width: 575px) { .sf-paleta-pie { display: none; } .sf-paleta-dialogo { margin-top: .5rem; } }
+
+/* Esqueletos de carga */
+.sf-esqueleto { position: relative; overflow: hidden; border-radius: 12px; background: var(--sf-surface-2); }
+.sf-esqueleto > * { opacity: 0; }
+.sf-esqueleto::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sf-line) 70%, transparent), transparent); animation: sf-brillo 1.2s infinite; }
+.sf-esqueleto-fila { height: 46px; margin: .35rem .3rem; }
+@keyframes sf-brillo { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .sf-esqueleto::after { animation: none; } }
+
+/* Guía de primeros pasos */
+.sf-guia { border-left: 5px solid var(--sf-citrus); }
+.sf-guia-pasos { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.sf-guia-pasos li { display: flex; align-items: center; gap: .8rem; padding: .6rem .75rem; border-radius: 14px; border: 1px solid var(--sf-line); background: var(--sf-surface); }
+.sf-guia-pasos li.actual { border-color: var(--sf-green-2); box-shadow: 0 0 0 3px var(--sf-ring); }
+.sf-guia-pasos li.hecho { opacity: .7; }
+.sf-guia-pasos li.hecho strong { text-decoration: line-through; text-decoration-color: var(--sf-muted); }
+.sf-guia-marca { flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: var(--sf-surface-2); border: 1px solid var(--sf-line); }
+.sf-guia-pasos li.hecho .sf-guia-marca { background: var(--sf-green-2); border-color: var(--sf-green-2); color: #fff; }
+.sf-guia-pasos li.actual .sf-guia-marca { background: var(--sf-citrus); border-color: var(--sf-citrus); color: #14261d; }
+.sf-guia-pasos li > div { min-width: 0; }
+@media (max-width: 575px) { .sf-guia-pasos li { flex-wrap: wrap; } .sf-guia-pasos li > div { flex: 1 1 calc(100% - 3rem); } .sf-guia-pasos li .btn { margin-left: 2.8rem; } }
+
+/* Asistente de pasos (donación) */
+.sf-pasos-wizard { display: flex; gap: .4rem; list-style: none; padding: 0; margin: 0 0 1.2rem; counter-reset: paso; flex-wrap: wrap; }
+.sf-pasos-wizard li { flex: 1 1 140px; padding: .55rem .8rem; border-radius: 12px; border: 1px solid var(--sf-line); background: var(--sf-surface); color: var(--sf-muted); font-weight: 600; font-size: .9rem; }
+.sf-pasos-wizard li::before { counter-increment: paso; content: counter(paso) ". "; }
+.sf-pasos-wizard li[aria-current="step"] { border-color: var(--sf-green-2); color: var(--sf-ink); box-shadow: 0 0 0 3px var(--sf-ring); }
+.sf-pasos-wizard li.hecho { color: var(--sf-green); }
+[data-wizard].wizard-activo [data-paso]:not(.activo) { display: none; }
