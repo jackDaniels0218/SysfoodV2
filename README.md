@@ -29,7 +29,7 @@ Estilo propio «Cosecha»: crema cálido, verde bosque y naranja cítrico, con t
 Elija **una** de estas dos opciones. Las dos crean la base de datos, cargan los datos de demostración y dejan el sistema en **http://localhost:8000**.
 Para ingresar, use `admin@sysfood.local` con la contraseña `Sysfood2025*` (más cuentas en la [sección 2](#2-cuentas-de-demostración)).
 
-### Opción A: Docker (recomendada, incluye MySQL 8)
+### Opción A: Docker (recomendada, incluye PostgreSQL)
 
 Solo necesita [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto.
 
@@ -39,7 +39,7 @@ cd SysfoodV2
 docker compose up
 ```
 
-La primera vez tarda unos minutos mientras descarga MySQL y prepara todo. Cuando aparezca `SysFood listo en http://localhost:8000`, abra esa dirección.
+La primera vez tarda unos minutos mientras descarga PostgreSQL y prepara todo. Cuando aparezca `SysFood listo en el puerto 8000`, abra http://localhost:8000.
 Para detenerlo use `Ctrl+C`; para volver a iniciarlo, `docker compose up`. Los datos se conservan. Si quiere empezar desde cero, ejecute `docker compose down -v`.
 
 ### Opción B: Sin Docker (solo Python)
@@ -49,18 +49,20 @@ Solo necesita [Python 3.10 o superior](https://www.python.org/downloads/). En Wi
 - **Windows:** haga doble clic en **`iniciar.bat`**.
 - **Linux / macOS:** ejecute `./iniciar.sh` en una terminal.
 
-La primera vez instala las dependencias; las siguientes solo arranca. Esta opción usa **SQLite**, una base de datos en un archivo, para no exigir MySQL. Para usar MySQL, siga la instalación completa.
+La primera vez instala las dependencias; las siguientes solo arranca. Esta opción usa **SQLite**, una base de datos en un archivo, para no exigir un servidor de base de datos. Para trabajar con PostgreSQL, siga la instalación completa.
 
 ---
 
-## 1. Instalación completa (con MySQL propio)
+## 1. Instalación completa (con PostgreSQL local)
+
+PostgreSQL es el motor recomendado: es el mismo que usa el despliegue en Render (sección 9). El proyecto también funciona con MySQL 8 (`DB_ENGINE=mysql`) y con SQLite para pruebas rápidas (`DB_ENGINE=sqlite`).
 
 ### Requisitos
 
 | Programa | Versión | Descarga |
 | --- | --- | --- |
 | Python | 3.10 o superior | https://www.python.org/downloads/ (en Windows marque «Add Python to PATH») |
-| MySQL Server | 8.0 o superior | https://dev.mysql.com/downloads/installer/ |
+| PostgreSQL | 14 o superior | https://www.postgresql.org/download/ (guarde la contraseña del usuario `postgres`) |
 | Git | cualquiera | https://git-scm.com/downloads |
 
 ### Paso a paso
@@ -72,16 +74,13 @@ git clone https://github.com/jackDaniels0218/SysfoodV2.git
 cd SysfoodV2
 ```
 
-**2. Crear la base de datos en MySQL.** Abra MySQL Workbench o la consola `mysql -u root -p` y ejecute:
+**2. Crear la base de datos.** Con pgAdmin o con la consola `psql -U postgres`:
 
 ```sql
-CREATE DATABASE sysfood CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'sysfood'@'localhost' IDENTIFIED BY 'sysfood';
-GRANT ALL PRIVILEGES ON sysfood.* TO 'sysfood'@'localhost';
--- Para ejecutar las pruebas automáticas, el usuario también debe poder crear la base de pruebas:
-GRANT ALL PRIVILEGES ON test_sysfood.* TO 'sysfood'@'localhost';
-FLUSH PRIVILEGES;
+CREATE DATABASE sysfood ENCODING 'UTF8' TEMPLATE template0;
 ```
+
+En Windows, `psql` está en `C:\Program Files\PostgreSQL\<versión>\bin\psql.exe`.
 
 **3. Crear el entorno virtual e instalar dependencias**
 
@@ -103,7 +102,16 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-**4. Revisar el archivo `.env`** (usuario y contraseña de MySQL, correo SMTP, etc.). Con los valores por defecto funciona si creó el usuario `sysfood` del paso 2.
+**4. Completar el archivo `.env`.** Escriba la contraseña de PostgreSQL en `DB_PASSWORD`. Los demás valores sirven tal como vienen para una instalación local.
+
+```ini
+DB_ENGINE=postgresql
+DB_NAME=sysfood
+DB_USER=postgres
+DB_PASSWORD=la-contraseña-de-postgres
+DB_HOST=127.0.0.1
+DB_PORT=5432
+```
 
 **5. Crear las tablas y cargar los datos de demostración**
 
@@ -120,7 +128,7 @@ python manage.py runserver
 
 Abra **http://127.0.0.1:8000** en el navegador.
 
-> ¿Solo quiere probar rápido sin MySQL? Ponga `DB_ENGINE=sqlite` en `.env` y repita el paso 5. Para la entrega final use MySQL.
+> Para las pruebas automáticas, el usuario de PostgreSQL debe poder crear la base `test_sysfood`. El usuario `postgres` ya puede hacerlo.
 
 ---
 
@@ -428,3 +436,35 @@ Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md
 Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
 Auditoría de usabilidad: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)**.
 Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.
+
+---
+
+## 9. Despliegue en Render
+
+El repositorio incluye **`render.yaml`**, que crea en un solo paso la base **PostgreSQL** y el **servicio web**. El servicio web se construye con Docker e incluye Tesseract para el OCR.
+
+1. Suba el código a GitHub, que ya es este repositorio.
+2. En [Render](https://dashboard.render.com), vaya a **New + › Blueprint**, elija el repositorio y pulse **Apply**.
+3. Espere a que termine el despliegue (unos 5 a 8 minutos la primera vez). Al arrancar, el contenedor espera la base de datos, ejecuta `migrate` y carga la demostración (`CARGAR_DEMO=1`).
+4. Abra `https://<nombre-del-servicio>.onrender.com`, ingrese con `admin@sysfood.local` / `Sysfood2025*` y **cambie esa contraseña de inmediato**.
+
+**Qué configura `render.yaml`**
+
+| Variable | Valor |
+| --- | --- |
+| `DATABASE_URL` | La conexión a la base `sysfood-db` (Render la entrega; tiene prioridad sobre `DB_*`) |
+| `DJANGO_SECRET_KEY` | Generada por Render |
+| `DJANGO_DEBUG` / `DJANGO_HTTPS` | `0` / `1`: modo producción, HTTPS obligatorio y cookies seguras |
+| `CARGAR_DEMO` | `1` carga la demostración la primera vez; `0` crea solo el administrador |
+| `EMAIL_*`, `ANTHROPIC_API_KEY` | Opcionales: se completan en el panel de Render |
+
+El dominio de Render se autoriza solo, con `RENDER_EXTERNAL_HOSTNAME`, y se usa en los enlaces de los correos (`RENDER_EXTERNAL_URL`).
+
+**Límites del plan gratuito**
+
+- La base PostgreSQL gratuita **vence a los 30 días**. Para producción, cambie a un plan pago en `render.yaml` (`plan: basic-256mb`, por ejemplo).
+- El servicio se **duerme** tras 15 minutos sin visitas y tarda unos segundos en despertar. Mientras duerme no corren las tareas automáticas: se ponen al día al despertar.
+- El disco es **temporal**: los documentos cargados se pierden en cada despliegue. Con un plan pago, descomente el bloque `disk` de `render.yaml` para guardarlos en `/app/protegido`.
+
+**Pasar los datos locales a Render.** Genere un respaldo con `python manage.py respaldo` y restáurelo en Render desde la consola *Shell* del servicio con `python manage.py restaurar <archivo.zip>`. También puede usar `pg_dump` y `pg_restore` con la *External Database URL* que muestra Render.
+

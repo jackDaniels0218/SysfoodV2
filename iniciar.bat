@@ -22,7 +22,7 @@ echo ^>^> Instalando dependencias...
 
 if not exist .env (
     echo ^>^> Creando .env ^(base de datos SQLite para pruebas locales^)...
-    powershell -NoProfile -Command "(Get-Content .env.example) -replace '^DB_ENGINE=mysql','DB_ENGINE=sqlite' | Set-Content .env -Encoding UTF8"
+    powershell -NoProfile -Command "(Get-Content .env.example) -replace '^DB_ENGINE=postgresql','DB_ENGINE=sqlite' | Set-Content .env -Encoding UTF8"
 )
 
 .venv\Scripts\python manage.py migrate --noinput || goto error

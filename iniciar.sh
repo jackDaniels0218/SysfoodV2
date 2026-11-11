@@ -18,7 +18,7 @@ echo ">> Instalando dependencias..."
 
 if [ ! -f .env ]; then
     echo ">> Creando .env (base de datos SQLite para pruebas locales)..."
-    sed 's/^DB_ENGINE=mysql/DB_ENGINE=sqlite/' .env.example > .env
+    sed 's/^DB_ENGINE=postgresql/DB_ENGINE=sqlite/' .env.example > .env
 fi
 
 .venv/bin/python manage.py migrate --noinput

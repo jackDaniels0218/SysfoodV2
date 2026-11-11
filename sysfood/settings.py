@@ -37,6 +37,12 @@ DEBUG = env_bool("DJANGO_DEBUG", "1")
 ALLOWED_HOSTS = [h.strip() for h in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
+# Render define RENDER_EXTERNAL_HOSTNAME (p. ej. sysfood.onrender.com): se autoriza solo.
+RENDER_HOST = env("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOST:
+    ALLOWED_HOSTS.append(RENDER_HOST)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOST}")
+
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -87,7 +93,50 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "sysfood.wsgi.application"
 
-if env("DB_ENGINE", "mysql") == "sqlite":
+def _base_desde_url(url):
+    """postgresql://usuario:clave@servidor:5432/base (formato de DATABASE_URL en Render)."""
+    from urllib.parse import unquote, urlparse
+
+    partes = urlparse(url)
+    motores = {"postgres": "postgresql", "postgresql": "postgresql", "mysql": "mysql"}
+    motor = motores.get(partes.scheme)
+    if motor is None:
+        raise ValueError(f"DATABASE_URL con esquema no soportado: {partes.scheme}")
+    return motor, {
+        "NAME": unquote(partes.path.lstrip("/")),
+        "USER": unquote(partes.username or ""),
+        "PASSWORD": unquote(partes.password or ""),
+        "HOST": partes.hostname or "",
+        "PORT": str(partes.port or ""),
+    }
+
+
+# Motor de base de datos: DATABASE_URL (Render) o DB_ENGINE = postgresql | mysql | sqlite.
+DATABASE_URL = env("DATABASE_URL")
+if DATABASE_URL:
+    _motor, _conexion = _base_desde_url(DATABASE_URL)
+else:
+    _motor = env("DB_ENGINE", "postgresql")
+    _conexion = {
+        "NAME": env("DB_NAME", "sysfood"),
+        "USER": env("DB_USER", "postgres" if _motor == "postgresql" else "sysfood"),
+        "PASSWORD": env("DB_PASSWORD", "sysfood"),
+        "HOST": env("DB_HOST", "127.0.0.1"),
+        "PORT": env("DB_PORT", "5432" if _motor == "postgresql" else "3306"),
+    }
+
+if _motor == "postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            **_conexion,
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+            # Render exige SSL desde fuera de su red; en local se usa si el servidor lo ofrece.
+            "OPTIONS": {"sslmode": env("DB_SSLMODE", "prefer")},
+        }
+    }
+elif _motor == "sqlite":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -98,11 +147,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": env("DB_NAME", "sysfood"),
-            "USER": env("DB_USER", "sysfood"),
-            "PASSWORD": env("DB_PASSWORD", "sysfood"),
-            "HOST": env("DB_HOST", "127.0.0.1"),
-            "PORT": env("DB_PORT", "3306"),
+            **_conexion,
             "CONN_MAX_AGE": 60,
             "OPTIONS": {
                 "charset": "utf8mb4",
@@ -163,7 +208,11 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 60 * 60 * 8
 CSRF_COOKIE_SAMESITE = "Lax"
-X_FRAME_OPTIONS = "SAMEORIGIN"
+X_FRAME_OPTIONS = "SAMEORIGIN"  # La revisión de documentos muestra el PDF en un iframe del mismo sitio.
+SILENCED_SYSTEM_CHECKS = [
+    "security.W019",  # X_FRAME_OPTIONS = SAMEORIGIN es intencional (ver arriba); sigue bloqueando sitios ajenos.
+    "security.W021",  # Sin precarga HSTS: obliga al dominio para siempre y el dominio de Render no es propio.
+]
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 
@@ -199,7 +248,7 @@ WHATSAPP_PHONE_ID = env("WHATSAPP_PHONE_ID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
 
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "SysFood <no-responder@sysfood.local>")
-SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
+SITE_URL = env("SITE_URL", env("RENDER_EXTERNAL_URL", "http://127.0.0.1:8000")).rstrip("/")
 
 MESSAGE_TAGS = {40: "danger"}
 

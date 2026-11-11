@@ -1,5 +1,7 @@
 Django>=5.2,<5.3
 PyMySQL>=1.1
+# PostgreSQL (local y Render)
+psycopg[binary]>=3.2
 cryptography>=42
 reportlab>=4.0
 openpyxl>=3.1

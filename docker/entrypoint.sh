@@ -1,25 +1,32 @@
 #!/bin/sh
-# Arranque del contenedor: espera a MySQL, crea las tablas, carga la demostración y sirve la aplicación.
+# Arranque del contenedor (Docker Compose o Render): espera a la base de datos, crea las tablas,
+# carga la demostración si se pide y sirve la aplicación.
 set -e
 
 python - <<'PY'
 import os, time
-import pymysql
+import django
+from django.db import connection
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sysfood.settings")
+django.setup()
+motor = connection.vendor
 for intento in range(60):
     try:
-        pymysql.connect(host=os.environ.get("DB_HOST", "db"), port=int(os.environ.get("DB_PORT", "3306")),
-                        user=os.environ["DB_USER"], password=os.environ["DB_PASSWORD"]).close()
+        connection.ensure_connection()
         break
-    except Exception:
-        print("Esperando a MySQL...", flush=True)
+    except Exception as exc:
+        print(f"Esperando a la base de datos ({motor})... {exc.__class__.__name__}", flush=True)
         time.sleep(2)
 else:
-    raise SystemExit("MySQL no respondió a tiempo.")
+    raise SystemExit("La base de datos no respondió a tiempo.")
 PY
 
 python manage.py migrate --noinput
 if [ "${CARGAR_DEMO:-1}" = "1" ]; then
     python manage.py cargar_demo
+else
+    python manage.py cargar_demo --solo-admin
 fi
 
 # Tareas automáticas (vencimientos, puntajes, geocodificación, OCR, reportes): cada hora, en segundo plano.
@@ -30,5 +37,7 @@ fi
     done
 ) &
 
-echo "SysFood listo en http://localhost:${PUERTO:-8000}"
-exec waitress-serve --listen=0.0.0.0:8000 --threads=24 sysfood.wsgi:application
+# Render asigna el puerto en $PORT; en Docker Compose se usa 8000.
+PUERTO="${PORT:-8000}"
+echo "SysFood listo en el puerto ${PUERTO}"
+exec waitress-serve --listen=0.0.0.0:${PUERTO} --threads=${HILOS:-8} sysfood.wsgi:application

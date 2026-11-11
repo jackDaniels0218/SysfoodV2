@@ -1,28 +1,33 @@
 # Uso: docker compose up
 # Luego abra http://localhost:8000  (usuario admin@sysfood.local / Sysfood2025*)
+# Usa PostgreSQL, el mismo motor que el despliegue en Render (render.yaml).
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     environment:
-      MYSQL_DATABASE: sysfood
-      MYSQL_USER: sysfood
-      MYSQL_PASSWORD: sysfood
-      MYSQL_ROOT_PASSWORD: sysfood-root
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      POSTGRES_DB: sysfood
+      POSTGRES_USER: sysfood
+      POSTGRES_PASSWORD: sysfood
     volumes:
-      - datos_mysql:/var/lib/mysql
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sysfood -d sysfood"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   web:
     build: .
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
-      DB_ENGINE: mysql
+      DB_ENGINE: postgresql
       DB_HOST: db
-      DB_PORT: "3306"
+      DB_PORT: "5432"
       DB_NAME: sysfood
       DB_USER: sysfood
       DB_PASSWORD: sysfood
@@ -37,6 +42,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  datos_mysql:
+  datos_postgres:
   documentos:
   respaldos:

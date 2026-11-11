@@ -1,2 +1,4 @@
+# Los scripts de shell siempre con LF (Docker y Render los ejecutan en Linux).
 *.sh text eol=lf
+Dockerfile text eol=lf
 *.bat text eol=crlf

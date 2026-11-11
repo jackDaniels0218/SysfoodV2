@@ -1,0 +1,49 @@
+# Despliegue en Render (Blueprint): New + › Blueprint › elija este repositorio.
+# Crea la base PostgreSQL y el servicio web (Docker, con Tesseract para el OCR).
+# Al terminar, abra la URL https://<nombre>.onrender.com e ingrese con admin@sysfood.local / Sysfood2025*
+# y cambie esa contraseña de inmediato.
+
+databases:
+  - name: sysfood-db
+    databaseName: sysfood
+    user: sysfood
+    plan: free          # Las bases gratuitas de Render vencen a los 30 días; use un plan pago para producción.
+    region: oregon
+
+services:
+  - type: web
+    name: sysfood
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sysfood-db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_HTTPS
+        value: "1"
+      - key: CARGAR_DEMO       # "1" carga los datos de demostración la primera vez; "0" crea solo el administrador.
+        value: "1"
+      - key: TAREAS_AUTOMATICAS
+        value: "1"
+      # Opcionales: correo SMTP, asistente con Claude y WhatsApp (ver README).
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    # Los documentos cargados se guardan en /app/protegido. En el plan gratuito el disco se borra en cada
+    # despliegue; para conservarlos, use un plan pago y descomente el disco persistente:
+    # disk:
+    #   name: documentos
+    #   mountPath: /app/protegido
+    #   sizeGB: 1
