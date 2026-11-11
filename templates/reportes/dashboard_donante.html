@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Mi panel{% endblock %}
 {% block contenido %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -15,12 +15,12 @@
     <h2 class="h6">Cantidades donadas</h2>
     <div class="table-responsive"><table class="table table-sm mb-0">
       <thead><tr><th>Unidad</th><th>Donado</th><th>Entregado</th><th>Disponible</th></tr></thead>
-      <tbody>{% for c in cantidades %}<tr><td>{{ c.inv_unidad|capfirst }}</td><td>{{ c.donado }}</td><td>{{ c.entregado }}</td><td>{{ c.disponible }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">Aún no ha donado productos.</td></tr>{% endfor %}</tbody>
+      <tbody>{% for c in cantidades %}<tr><td>{{ c.inv_unidad|capfirst }}</td><td>{{ c.donado|cantidad:c.inv_unidad }}</td><td>{{ c.entregado|cantidad:c.inv_unidad }}</td><td>{{ c.disponible|cantidad:c.inv_unidad }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">Aún no ha donado productos.</td></tr>{% endfor %}</tbody>
     </table></div>
   </div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <h2 class="h6">Mis productos próximos a vencer</h2>
-    <ul class="list-group list-group-flush small">{% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><span>{{ i.inv_nom }}</span><span>{{ i.inv_cant_disp }} {{ i.inv_unidad }} · {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>{% empty %}<li class="list-group-item text-muted">Ninguno.</li>{% endfor %}</ul>
+    <ul class="list-group list-group-flush small">{% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><span>{{ i.inv_nom }}</span><span>{{ i.inv_cant_disp|cantidad:i.inv_unidad }} · {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>{% empty %}<li class="list-group-item text-muted">Ninguno.</li>{% endfor %}</ul>
   </div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <h2 class="h6">Donaciones recientes</h2>

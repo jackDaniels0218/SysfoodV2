@@ -1,0 +1,29 @@
+{# Filtros guardados por el usuario para una lista. Requiere: vista, filtros (FiltroGuardado del usuario). #}
+<div class="d-flex flex-wrap gap-2 align-items-center sf-filtros-guardados">
+  <div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-bookmark-star" aria-hidden="true"></i> Filtros guardados{% if filtros %} ({{ filtros|length }}){% endif %}
+    </button>
+    <ul class="dropdown-menu">
+      {% for f in filtros %}
+      <li class="d-flex align-items-center">
+        <a class="dropdown-item" href="?{{ f.fil_consulta }}">{{ f.fil_nombre }}</a>
+        <form method="post" action="{% url 'core:filtro_eliminar' f.pk %}" class="me-2" data-confirmar="¿Eliminar el filtro «{{ f.fil_nombre }}»?">{% csrf_token %}
+          <button class="btn btn-sm btn-link text-danger p-0" aria-label="Eliminar el filtro {{ f.fil_nombre }}"><i class="bi bi-x-lg"></i></button>
+        </form>
+      </li>
+      {% empty %}
+      <li><span class="dropdown-item-text small text-muted">Aún no ha guardado filtros. Filtre la lista y pulse «Guardar filtro».</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% if request.GET %}
+  <form method="post" action="{% url 'core:filtro_guardar' %}" class="d-flex gap-1">{% csrf_token %}
+    <input type="hidden" name="vista" value="{{ vista }}">
+    {% for k, v in request.GET.items %}{% if k != 'page' %}<input type="hidden" name="f_{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+    <label class="visually-hidden" for="nombre-filtro">Nombre del filtro</label>
+    <input id="nombre-filtro" class="form-control form-control-sm" name="nombre" maxlength="60" placeholder="Nombre del filtro" required style="max-width:170px">
+    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-bookmark-plus" aria-hidden="true"></i> Guardar filtro</button>
+  </form>
+  {% endif %}
+</div>

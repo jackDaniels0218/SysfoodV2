@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Floor
 from django.utils import timezone
 
 from core.models import _SoloInsercion
@@ -27,6 +28,10 @@ class Inventario(models.Model):
     )
     inv_nom = models.CharField("producto", max_length=120, db_index=True)
     inv_unidad = models.CharField("unidad", max_length=30)
+    inv_divisible = models.BooleanField(
+        "admite decimales", default=True,
+        help_text="Copia de la unidad al ingresar: si es falso, todas las cantidades deben ser enteras.",
+    )
     inv_cant_inicial = models.DecimalField("cantidad inicial", max_digits=12, decimal_places=2)
     inv_cant_disp = models.DecimalField("cantidad disponible", max_digits=12, decimal_places=2)
     inv_cant_reserv = models.DecimalField("cantidad reservada", max_digits=12, decimal_places=2, default=Decimal("0"))
@@ -48,10 +53,33 @@ class Inventario(models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(inv_cant_disp__gte=0), name="inv_disp_no_negativa"),
             models.CheckConstraint(condition=models.Q(inv_cant_reserv__gte=0), name="inv_reserv_no_negativa"),
+            models.CheckConstraint(
+                condition=models.Q(inv_divisible=True) | models.Q(
+                    inv_cant_inicial=Floor("inv_cant_inicial"), inv_cant_disp=Floor("inv_cant_disp"),
+                    inv_cant_reserv=Floor("inv_cant_reserv"),
+                ),
+                name="inv_contable_entero",
+                violation_error_message="Las unidades contables solo admiten cantidades enteras.",
+            ),
         ]
 
     def __str__(self):
-        return f"{self.inv_nom} ({self.inv_cant_disp} {self.inv_unidad})"
+        return f"{self.inv_nom} ({self.cantidad_texto(self.inv_cant_disp)})"
+
+    def cantidad_texto(self, cantidad):
+        from .unidades import formatear
+
+        return formatear(cantidad, self.inv_unidad)
+
+    def validar_cantidad(self, cantidad):
+        """Valida contra la unidad con que se registró el producto (la misma regla que la base de datos)."""
+        from .unidades import validar
+
+        return validar(cantidad, self.inv_unidad, self.inv_divisible)
+
+    @property
+    def paso(self):
+        return "0.01" if self.inv_divisible else "1"
 
     @property
     def cantidad_existente(self):

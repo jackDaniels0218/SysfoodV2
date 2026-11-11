@@ -150,3 +150,43 @@ def trazabilidad(request):
     return render(request, "core/trazabilidad.html", {
         "vista": vista, "pagina": pagina, "tipos": tipos, "usuarios": Usuario.objects.order_by("usu_nom"),
     })
+
+
+@login_required
+@require_POST
+def filtro_guardar(request):
+    """Guarda (o reemplaza) los filtros actuales de una lista con un nombre."""
+    from urllib.parse import urlencode
+
+    from .models import FiltroGuardado
+
+    vista = request.POST.get("vista", "")
+    if vista not in FiltroGuardado.VISTAS:
+        raise Http404
+    destino = reverse(FiltroGuardado.VISTAS[vista])
+    nombre = request.POST.get("nombre", "").strip()[:60]
+    # Solo se guardan los parámetros de filtro, nunca la página.
+    pares = [(k, v) for k, v in request.POST.items() if k.startswith("f_") and v.strip()]
+    consulta = urlencode([(k[2:], v.strip()) for k, v in pares if k[2:] != "page"])[:500]
+    if not nombre:
+        messages.error(request, "Escriba un nombre para el filtro.")
+    elif not consulta:
+        messages.error(request, "Aplique al menos un filtro antes de guardarlo.")
+    else:
+        FiltroGuardado.objects.update_or_create(
+            usuario=request.user, fil_vista=vista, fil_nombre=nombre, defaults={"fil_consulta": consulta},
+        )
+        messages.success(request, f"Filtro «{nombre}» guardado. Lo encuentra en «Filtros guardados».")
+    return redirect(f"{destino}?{consulta}" if consulta else destino)
+
+
+@login_required
+@require_POST
+def filtro_eliminar(request, pk):
+    from .models import FiltroGuardado
+
+    filtro = get_object_or_404(FiltroGuardado, pk=pk, usuario=request.user)
+    destino = reverse(FiltroGuardado.VISTAS.get(filtro.fil_vista, "core:inicio"))
+    filtro.delete()
+    messages.success(request, f"Filtro «{filtro.fil_nombre}» eliminado.")
+    return redirect(destino)

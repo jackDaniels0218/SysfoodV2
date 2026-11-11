@@ -8,6 +8,19 @@ class AjusteForm(forms.Form):
                                         widget=forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}))
     motivo = forms.CharField(label="Motivo del ajuste", max_length=200, widget=forms.TextInput(attrs={"class": "form-control"}))
 
+    def __init__(self, *args, inventario=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inventario = inventario
+        if inventario is not None:
+            self.fields["nueva_cantidad"].widget.attrs["step"] = inventario.paso
+            self.fields["nueva_cantidad"].label = f"Nueva cantidad disponible ({inventario.inv_unidad})"
+
+    def clean_nueva_cantidad(self):
+        cantidad = self.cleaned_data["nueva_cantidad"]
+        if self.inventario is not None and cantidad is not None:
+            self.inventario.validar_cantidad(cantidad)
+        return cantidad
+
 
 class BajaForm(forms.Form):
     motivo = forms.ChoiceField(label="Motivo de la baja", choices=Inventario.MOTIVOS_BAJA, widget=forms.Select(attrs={"class": "form-select"}))

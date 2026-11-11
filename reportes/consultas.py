@@ -95,8 +95,8 @@ def reporte_inventario(f):
     vigencias = dict(Inventario.VIGENCIAS)
     filas, conteo = [], Counter()
     for i in qs:
-        filas.append([i.inv_id, i.inv_nom, i.categoria.cat_nom, i.bodega.bod_nom, f"{i.inv_cant_disp} {i.inv_unidad}",
-                      f"{i.inv_cant_reserv} {i.inv_unidad}", i.inv_fec_venc.strftime("%d/%m/%Y"), i.dias_para_vencer, vigencias[i.inv_est_venc]])
+        filas.append([i.inv_id, i.inv_nom, i.categoria.cat_nom, i.bodega.bod_nom, i.cantidad_texto(i.inv_cant_disp),
+                      i.cantidad_texto(i.inv_cant_reserv), i.inv_fec_venc.strftime("%d/%m/%Y"), i.dias_para_vencer, vigencias[i.inv_est_venc]])
         conteo[i.inv_est_venc] += 1
     return {
         "titulo": TIPOS["inventario"],
@@ -122,7 +122,7 @@ def reporte_vencidos(f):
     for i in qs.order_by("inv_fec_venc"):
         motivo = motivos.get(i.inv_mot_baja, "Pendiente de retiro")
         cantidad = i.inv_cant_inicial if i.inv_estado == Inventario.RETIRADO else i.inv_cant_disp
-        filas.append([i.inv_id, i.inv_nom, i.categoria.cat_nom, i.bodega.bod_nom, f"{cantidad} {i.inv_unidad}",
+        filas.append([i.inv_id, i.inv_nom, i.categoria.cat_nom, i.bodega.bod_nom, i.cantidad_texto(cantidad),
                       i.inv_fec_venc.strftime("%d/%m/%Y"), motivo, _fecha(i.inv_fec_baja), i.usuario_baja.nombre_completo if i.usuario_baja else ""])
         conteo[motivo] += 1
     return {

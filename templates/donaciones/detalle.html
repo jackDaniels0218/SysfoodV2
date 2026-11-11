@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Donación #{{ d.pk }}{% endblock %}
 {% block contenido %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -48,11 +48,11 @@
 {% for p in detalles %}
 <tr>
   <td>{{ p.dd_nom }}{% if p.dd_desc %}<div class="small text-muted">{{ p.dd_desc }}</div>{% endif %}</td>
-  <td>{{ p.categoria }}</td><td>{{ p.dd_cantidad }} {{ p.dd_unidad }}</td><td>{{ p.dd_fec_venc|date:"d/m/Y" }}</td><td>{{ p.dd_lote|default:"—" }}</td>
+  <td>{{ p.categoria }}</td><td>{{ p.dd_cantidad|cantidad:p.dd_unidad }}</td><td>{{ p.dd_fec_venc|date:"d/m/Y" }}</td><td>{{ p.dd_lote|default:"—" }}</td>
   <td>{{ p.get_dd_estado_display }}</td>
   <td class="small">{% with i=p.inventario %}{% if i %}
     {% if user.es_admin %}<a href="{% url 'inventario:detalle' i.pk %}">#{{ i.pk }}</a> · {% endif %}
-    Disp. {{ i.inv_cant_disp }} · Res. {{ i.inv_cant_reserv }}
+    Disp. {{ i.inv_cant_disp|cantidad:i.inv_unidad }} · Res. {{ i.inv_cant_reserv|cantidad:i.inv_unidad }}
     <span class="badge vigencia-{{ i.inv_est_venc }}">{{ i.get_inv_est_venc_display }}</span>
     <div>{{ i.get_inv_estado_display }} · {{ i.bodega }}</div>
   {% endif %}{% endwith %}</td>

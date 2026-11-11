@@ -53,8 +53,8 @@ def ingresar_detalle(detalle, usuario, bodega=None):
     bodega = bodega or bodega_de_ingreso()
     inv = Inventario(
         detalle=detalle, bodega=bodega, categoria=detalle.categoria, inv_nom=detalle.dd_nom,
-        inv_unidad=detalle.dd_unidad, inv_cant_inicial=detalle.dd_cantidad, inv_cant_disp=detalle.dd_cantidad,
-        inv_fec_venc=detalle.dd_fec_venc,
+        inv_unidad=detalle.dd_unidad, inv_divisible=detalle.dd_divisible,
+        inv_cant_inicial=detalle.dd_cantidad, inv_cant_disp=detalle.dd_cantidad, inv_fec_venc=detalle.dd_fec_venc,
     )
     inv.inv_est_venc = inv.calcular_vigencia()
     inv.save()
@@ -74,7 +74,7 @@ def _avisar_proximo(inv):
     )
     notificar_administradores(
         "vencimiento", "Producto próximo a vencer",
-        f"«{inv.inv_nom}» ({inv.inv_cant_disp} {inv.inv_unidad}) vence el {inv.inv_fec_venc:%d/%m/%Y}. Entrega prioritaria.",
+        f"«{inv.inv_nom}» ({inv.cantidad_texto(inv.inv_cant_disp)}) vence el {inv.inv_fec_venc:%d/%m/%Y}. Entrega prioritaria.",
         reverse("inventario:detalle", args=[inv.pk]),
     )
 
@@ -87,12 +87,17 @@ def sincronizar_detalle(detalle, usuario):
     diferencia = detalle.dd_cantidad - inv.inv_cant_inicial
     inv.inv_nom = detalle.dd_nom
     inv.inv_unidad = detalle.dd_unidad
+    inv.inv_divisible = detalle.dd_divisible
     inv.categoria = detalle.categoria
     inv.inv_fec_venc = detalle.dd_fec_venc
     inv.inv_est_venc = inv.calcular_vigencia()
     if diferencia:
         inv.inv_cant_inicial = detalle.dd_cantidad
         inv.inv_cant_disp += diferencia
+    if not inv.inv_divisible:
+        for cantidad in (inv.inv_cant_inicial, inv.inv_cant_disp, inv.inv_cant_reserv):
+            inv.validar_cantidad(cantidad)
+    if diferencia:
         return _registrar(inv, Kardex.AJUSTE, diferencia, usuario, "Edición de la donación por el donante", disp_ant, reserv_ant)
     inv.save()
     return inv
@@ -108,6 +113,7 @@ def ajustar(inv, nueva_disponible, motivo, usuario):
     nueva_disponible = Decimal(nueva_disponible)
     if nueva_disponible < 0:
         raise ValidationError("La cantidad no puede ser negativa.")
+    inv.validar_cantidad(nueva_disponible)
     disp_ant, reserv_ant = inv.inv_cant_disp, inv.inv_cant_reserv
     inv.inv_cant_disp = nueva_disponible
     return _registrar(inv, Kardex.AJUSTE, nueva_disponible - disp_ant, usuario, motivo.strip(), disp_ant, reserv_ant)
@@ -154,9 +160,10 @@ def reservar(inv, cantidad, usuario, entrega):
     inv = _bloquear(inv)
     if inv.inv_estado == Inventario.RETIRADO or inv.calcular_vigencia() == Inventario.VENCIDO:
         raise ValidationError(f"«{inv.inv_nom}» ya no está disponible (retirado o vencido).")
+    inv.validar_cantidad(cantidad)
     if cantidad > inv.inv_cant_disp:
         raise ValidationError(
-            f"No hay cantidad suficiente de «{inv.inv_nom}»: disponible {inv.inv_cant_disp} {inv.inv_unidad}."
+            f"No hay cantidad suficiente de «{inv.inv_nom}»: disponible {inv.cantidad_texto(inv.inv_cant_disp)}."
         )
     disp_ant, reserv_ant = inv.inv_cant_disp, inv.inv_cant_reserv
     inv.inv_cant_disp -= cantidad
@@ -182,6 +189,7 @@ def entregar(inv, asignada, entregada, usuario, entrega):
     inv = _bloquear(inv)
     if entregada < 0 or entregada > asignada:
         raise ValidationError("La cantidad entregada debe estar entre 0 y la cantidad asignada.")
+    inv.validar_cantidad(entregada)
     if asignada > inv.inv_cant_reserv:
         raise ValidationError("La reserva del producto no coincide con la entrega.")
     disp_ant, reserv_ant = inv.inv_cant_disp, inv.inv_cant_reserv

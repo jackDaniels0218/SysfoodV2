@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Solicitud #{{ s.pk }}{% endblock %}
 {% block contenido %}
 <h1 class="h3">Solicitud #{{ s.pk }} {% include "parciales/estado.html" with valor=s.sol_estado texto=s.get_sol_estado_display %}</h1>
@@ -7,7 +7,7 @@
 {% if entrega %}<div class="alert alert-success">Código de seguimiento: <strong>{{ entrega.ent_cod }}</strong> · {{ entrega.get_ent_estado_display }} · <a class="alert-link" href="{% url 'entregas:seguimiento' %}?codigo={{ entrega.ent_cod }}">Ver seguimiento</a></div>{% endif %}
 <div class="table-responsive"><table class="table bg-white">
 <thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad</th><th>Donante</th></tr></thead>
-<tbody>{% for d in detalles %}<tr><td>{{ d.inventario.inv_nom }}</td><td>{{ d.inventario.categoria }}</td><td>{{ d.sd_cant }} {{ d.inventario.inv_unidad }}</td><td>{{ d.inventario.detalle.donacion.nombre_publico }}</td></tr>{% endfor %}</tbody>
+<tbody>{% for d in detalles %}<tr><td>{{ d.inventario.inv_nom }}</td><td>{{ d.inventario.categoria }}</td><td>{{ d.sd_cant|cantidad:d.inventario.inv_unidad }}</td><td>{{ d.inventario.detalle.donacion.nombre_publico }}</td></tr>{% endfor %}</tbody>
 </table></div>
 <a href="{% url 'solicitudes:mis_solicitudes' %}">← Mis solicitudes</a>
 {% endblock %}

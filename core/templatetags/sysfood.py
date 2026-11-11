@@ -31,6 +31,14 @@ def numero(valor, decimales=None):
 
 
 @register.filter
+def cantidad(valor, unidad):
+    """Cantidad con su unidad según la regla de la unidad: 50 kg, 24 latas, 1 lata, 2,5 L."""
+    from inventario.unidades import formatear
+
+    return formatear(valor, unidad)
+
+
+@register.filter
 def porcentaje(parte, total):
     """Porcentaje 0-100 como texto con punto decimal (apto para CSS: width:…%). Un float se localizaría a «76,1»."""
     try:

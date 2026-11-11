@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Seguimiento de entrega{% endblock %}
 {% block contenido %}
 <h1 class="h3">Seguimiento de mi entrega</h1>
@@ -14,7 +14,7 @@
   <p class="mb-1"><strong>Fecha programada:</strong> {{ e.ent_fec_prog|date:"d/m/Y"|default:"Por definir" }}</p>
   {% if e.ent_fec_entrega %}<p class="mb-1"><strong>Entregada:</strong> {{ e.ent_fec_entrega|date:"d/m/Y h:i a" }}</p>{% endif %}
   <h3 class="h6 mt-3">Productos</h3>
-  <ul class="small">{% for d in detalles %}<li>{{ d.inventario.inv_nom }}: {{ d.de_cant_asig }} {{ d.inventario.inv_unidad }}{% if d.de_cant_entregada is not None %} (entregado {{ d.de_cant_entregada }}){% endif %}</li>{% endfor %}</ul>
+  <ul class="small">{% for d in detalles %}<li>{{ d.inventario.inv_nom }}: {{ d.de_cant_asig|cantidad:d.inventario.inv_unidad }}{% if d.de_cant_entregada is not None %} (entregado {{ d.de_cant_entregada }}){% endif %}</li>{% endfor %}</ul>
   <h3 class="h6">Avance</h3>
   <ul class="list-group small">{% for h in historial %}<li class="list-group-item">{{ h.his_fecha|date:"d/m/Y h:i a" }} · <strong>{{ h.nuevo_display }}</strong>{% if h.his_obs %} — {{ h.his_obs }}{% endif %}</li>{% endfor %}</ul>
 </div></div>

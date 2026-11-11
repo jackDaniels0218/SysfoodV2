@@ -55,6 +55,16 @@ DEFINICIONES = OrderedDict([
         "kilogramos,gramos,libras,litros,mililitros,unidades,paquetes,cajas,bolsas,latas",
         "Lista de unidades de medida separadas por comas.", "lista", "Inventario",
     )),
+    ("unidades_divisibles", _p(
+        "kilogramos,gramos,libras,litros,mililitros",
+        "Unidades que admiten decimales (peso y volumen). Las demás unidades se cuentan en enteros (24 latas, no 24,5).",
+        "lista", "Inventario",
+    )),
+    ("unidades_abreviaturas", _p(
+        "kilogramos:kg, gramos:g, libras:lb, litros:L, mililitros:mL",
+        "Abreviatura con que se muestra cada unidad (por ejemplo 50 kg, 2,5 L). Las unidades sin abreviatura se escriben completas.",
+        "pares", "Inventario",
+    )),
     ("bodega_predeterminada", _p("", "Bodega donde ingresan los productos donados (identificador).", "bodega", "Inventario")),
     # --- Puntaje de necesidad: pesos (se normalizan: no es obligatorio que sumen 100)
     ("puntaje_peso_sisben", _p("25", "Peso del nivel de Sisbén en el puntaje (0 lo desactiva).", "entero", "Puntaje de necesidad", 0, 100)),
@@ -142,6 +152,7 @@ TIPOS_AYUDA = {
     "lista": "Valores separados por comas.",
     "coordenadas": "Formato: latitud,longitud con punto decimal. Ejemplo: 4.8143,-74.3546.",
     "url": "Dirección completa que empieza por https://.",
+    "pares": "Formato: unidad:abreviatura separados por comas. Ejemplo: kilogramos:kg, litros:L.",
 }
 
 
@@ -197,6 +208,28 @@ def escala(clave, cache=None):
         return _parse_escala(_valor(clave, cache))
     except ValidationError:
         return _parse_escala(DEFINICIONES[clave].valor)
+
+
+def pares(clave, cache=None):
+    """{clave: valor} de un parámetro «a:b, c:d» (claves en minúscula, valores tal cual)."""
+    try:
+        return _parse_pares(_valor(clave, cache))
+    except ValidationError:
+        return _parse_pares(DEFINICIONES[clave].valor)
+
+
+def _parse_pares(valor):
+    resultado = OrderedDict()
+    for parte in (valor or "").split(","):
+        if not parte.strip():
+            continue
+        if ":" not in parte:
+            raise ValidationError(f"«{parte.strip()}» no tiene el formato unidad:abreviatura.")
+        clave, texto = (p.strip() for p in parte.split(":", 1))
+        if not clave or not texto:
+            raise ValidationError(f"«{parte.strip()}» no tiene el formato unidad:abreviatura.")
+        resultado[clave.lower()] = texto
+    return resultado
 
 
 def coordenadas(clave, cache=None):
@@ -320,9 +353,19 @@ def validar(clave, valor):
         return ",".join(dict.fromkeys(formatos))
     if tipo == "lista":
         elementos = [e.strip().lower() for e in valor.split(",") if e.strip()]
-        if not elementos:
+        if not elementos and clave != "unidades_divisibles":
             raise ValidationError("La lista no puede quedar vacía.")
+        if clave == "unidades_divisibles":
+            medidas = lista("unidades_medida")
+            ajenas = [e for e in elementos if e not in medidas]
+            if ajenas:
+                raise ValidationError("Estas unidades no están en «unidades_medida»: " + ", ".join(ajenas) + ".")
         return ",".join(dict.fromkeys(elementos))
+    if tipo == "pares":
+        pares_ = _parse_pares(valor)
+        if not pares_:
+            raise ValidationError("Indique al menos una abreviatura o deje el valor por defecto.")
+        return ", ".join(f"{k}:{v}" for k, v in pares_.items())
     if tipo == "bodega":
         if valor == "":
             return ""

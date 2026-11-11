@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from catalogo.models import Categoria
 from core import parametros
+from inventario import unidades as uds
 from usuarios.forms import BootstrapMixin, Fecha
 
 from .models import DetalleDonacion, Donacion
@@ -39,7 +40,13 @@ class DetalleForm(BootstrapMixin, forms.ModelForm):
         if self.instance.pk and self.instance.dd_unidad not in unidades:
             unidades.append(self.instance.dd_unidad)
         self.fields["dd_unidad"] = forms.ChoiceField(label="Unidad", choices=[("", "---------")] + [(u, u.capitalize()) for u in unidades])
-        self.fields["dd_cantidad"].widget.attrs.update({"min": "0.01", "step": "0.01"})
+        divisibles = [u for u in unidades if uds.es_divisible(u)]
+        # El JS (sysfood.js) cambia el paso del campo cantidad al elegir la unidad: 1 en contables, 0,01 en divisibles.
+        self.fields["dd_unidad"].widget.attrs["data-divisibles"] = ",".join(divisibles)
+        actual = self.instance.dd_unidad if self.instance.pk else ""
+        paso = uds.paso(actual) if actual else "0.01"
+        self.fields["dd_cantidad"].widget.attrs.update({"min": paso, "step": paso, "data-cantidad": "1"})
+        self.fields["dd_cantidad"].help_text = "Kilos, litros y demás medidas admiten decimales; latas, cajas y unidades van en enteros."
         self.fields["dd_fec_venc"].widget.attrs["min"] = (timezone.localdate() + timezone.timedelta(days=1)).isoformat()
         self._estilizar()
 

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Trazabilidad y auditoría{% endblock %}
 {% block contenido %}
 <h1 class="h3">Trazabilidad y auditoría</h1>
@@ -30,7 +30,7 @@
 <thead><tr><th>Fecha</th><th>Producto</th><th>Movimiento</th><th>Cantidad</th><th>Disp. anterior → resultante</th><th>Reservado ant. → res.</th><th>Entrega</th><th>Usuario</th><th>Motivo</th></tr></thead>
 <tbody>{% for k in pagina %}
 <tr><td>{{ k.kar_fecha|date:"d/m/Y H:i" }}</td><td><a href="{% url 'inventario:detalle' k.inventario_id %}">#{{ k.inventario_id }} {{ k.inventario.inv_nom }}</a></td>
-<td>{{ k.get_kar_tipo_display }}</td><td>{{ k.kar_cantidad }}</td><td>{{ k.kar_cant_anterior }} → {{ k.kar_cant_resultante }}</td>
+<td>{{ k.get_kar_tipo_display }}</td><td>{{ k.kar_cantidad|numero }}</td><td>{{ k.kar_cant_anterior|numero }} → {{ k.kar_cant_resultante|numero }}</td>
 <td>{{ k.kar_reserv_anterior }} → {{ k.kar_reserv_resultante }}</td><td>{% if k.entrega %}<a href="{% url 'entregas:detalle' k.entrega_id %}">{{ k.entrega.ent_cod }}</a>{% endif %}</td>
 <td>{{ k.usuario|default:"Sistema" }}</td><td>{{ k.kar_motivo }}</td></tr>
 {% empty %}<tr><td colspan="9" class="text-muted">Sin movimientos.</td></tr>{% endfor %}</tbody>

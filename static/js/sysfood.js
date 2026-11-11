@@ -205,3 +205,33 @@ document.addEventListener("submit", function (e) {
     boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + boton.getAttribute("data-cargando");
   }, 0);
 });
+
+// Cantidades: las unidades contables (latas, cajas…) van en enteros y las divisibles (kg, L…) admiten decimales.
+(function () {
+  function ajustarPaso(select) {
+    var divisibles = (select.getAttribute("data-divisibles") || "").split(",");
+    var tarjeta = select.closest(".producto-form, form");
+    var campo = tarjeta && tarjeta.querySelector("input[data-cantidad]");
+    if (!campo || !select.value) { return; }
+    var divisible = divisibles.indexOf(select.value) !== -1;
+    var paso = divisible ? "0.01" : "1";
+    campo.step = paso; campo.min = paso;
+    campo.setCustomValidity("");
+    if (!divisible && campo.value && Number(campo.value) % 1 !== 0) {
+      campo.setCustomValidity("«" + select.value + "» se cuenta en unidades completas: escriba un número entero.");
+    }
+  }
+  document.addEventListener("change", function (e) {
+    if (e.target.matches && e.target.matches("select[data-divisibles]")) { ajustarPaso(e.target); }
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target.matches && e.target.matches("input[data-cantidad]")) {
+      var tarjeta = e.target.closest(".producto-form, form");
+      var select = tarjeta && tarjeta.querySelector("select[data-divisibles]");
+      if (select) { ajustarPaso(select); }
+    }
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("select[data-divisibles]").forEach(ajustarPaso);
+  });
+})();

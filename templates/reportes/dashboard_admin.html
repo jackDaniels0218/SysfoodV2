@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Panel del administrador{% endblock %}
 {% block head %}{% include "parciales/leaflet.html" %}{% endblock %}
 {% block contenido %}
@@ -41,7 +41,7 @@
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <h2 class="h6">Entrega prioritaria: próximos a vencer</h2>
     <ul class="list-group list-group-flush small">
-      {% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'inventario:detalle' i.pk %}">{{ i.inv_nom }}</a><span>{{ i.inv_cant_disp }} {{ i.inv_unidad }} · vence {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>
+      {% for i in proximos %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'inventario:detalle' i.pk %}">{{ i.inv_nom }}</a><span>{{ i.inv_cant_disp|cantidad:i.inv_unidad }} · vence {{ i.inv_fec_venc|date:"d/m/Y" }}</span></li>
       {% empty %}<li class="list-group-item text-muted">No hay productos próximos a vencer.</li>{% endfor %}
     </ul>
   </div></div></div>

@@ -278,17 +278,38 @@ En todas las páginas, también antes de ingresar, aparece un botón verde abajo
 
 Se verifican las firmas de ambos proveedores (`X-Hub-Signature-256` y `X-Twilio-Signature`), y cualquier mensaje sin firma válida se rechaza. Las pruebas automáticas cubren la verificación del webhook, las firmas y el formato de los mensajes con datos simulados. **No se probó contra Meta ni Twilio reales**, porque eso requiere cuentas y un dominio público con HTTPS.
 
+## 3.5 Inventario con cantidades coherentes
+
+**Unidades contables y divisibles.** Las unidades de peso y volumen (`unidades_divisibles`: kilogramos, gramos, libras, litros y mililitros) admiten hasta dos decimales. Las demás (latas, cajas, unidades, paquetes, bolsas) **solo admiten enteros**: no se pueden registrar 24,5 latas. La regla se aplica en tres niveles:
+
+1. **Formulario:** al elegir la unidad, el campo de cantidad cambia su paso a 1 o a 0,01 y avisa antes de enviar.
+2. **Servidor:** se valida al donar, al editar una donación, en los ajustes de inventario, en el carrito y la solicitud, y en la cantidad entregada. El mensaje propone el entero más cercano: «“latas” se cuenta en unidades completas: escriba 24 o 25, no 24,5».
+3. **Base de datos:** cada producto guarda si su unidad era divisible al registrarse (`dd_divisible`, `inv_divisible`), y las restricciones `CHECK` `dd_contable_entero` e `inv_contable_entero` rechazan decimales en los contables.
+
+**Formato.** Las cantidades se muestran según su unidad: «50 kg», «24 latas», «1 lata», «2,5 L», «1.500 g». Las abreviaturas se configuran en `unidades_abreviaturas`. El formato se usa en el inventario, el catálogo, el carrito, las solicitudes, las entregas, los paneles y los reportes.
+
+**Datos anteriores.** La migración marca cada registro según su unidad. Si un registro contable ya tenía decimales, lo conserva sin perder datos y lo reporta: `python manage.py revisar_cantidades` lista esos registros, y el panel de inventario muestra el indicador «Cantidades por revisar» con un filtro para corregirlos con un ajuste.
+
+**Panel de inventario rediseñado:**
+
+- **Indicadores** que filtran al pulsarlos: disponibles, próximos a vencer, vencidos por retirar, con reservas y cantidades por revisar.
+- **Alerta de vencimientos** con los cinco productos que vencen primero, su cantidad, bodega y días restantes.
+- Vista en **tabla o tarjetas**; la elección se recuerda.
+- **Ajuste rápido** desde la lista, en una ventana con la cantidad actual y el motivo. Respeta la regla de la unidad y vuelve a la misma lista.
+- **Filtros guardados:** cada usuario guarda con un nombre la combinación de filtros actual y la vuelve a aplicar con un clic (modelo `FiltroGuardado`, reutilizable en otras listas).
+- **Estados vacíos útiles**, que distinguen un inventario vacío de unos filtros que no encuentran nada.
+
 ---
 
 ## 4. Pruebas automáticas
 
-El proyecto incluye **119 pruebas** que cubren los 22 requerimientos: funcionales, seguridad, rendimiento, integridad y respaldo.
+El proyecto incluye **224 pruebas** que cubren los 22 requerimientos y las mejoras: funcionales, seguridad, rendimiento, integridad y respaldo.
 
 ```bash
 python manage.py test
 ```
 
-Resultado esperado: `Ran 119 tests ... OK`.
+Resultado esperado: `Ran 224 tests ... OK`.
 
 Además se verificó:
 

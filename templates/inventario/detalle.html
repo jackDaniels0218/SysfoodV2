@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}{{ inv.inv_nom }}{% endblock %}
 {% block contenido %}
 <h1 class="h3">{{ inv.inv_nom }} <span class="badge vigencia-{{ inv.inv_est_venc }}">{{ inv.get_inv_est_venc_display }}</span> {% include "parciales/estado.html" with valor=inv.inv_estado texto=inv.get_inv_estado_display %}</h1>
@@ -9,9 +9,9 @@
       <dt class="col-5">Bodega</dt><dd class="col-7">{{ inv.bodega }}</dd>
       <dt class="col-5">Donación</dt><dd class="col-7"><a href="{% url 'donaciones:detalle' inv.detalle.donacion_id %}">#{{ inv.detalle.donacion_id }}</a> · {% if inv.detalle.donacion.dona_anonima %}Donante anónimo{% else %}{{ inv.detalle.donacion.nombre_publico }}{% endif %}</dd>
       <dt class="col-5">Lote</dt><dd class="col-7">{{ inv.detalle.dd_lote|default:"—" }}</dd>
-      <dt class="col-5">Cantidad inicial</dt><dd class="col-7">{{ inv.inv_cant_inicial }} {{ inv.inv_unidad }}</dd>
-      <dt class="col-5">Disponible</dt><dd class="col-7 fw-bold">{{ inv.inv_cant_disp }} {{ inv.inv_unidad }}</dd>
-      <dt class="col-5">Reservado</dt><dd class="col-7">{{ inv.inv_cant_reserv }} {{ inv.inv_unidad }}</dd>
+      <dt class="col-5">Cantidad inicial</dt><dd class="col-7">{{ inv.inv_cant_inicial|cantidad:inv.inv_unidad }}</dd>
+      <dt class="col-5">Disponible</dt><dd class="col-7 fw-bold">{{ inv.inv_cant_disp|cantidad:inv.inv_unidad }}</dd>
+      <dt class="col-5">Reservado</dt><dd class="col-7">{{ inv.inv_cant_reserv|cantidad:inv.inv_unidad }}</dd>
       <dt class="col-5">Vence</dt><dd class="col-7">{{ inv.inv_fec_venc|date:"d/m/Y" }} ({{ inv.dias_para_vencer }} días)</dd>
       <dt class="col-5">Ingreso</dt><dd class="col-7">{{ inv.inv_fec_ingreso|date:"d/m/Y H:i" }}</dd>
       {% if inv.inv_estado == 'retirado' %}
@@ -43,8 +43,8 @@
 <div class="table-responsive"><table class="table table-sm bg-white small">
 <thead><tr><th>Fecha</th><th>Movimiento</th><th>Cantidad</th><th>Disponible</th><th>Reservado</th><th>Entrega</th><th>Usuario</th><th>Motivo</th></tr></thead>
 <tbody>{% for k in kardex %}
-<tr><td>{{ k.kar_fecha|date:"d/m/Y H:i" }}</td><td>{{ k.get_kar_tipo_display }}</td><td>{{ k.kar_cantidad }}</td>
-<td>{{ k.kar_cant_anterior }} → {{ k.kar_cant_resultante }}</td><td>{{ k.kar_reserv_anterior }} → {{ k.kar_reserv_resultante }}</td>
+<tr><td>{{ k.kar_fecha|date:"d/m/Y H:i" }}</td><td>{{ k.get_kar_tipo_display }}</td><td>{{ k.kar_cantidad|numero }}</td>
+<td>{{ k.kar_cant_anterior|numero }} → {{ k.kar_cant_resultante|numero }}</td><td>{{ k.kar_reserv_anterior|numero }} → {{ k.kar_reserv_resultante|numero }}</td>
 <td>{% if k.entrega %}<a href="{% url 'entregas:detalle' k.entrega_id %}">{{ k.entrega.ent_cod }}</a>{% endif %}</td><td>{{ k.usuario|default:"Sistema" }}</td><td>{{ k.kar_motivo }}</td></tr>
 {% endfor %}</tbody></table></div>
 <a href="{% url 'inventario:lista' %}">← Volver al inventario</a>

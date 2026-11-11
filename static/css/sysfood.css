@@ -265,7 +265,7 @@ a:has(> .tarjeta-indicador) { display: block; height: 100%; }
 .input-group > .btn:last-child { border-radius: 0 12px 12px 0; }
 
 /* ---------- Tablas ---------- */
-.table-responsive { border-radius: 18px; border: 1px solid var(--sf-line); background: var(--sf-surface); box-shadow: var(--sf-shadow); }
+.table-responsive { position: relative; border-radius: 18px; border: 1px solid var(--sf-line); background: var(--sf-surface); box-shadow: var(--sf-shadow); }
 .table { --bs-table-bg: transparent; --bs-table-color: var(--sf-ink); --bs-table-border-color: var(--sf-line); --bs-table-striped-bg: color-mix(in srgb, var(--sf-green) 4%, transparent); --bs-table-hover-bg: color-mix(in srgb, var(--sf-green-2) 9%, transparent); margin: 0; }
 .table > thead > tr > th {
   font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--sf-muted);
@@ -533,3 +533,12 @@ section[id] { scroll-margin-top: 6rem; }
   .sf-chat-boton { transition: none; }
 }
 @media (max-width: 575px) { footer.sf-footer { padding-bottom: 5.5rem; } }
+
+/* ---------------------------------------------------------------- Inventario: vista en tarjetas */
+.sf-kpis a { text-decoration: none; color: inherit; }
+.sf-inv-card { border-top: 4px solid var(--sf-green-2); }
+.sf-inv-card.sf-inv-proximo { border-top-color: #e0a106; }
+.sf-inv-card.sf-inv-vencido { border-top-color: var(--sf-danger); }
+.sf-inv-cantidad { font-family: "Fraunces", serif; font-size: 1.6rem; font-weight: 600; line-height: 1.2; }
+.sf-filtros-guardados .dropdown-menu { min-width: 240px; }
+.sf-inv-acciones .btn { white-space: nowrap; }

@@ -132,7 +132,19 @@ Con `nuevo@sysfood.local` en *Documentos*:
 - [ ] En el celular (390 px) y en modo oscuro el panel ocupa el ancho de la pantalla y se lee bien. **Esc** lo cierra.
 - [ ] Con `chat_activo` en `no` el botón desaparece.
 
-## 14. Pruebas automáticas
+## 14. Inventario y cantidades (mejora 6)
+
+- [ ] Como `donante@sysfood.local`, en **Donar**, elija la unidad *latas*: el campo cantidad solo sube de 1 en 1. Escriba 2,5 → el navegador avisa. Si fuerza el envío, el servidor responde «“latas” se cuenta en unidades completas: escriba 2 o 3, no 2,5». Con *kilogramos*, 2,5 se acepta.
+- [ ] En el catálogo, el carrito y la entrega, los productos en latas o unidades solo aceptan enteros.
+- [ ] Las cantidades se ven como «50 kg», «24 L», «60 latas», «40 unidades», en el inventario, el catálogo, el detalle de la donación y los reportes.
+- [ ] Como administrador, en **Inventario**: los indicadores filtran al pulsarlos y la alerta «Vencen pronto» lista lo que vence primero.
+- [ ] Cambie a **Tarjetas**, salga y vuelva: sigue en tarjetas.
+- [ ] Pulse el lápiz de un producto, cambie la cantidad y escriba un motivo: vuelve a la misma lista con el mensaje y el kardex registra el ajuste. Con 10,5 en latas, rechaza el ajuste.
+- [ ] Filtre por *Vigencia: próximo a vencer*, escriba un nombre y pulse **Guardar filtro**: queda en «Filtros guardados». La **×** lo elimina.
+- [ ] `python manage.py revisar_cantidades` → «Todas las cantidades son coherentes con su unidad».
+- [ ] En *Parámetros › Inventario*: `unidades_divisibles` no acepta unidades que no estén en `unidades_medida`, y `unidades_abreviaturas` cambia cómo se muestran.
+
+## 15. Pruebas automáticas
 
 ```bash
 python manage.py test

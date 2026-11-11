@@ -1,34 +1,150 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Inventario{% endblock %}
 {% block contenido %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Inventario</h1>
+  <div>
+    <h1 class="h3 mb-0">Inventario</h1>
+    <p class="text-muted small mb-0">Ordenado por fecha de vencimiento: lo que vence primero se entrega primero.</p>
+  </div>
   <form method="post" action="{% url 'inventario:retirar_vencidos' %}" data-confirmar="Se darán de baja todos los productos vencidos. ¿Continuar?">{% csrf_token %}
-    <button class="btn btn-outline-danger"><i class="bi bi-trash3"></i> Retirar vencidos</button>
+    <button class="btn btn-outline-danger" {% if not kpi.vencidos %}disabled{% endif %}><i class="bi bi-trash3" aria-hidden="true"></i> Retirar vencidos{% if kpi.vencidos %} ({{ kpi.vencidos }}){% endif %}</button>
   </form>
 </div>
-<p class="small text-muted mb-2">Ordenado por fecha de vencimiento. <span class="badge vigencia-vigente">Vigente</span> <span class="badge vigencia-proximo">Próximo a vencer (entrega prioritaria)</span> <span class="badge vigencia-vencido">Vencido (para retiro)</span></p>
-<form class="row g-2 mb-3">
-  <div class="col-12 col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Producto o lote"></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="categoria"><option value="">Categoría</option>{% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="bodega"><option value="">Bodega</option>{% for b in bodegas %}<option value="{{ b.pk }}" {% if request.GET.bodega == b.pk|stringformat:'s' %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="estado"><option value="">Existencia</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div class="col-6 col-md-2"><select class="form-select" name="vigencia"><option value="">Vigencia</option>{% for k, v in vigencias %}<option value="{{ k }}" {% if request.GET.vigencia == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+
+<div class="row g-3 mb-3 sf-kpis">
+  <div class="col-6 col-lg"><a href="?estado=disponible"><div class="card tarjeta-indicador h-100"><div class="card-body"><div class="numero">{{ kpi.disponibles }}</div><div class="small text-muted">Disponibles</div></div></div></a></div>
+  <div class="col-6 col-lg"><a href="?vigencia=proximo"><div class="card tarjeta-indicador h-100" style="border-left-color:#e0a106"><div class="card-body"><div class="numero">{{ kpi.proximos }}</div><div class="small text-muted">Próximos a vencer</div></div></div></a></div>
+  <div class="col-6 col-lg"><a href="?vigencia=vencido"><div class="card tarjeta-indicador h-100" style="border-left-color:#d64545"><div class="card-body"><div class="numero">{{ kpi.vencidos }}</div><div class="small text-muted">Vencidos por retirar</div></div></div></a></div>
+  <div class="col-6 col-lg"><a href="?reservado=1"><div class="card tarjeta-indicador h-100" style="border-left-color:#5b7bd5"><div class="card-body"><div class="numero">{{ kpi.reservados }}</div><div class="small text-muted">Con reservas</div></div></div></a></div>
+  {% if kpi.por_revisar %}
+  <div class="col-12 col-lg"><a href="?revisar=1"><div class="card tarjeta-indicador h-100" style="border-left-color:#b42318"><div class="card-body"><div class="numero">{{ kpi.por_revisar }}</div><div class="small text-muted">Cantidades por revisar <i class="bi bi-info-circle" title="Productos en unidades contables (latas, cajas…) con decimales, heredados de antes de la regla. Ajústelos a un número entero."></i></div></div></div></a></div>
+  {% endif %}
+</div>
+
+{% if alertas %}
+<div class="alert alert-warning d-flex gap-3 align-items-start" role="status">
+  <i class="bi bi-alarm fs-4" aria-hidden="true"></i>
+  <div class="flex-grow-1">
+    <strong>Vencen pronto (en menos de {{ dias_alerta }} días o según su categoría):</strong>
+    <ul class="mb-0 small">
+      {% for a in alertas %}<li><a class="alert-link" href="{% url 'inventario:detalle' a.pk %}">{{ a.inv_nom }}</a>: {{ a.inv_cant_disp|cantidad:a.inv_unidad }} en {{ a.bodega }}, vence el {{ a.inv_fec_venc|date:"d/m/Y" }} ({% if a.dias_para_vencer == 0 %}hoy{% elif a.dias_para_vencer == 1 %}mañana{% else %}en {{ a.dias_para_vencer }} días{% endif %})</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<form class="row g-2 mb-2" role="search" aria-label="Filtrar inventario">
+  <div class="col-12 col-md-3"><label class="visually-hidden" for="f-q">Buscar</label><input id="f-q" class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Producto o lote" type="search"></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-cat">Categoría</label><select id="f-cat" class="form-select" name="categoria"><option value="">Categoría</option>{% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-bod">Bodega</label><select id="f-bod" class="form-select" name="bodega"><option value="">Bodega</option>{% for b in bodegas %}<option value="{{ b.pk }}" {% if request.GET.bodega == b.pk|stringformat:'s' %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-est">Existencia</label><select id="f-est" class="form-select" name="estado"><option value="">Existencia</option>{% for k, v in estados %}<option value="{{ k }}" {% if request.GET.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="f-vig">Vigencia</label><select id="f-vig" class="form-select" name="vigencia"><option value="">Vigencia</option>{% for k, v in vigencias %}<option value="{{ k }}" {% if request.GET.vigencia == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
   <div class="col-12 col-md-1"><button class="btn btn-outline-secondary w-100">Filtrar</button></div>
 </form>
-<div class="table-responsive"><table class="table table-hover bg-white">
-<thead><tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Bodega</th><th>Disponible</th><th>Reservado</th><th>Vence</th><th>Vigencia</th><th>Existencia</th><th></th></tr></thead>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  {% include "parciales/filtros_guardados.html" with vista="inventario" %}
+  <div class="d-flex gap-2 align-items-center">
+    {% if hay_filtros %}<a class="btn btn-sm btn-link" href="?">Quitar filtros</a>{% endif %}
+    <div class="btn-group btn-group-sm" role="group" aria-label="Forma de ver el inventario">
+      <a class="btn btn-outline-secondary {% if vista == 'tabla' %}active{% endif %}" href="?{% for k, v in request.GET.items %}{% if k != 'vista' and k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}vista=tabla" {% if vista == 'tabla' %}aria-current="true"{% endif %}><i class="bi bi-list-ul" aria-hidden="true"></i> Tabla</a>
+      <a class="btn btn-outline-secondary {% if vista == 'tarjetas' %}active{% endif %}" href="?{% for k, v in request.GET.items %}{% if k != 'vista' and k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}vista=tarjetas" {% if vista == 'tarjetas' %}aria-current="true"{% endif %}><i class="bi bi-grid-3x2-gap" aria-hidden="true"></i> Tarjetas</a>
+    </div>
+  </div>
+</div>
+
+{% if not pagina.object_list %}
+  {% if hay_filtros %}
+    {% include "parciales/vacio.html" with icono="funnel" titulo="Ningún producto coincide con los filtros" texto="Pruebe con otra búsqueda o quite los filtros." url="?" accion="Quitar filtros" %}
+  {% else %}
+    {% url 'donaciones:lista_admin' as url_donaciones %}
+    {% include "parciales/vacio.html" with icono="box-seam" titulo="El inventario está vacío" texto="Los productos entran solos cuando un donante registra una donación." url=url_donaciones accion="Ver donaciones" %}
+  {% endif %}
+{% elif vista == 'tarjetas' %}
+<div class="row g-3">
+  {% for i in pagina %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <div class="card h-100 sf-inv-card sf-inv-{{ i.inv_est_venc }}">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <h2 class="h6 mb-0"><a href="{% url 'inventario:detalle' i.pk %}" class="text-reset">{{ i.inv_nom }}</a></h2>
+          <span class="badge vigencia-{{ i.inv_est_venc }}">{{ i.get_inv_est_venc_display }}</span>
+        </div>
+        <p class="small text-muted mb-2">{{ i.categoria }} · {{ i.bodega }} · #{{ i.pk }}</p>
+        <p class="sf-inv-cantidad mb-0">{{ i.inv_cant_disp|cantidad:i.inv_unidad }}</p>
+        <p class="small text-muted">{% if i.inv_cant_reserv %}{{ i.inv_cant_reserv|cantidad:i.inv_unidad }} reservado · {% endif %}vence el {{ i.inv_fec_venc|date:"d/m/Y" }} ({{ i.dias_para_vencer }} d)</p>
+        <div class="mt-auto d-flex flex-wrap gap-2 align-items-center sf-inv-acciones">
+          {% include "parciales/estado.html" with valor=i.inv_estado texto=i.get_inv_estado_display %}
+          {% if i.inv_estado != 'retirado' %}<button type="button" class="btn btn-sm btn-outline-primary ms-auto" data-ajuste-rapido data-id="{{ i.pk }}" data-nombre="{{ i.inv_nom }}" data-cantidad="{{ i.inv_cant_disp|decimal_input }}" data-unidad="{{ i.inv_unidad }}" data-paso="{{ i.paso }}" data-url="{% url 'inventario:ajustar' i.pk %}"><i class="bi bi-pencil" aria-hidden="true"></i> Ajustar</button>{% endif %}
+          <a class="btn btn-sm btn-link {% if i.inv_estado == 'retirado' %}ms-auto{% endif %}" href="{% url 'inventario:detalle' i.pk %}">Detalle</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="table-responsive"><table class="table table-hover bg-white align-middle">
+<caption class="visually-hidden">Productos del inventario</caption>
+<thead><tr><th scope="col">ID</th><th scope="col">Producto</th><th scope="col">Categoría</th><th scope="col">Bodega</th><th scope="col" class="text-end">Disponible</th><th scope="col" class="text-end">Reservado</th><th scope="col">Vence</th><th scope="col">Vigencia</th><th scope="col">Existencia</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
 <tbody>
 {% for i in pagina %}
 <tr class="{% if i.inv_est_venc == 'vencido' %}fila-vencido{% elif i.inv_est_venc == 'proximo' %}fila-proximo{% endif %}">
-  <td>{{ i.pk }}</td><td>{{ i.inv_nom }}</td><td>{{ i.categoria }}</td><td>{{ i.bodega }}</td>
-  <td>{{ i.inv_cant_disp }} {{ i.inv_unidad }}</td><td>{{ i.inv_cant_reserv }}</td>
-  <td>{{ i.inv_fec_venc|date:"d/m/Y" }} <small class="text-muted">({{ i.dias_para_vencer }} d)</small></td>
+  <td>{{ i.pk }}</td><td><a href="{% url 'inventario:detalle' i.pk %}" class="text-reset fw-semibold">{{ i.inv_nom }}</a></td><td>{{ i.categoria }}</td><td class="small">{{ i.bodega }}</td>
+  <td class="text-end text-nowrap">{{ i.inv_cant_disp|cantidad:i.inv_unidad }}</td><td class="text-end text-nowrap">{% if i.inv_cant_reserv %}{{ i.inv_cant_reserv|cantidad:i.inv_unidad }}{% else %}—{% endif %}</td>
+  <td class="text-nowrap">{{ i.inv_fec_venc|date:"d/m/Y" }} <small class="text-muted">({{ i.dias_para_vencer }} d)</small></td>
   <td><span class="badge vigencia-{{ i.inv_est_venc }}">{{ i.get_inv_est_venc_display }}</span></td>
   <td>{% include "parciales/estado.html" with valor=i.inv_estado texto=i.get_inv_estado_display %}</td>
-  <td><a class="btn btn-sm btn-outline-primary" href="{% url 'inventario:detalle' i.pk %}">Gestionar</a></td>
+  <td class="text-nowrap">
+    {% if i.inv_estado != 'retirado' %}<button type="button" class="btn btn-sm btn-outline-primary" data-ajuste-rapido data-id="{{ i.pk }}" data-nombre="{{ i.inv_nom }}" data-cantidad="{{ i.inv_cant_disp|decimal_input }}" data-unidad="{{ i.inv_unidad }}" data-paso="{{ i.paso }}" data-url="{% url 'inventario:ajustar' i.pk %}" aria-label="Ajuste rápido de {{ i.inv_nom }}"><i class="bi bi-pencil" aria-hidden="true"></i></button>{% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'inventario:detalle' i.pk %}" aria-label="Gestionar {{ i.inv_nom }}" title="Gestionar: kardex, ajustes y baja"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+  </td>
 </tr>
-{% empty %}<tr><td colspan="10" class="text-muted">No hay productos con esos filtros.</td></tr>{% endfor %}
+{% endfor %}
 </tbody></table></div>
+{% endif %}
 {% include "parciales/paginacion.html" %}
+
+{# Ajuste rápido: una sola ventana que se llena con los datos del producto elegido. #}
+<div class="modal fade" id="modal-ajuste" tabindex="-1" aria-labelledby="modal-ajuste-titulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" id="form-ajuste">{% csrf_token %}
+    <div class="modal-header"><h2 class="modal-title h5" id="modal-ajuste-titulo">Ajuste rápido</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+    <div class="modal-body">
+      <p class="mb-2"><strong id="ajuste-nombre"></strong> <span class="text-muted small">· disponible ahora: <span id="ajuste-actual"></span></span></p>
+      <label class="form-label" for="ajuste-cantidad">Nueva cantidad disponible (<span id="ajuste-unidad"></span>)</label>
+      <input class="form-control mb-1" type="number" min="0" name="nueva_cantidad" id="ajuste-cantidad" required>
+      <div class="form-text mb-2" id="ajuste-ayuda"></div>
+      <label class="form-label" for="ajuste-motivo">Motivo del ajuste</label>
+      <input class="form-control" name="motivo" id="ajuste-motivo" maxlength="200" required placeholder="Ej.: conteo físico, producto dañado">
+      <input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-sysfood" data-cargando="Guardando…">Guardar ajuste</button></div>
+  </form></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var modalEl = document.getElementById("modal-ajuste");
+  if (!modalEl || !window.bootstrap) { return; }
+  var modal = new bootstrap.Modal(modalEl);
+  var form = document.getElementById("form-ajuste");
+  var campo = document.getElementById("ajuste-cantidad");
+  document.querySelectorAll("[data-ajuste-rapido]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      form.action = b.dataset.url;
+      document.getElementById("ajuste-nombre").textContent = b.dataset.nombre;
+      document.getElementById("ajuste-actual").textContent = b.dataset.cantidad.replace(".", ",") + " " + b.dataset.unidad;
+      document.getElementById("ajuste-unidad").textContent = b.dataset.unidad;
+      document.getElementById("ajuste-ayuda").textContent = b.dataset.paso === "1"
+        ? "«" + b.dataset.unidad + "» se cuenta en unidades completas (sin decimales)." : "Admite hasta dos decimales.";
+      campo.step = b.dataset.paso; campo.value = b.dataset.cantidad;
+      document.getElementById("ajuste-motivo").value = "";
+      modal.show();
+    });
+  });
+  modalEl.addEventListener("shown.bs.modal", function () { campo.focus(); campo.select(); });
+})();
+</script>
 {% endblock %}

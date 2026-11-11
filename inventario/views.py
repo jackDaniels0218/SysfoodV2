@@ -1,15 +1,18 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from catalogo.models import Bodega, Categoria
+from core import parametros
+from core.models import FiltroGuardado
 from core.permisos import solo_admin
 from core.servicios import auditar
 
-from . import servicios
+from . import servicios, unidades
 from .forms import AjusteForm, BajaForm
 from .models import Inventario
 
@@ -25,16 +28,47 @@ def filtrar_inventario(request, qs):
     return qs
 
 
+def indicadores():
+    """KPIs del panel de inventario (sobre lo no retirado)."""
+    activos = Inventario.objects.exclude(inv_estado=Inventario.RETIRADO)
+    datos = activos.aggregate(
+        disponibles=Count("inv_id", filter=Q(inv_cant_disp__gt=0) & ~Q(inv_est_venc=Inventario.VENCIDO)),
+        proximos=Count("inv_id", filter=Q(inv_est_venc=Inventario.PROXIMO, inv_cant_disp__gt=0)),
+        vencidos=Count("inv_id", filter=Q(inv_est_venc=Inventario.VENCIDO)),
+        reservados=Count("inv_id", filter=Q(inv_cant_reserv__gt=0)),
+        agotados=Count("inv_id", filter=Q(inv_estado=Inventario.AGOTADO)),
+    )
+    datos["por_revisar"] = len(unidades.no_conformes()["Inventario"])
+    return datos
+
+
 @solo_admin
 def lista(request):
     qs = Inventario.objects.select_related("categoria", "bodega", "detalle__donacion")
-    if not request.GET.get("estado"):
+    if request.GET.get("revisar") == "1":
+        qs = qs.filter(pk__in=[i.pk for i in unidades.no_conformes()["Inventario"]])
+    elif not request.GET.get("estado"):
         qs = qs.exclude(inv_estado=Inventario.RETIRADO) if request.GET.get("retirados") != "1" else qs
+    if request.GET.get("reservado") == "1":
+        qs = qs.filter(inv_cant_reserv__gt=0)
     qs = filtrar_inventario(request, qs).order_by("inv_fec_venc", "inv_nom")
-    pagina = Paginator(qs, 25).get_page(request.GET.get("page"))
+    # Vista en tabla o en tarjetas: se recuerda en la sesión.
+    vista = request.GET.get("vista")
+    if vista in ("tabla", "tarjetas"):
+        request.session["inventario_vista"] = vista
+    vista = request.session.get("inventario_vista", "tabla")
+    pagina = Paginator(qs, 24).get_page(request.GET.get("page"))
+    dias = parametros.entero("dias_alerta_vencimiento")
+    alertas = (
+        Inventario.objects.filter(inv_est_venc=Inventario.PROXIMO, inv_cant_disp__gt=0)
+        .exclude(inv_estado=Inventario.RETIRADO).select_related("bodega").order_by("inv_fec_venc")[:5]
+    )
     return render(request, "inventario/lista.html", {
         "pagina": pagina, "categorias": Categoria.objects.all(), "bodegas": Bodega.objects.all(),
-        "estados": Inventario.ESTADOS, "vigencias": Inventario.VIGENCIAS,
+        "estados": Inventario.ESTADOS, "vigencias": Inventario.VIGENCIAS, "kpi": indicadores(),
+        "alertas": alertas, "dias_alerta": dias, "vista": vista,
+        "filtros": FiltroGuardado.objects.filter(usuario=request.user, fil_vista="inventario"),
+        "hay_filtros": any(k in request.GET for k in ("q", "categoria", "bodega", "estado", "vigencia", "revisar", "reservado")),
     })
 
 
@@ -43,7 +77,7 @@ def detalle(request, pk):
     inv = get_object_or_404(Inventario.objects.select_related("categoria", "bodega", "detalle__donacion__donante", "usuario_baja"), pk=pk)
     return render(request, "inventario/detalle.html", {
         "inv": inv, "kardex": inv.kardex.select_related("usuario", "entrega").order_by("kar_fecha", "kar_id"),
-        "ajuste_form": AjusteForm(initial={"nueva_cantidad": inv.inv_cant_disp}), "baja_form": BajaForm(),
+        "ajuste_form": AjusteForm(initial={"nueva_cantidad": inv.inv_cant_disp}, inventario=inv), "baja_form": BajaForm(),
     })
 
 
@@ -51,7 +85,7 @@ def detalle(request, pk):
 @require_POST
 def ajustar(request, pk):
     inv = get_object_or_404(Inventario, pk=pk)
-    form = AjusteForm(request.POST)
+    form = AjusteForm(request.POST, inventario=inv)
     if form.is_valid():
         anterior = inv.inv_cant_disp
         try:
@@ -59,10 +93,16 @@ def ajustar(request, pk):
         except ValidationError as error:
             messages.error(request, error.messages[0])
         else:
-            auditar(request, "editar", "inventario", pk, f"Ajuste {anterior} → {inv.inv_cant_disp}: {form.cleaned_data['motivo']}")
-            messages.success(request, "Ajuste registrado en el kardex.")
+            auditar(request, "editar", "inventario", pk,
+                    f"Ajuste {inv.cantidad_texto(anterior)} → {inv.cantidad_texto(inv.inv_cant_disp)}: {form.cleaned_data['motivo']}")
+            messages.success(request, f"Ajuste registrado en el kardex: «{inv.inv_nom}» queda con {inv.cantidad_texto(inv.inv_cant_disp)}.")
     else:
-        messages.error(request, "El ajuste exige una cantidad válida (no negativa) y un motivo.")
+        errores = form.errors.get("nueva_cantidad")
+        messages.error(request, errores[0] if errores and "unidades completas" in errores[0]
+                       else "El ajuste exige una cantidad válida (no negativa) y un motivo.")
+    siguiente = request.POST.get("siguiente", "")
+    if siguiente and url_has_allowed_host_and_scheme(siguiente, {request.get_host()}, request.is_secure()):
+        return redirect(siguiente)
     return redirect("inventario:detalle", pk)
 
 

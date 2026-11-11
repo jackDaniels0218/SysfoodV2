@@ -147,3 +147,30 @@ class GeoCache(models.Model):
     class Meta:
         db_table = "geo_cache"
         verbose_name = "dirección geocodificada"
+
+
+class FiltroGuardado(models.Model):
+    """Combinación de filtros de una lista que el usuario guarda con un nombre para reutilizarla."""
+
+    VISTAS = {
+        "inventario": "inventario:lista",
+        "solicitudes": "solicitudes:lista_admin",
+        "usuarios": "usuarios:lista",
+        "donaciones": "donaciones:lista_admin",
+        "entregas": "entregas:lista",
+    }
+
+    fil_id = models.BigAutoField(primary_key=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column="usu_id", related_name="filtros")
+    fil_vista = models.CharField("lista", max_length=30)
+    fil_nombre = models.CharField("nombre", max_length=60)
+    fil_consulta = models.CharField("filtros", max_length=500)
+    fil_fecha = models.DateTimeField("fecha", auto_now=True)
+
+    class Meta:
+        db_table = "filtro_guardado"
+        ordering = ["fil_nombre"]
+        constraints = [models.UniqueConstraint(fields=["usuario", "fil_vista", "fil_nombre"], name="filtro_unico_por_usuario")]
+
+    def __str__(self):
+        return self.fil_nombre

@@ -12,12 +12,12 @@
   <td style="min-width:200px">
     <form method="post" action="{% url 'solicitudes:agregar' it.inventario_id %}" class="input-group input-group-sm">{% csrf_token %}
       <input type="hidden" name="volver" value="{% url 'solicitudes:carrito' %}">
-      <input type="number" class="form-control" name="cantidad" value="{{ it.car_cant|decimal_input }}" min="0.01" step="0.01">
+      <input type="number" class="form-control" name="cantidad" value="{{ it.car_cant|decimal_input }}" min="{{ it.inventario.paso }}" step="{{ it.inventario.paso }}">
       <span class="input-group-text">{{ it.inventario.inv_unidad }}</span>
       <button class="btn btn-outline-secondary">Actualizar</button>
     </form>
   </td>
-  <td>{{ it.inventario.inv_cant_disp }}</td>
+  <td>{{ it.inventario.inv_cant_disp|cantidad:it.inventario.inv_unidad }}</td>
   <td>{{ it.inventario.inv_fec_venc|date:"d/m/Y" }}</td>
   <td class="small">{{ it.car_fec_agregado|date:"d/m/Y H:i" }}</td>
   <td><form method="post" action="{% url 'solicitudes:quitar' it.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i> Quitar</button></form></td>

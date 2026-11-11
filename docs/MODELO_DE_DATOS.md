@@ -29,6 +29,7 @@ erDiagram
     entrega ||--|{ entrega_detalle : "lleva"
     inventario ||--o{ entrega_detalle : ""
     usuario ||--o{ consulta_chat : "pregunta (opcional)"
+    usuario ||--o{ filtro_guardado : "guarda"
     entrega ||--o{ historial_entrega : "estados"
     entrega ||--o{ kardex : ""
     usuario ||--o{ bitacora : "acciones"
@@ -144,6 +145,7 @@ erDiagram
         varchar dd_desc
         decimal dd_cantidad "mayor que 0"
         varchar dd_unidad
+        bool dd_divisible "falso: solo enteros (CHECK dd_contable_entero)"
         date dd_fec_venc
         varchar dd_lote
         varchar dd_estado
@@ -155,6 +157,7 @@ erDiagram
         int cat_id FK
         varchar inv_nom
         varchar inv_unidad
+        bool inv_divisible "falso: solo enteros (CHECK inv_contable_entero)"
         decimal inv_cant_inicial
         decimal inv_cant_disp "CHECK >= 0"
         decimal inv_cant_reserv "CHECK >= 0"
@@ -274,6 +277,14 @@ erDiagram
         datetime tar_ult_ejecucion
         varchar tar_resultado
         int tar_duracion_ms
+    }
+    filtro_guardado {
+        bigint fil_id PK
+        int usu_id FK
+        varchar fil_vista "inventario|solicitudes|usuarios|donaciones|entregas"
+        varchar fil_nombre
+        varchar fil_consulta "parámetros de filtro"
+        datetime fil_fecha
     }
     consulta_chat {
         bigint con_id PK

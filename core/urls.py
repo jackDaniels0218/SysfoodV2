@@ -14,4 +14,6 @@ urlpatterns = [
     path("parametros/<int:pk>/", views.parametro_editar, name="parametro_editar"),
     path("trazabilidad/", views.trazabilidad, name="trazabilidad"),
     path("tareas/", views.tareas_lista, name="tareas"),
+    path("filtros/guardar/", views.filtro_guardar, name="filtro_guardar"),
+    path("filtros/<int:pk>/eliminar/", views.filtro_eliminar, name="filtro_eliminar"),
 ]

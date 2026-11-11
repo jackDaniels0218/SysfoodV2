@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load sysfood %}
 {% block titulo %}Entrega {{ e.ent_cod }}{% endblock %}
 {% block contenido %}
 <h1 class="h3">Entrega <code>{{ e.ent_cod }}</code> {% include "parciales/estado.html" with valor=e.ent_estado texto=e.get_ent_estado_display %}</h1>
@@ -40,8 +40,8 @@
     <div class="table-responsive"><table class="table table-sm bg-white">
       <thead><tr><th>Producto</th><th>Asignado</th><th>Entregado</th></tr></thead>
       <tbody>{% for d in detalles %}
-      <tr><td>{{ d.inventario.inv_nom }} <small class="text-muted">#{{ d.inventario_id }}</small></td><td>{{ d.de_cant_asig }} {{ d.inventario.inv_unidad }}</td>
-      <td>{% if e.siguiente_estado == 'entregado' %}<input class="form-control form-control-sm" type="number" step="0.01" min="0" max="{{ d.de_cant_asig }}" name="entregada_{{ d.pk }}" value="{{ d.de_cant_asig }}" style="max-width:120px">{% else %}{{ d.de_cant_entregada|default:"—" }}{% endif %}</td></tr>
+      <tr><td>{{ d.inventario.inv_nom }} <small class="text-muted">#{{ d.inventario_id }}</small></td><td>{{ d.de_cant_asig|cantidad:d.inventario.inv_unidad }}</td>
+      <td>{% if e.siguiente_estado == 'entregado' %}<input class="form-control form-control-sm" type="number" step="{{ d.inventario.paso }}" min="0" max="{{ d.de_cant_asig|decimal_input }}" name="entregada_{{ d.pk }}" value="{{ d.de_cant_asig|decimal_input }}" style="max-width:120px">{% else %}{{ d.de_cant_entregada|default:"—" }}{% endif %}</td></tr>
       {% endfor %}</tbody>
     </table></div>
     {% if e.siguiente_estado %}

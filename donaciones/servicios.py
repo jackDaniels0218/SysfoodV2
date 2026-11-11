@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from core.servicios import notificar_administradores
 from inventario import servicios as inv_srv
+from inventario import unidades
 from inventario.models import Inventario
 
 from .models import DetalleDonacion, Donacion
@@ -15,6 +16,8 @@ def registrar(donacion, detalles, usuario):
     """Guarda la donación y sus productos e ingresa todo al inventario."""
     if not detalles:
         raise ValidationError("La donación debe tener al menos un producto.")
+    for det in detalles:
+        unidades.validar(det.dd_cantidad, det.dd_unidad)
     bodega = inv_srv.bodega_de_ingreso()
     donacion.save()
     for det in detalles:
@@ -36,6 +39,8 @@ def actualizar(donacion, guardar, nuevos, eliminados, usuario):
     actual = Donacion.objects.select_for_update().get(pk=donacion.pk)
     if not actual.editable:
         raise ValidationError("Solo se pueden editar donaciones disponibles que no tengan reservas ni entregas.")
+    for det in [*guardar, *nuevos]:
+        unidades.validar(det.dd_cantidad, det.dd_unidad)
     for det in eliminados:
         inv = getattr(det, "inventario", None)
         if inv and inv.inv_estado != Inventario.RETIRADO:

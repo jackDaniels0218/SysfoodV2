@@ -1,8 +1,10 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models.functions import Floor
 
 ANONIMO = "Donante anónimo"
 
@@ -99,6 +101,7 @@ class DetalleDonacion(models.Model):
         "cantidad", max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))],
     )
     dd_unidad = models.CharField("unidad de medida", max_length=30)
+    dd_divisible = models.BooleanField("admite decimales", default=True)
     dd_fec_venc = models.DateField("fecha de vencimiento")
     dd_lote = models.CharField("lote", max_length=50, blank=True)
     dd_estado = models.CharField("estado", max_length=15, choices=ESTADOS, default=REGISTRADO)
@@ -106,7 +109,34 @@ class DetalleDonacion(models.Model):
     class Meta:
         db_table = "detalle_donacion"
         ordering = ["dd_id"]
-        constraints = [models.CheckConstraint(condition=models.Q(dd_cantidad__gt=0), name="dd_cantidad_positiva")]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(dd_cantidad__gt=0), name="dd_cantidad_positiva"),
+            models.CheckConstraint(
+                condition=models.Q(dd_divisible=True) | models.Q(dd_cantidad=Floor("dd_cantidad")),
+                name="dd_contable_entero",
+                violation_error_message="Las unidades contables solo admiten cantidades enteras.",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.dd_nom} ({self.dd_cantidad} {self.dd_unidad})"
+        from inventario.unidades import formatear
+
+        return f"{self.dd_nom} ({formatear(self.dd_cantidad, self.dd_unidad)})"
+
+    def clean(self):
+        super().clean()
+        from inventario import unidades
+
+        if self.dd_cantidad is not None and self.dd_unidad:
+            try:
+                unidades.validar(self.dd_cantidad, self.dd_unidad)
+            except ValidationError as error:
+                raise ValidationError({"dd_cantidad": error.messages})
+
+    def save(self, *args, **kwargs):
+        from inventario import unidades
+
+        self.dd_divisible = unidades.es_divisible(self.dd_unidad)
+        if kwargs.get("update_fields") is not None and "dd_unidad" in kwargs["update_fields"]:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "dd_divisible"}
+        super().save(*args, **kwargs)

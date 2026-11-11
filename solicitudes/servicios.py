@@ -30,9 +30,10 @@ def a_decimal(valor):
 def _validar_producto(inv, cantidad):
     if not Inventario.catalogo().filter(pk=inv.pk).exists():
         raise ValidationError(f"«{inv.inv_nom}» ya no está disponible o está vencido.")
+    inv.validar_cantidad(cantidad)
     if cantidad > inv.inv_cant_disp:
         raise ValidationError(
-            f"La cantidad supera la disponible de «{inv.inv_nom}» ({inv.inv_cant_disp} {inv.inv_unidad})."
+            f"La cantidad supera la disponible de «{inv.inv_nom}» ({inv.cantidad_texto(inv.inv_cant_disp)})."
         )
 
 

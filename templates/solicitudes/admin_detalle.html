@@ -27,7 +27,7 @@
       <tbody>{% for d in detalles %}
       <tr class="{% if d.inventario.inv_est_venc == 'vencido' or d.sd_cant > d.inventario.inv_cant_disp and s.sol_estado == 'pendiente' %}fila-vencido{% endif %}">
         <td>{{ d.inventario.inv_nom }}<div class="small text-muted">{{ d.inventario.categoria }}</div></td>
-        <td>{{ d.sd_cant }} {{ d.inventario.inv_unidad }}</td><td>{{ d.inventario.inv_cant_disp }}</td>
+        <td>{{ d.sd_cant|cantidad:d.inventario.inv_unidad }}</td><td>{{ d.inventario.inv_cant_disp|cantidad:d.inventario.inv_unidad }}</td>
         <td>{{ d.inventario.inv_fec_venc|date:"d/m/Y" }} <span class="badge vigencia-{{ d.inventario.inv_est_venc }}">{{ d.inventario.get_inv_est_venc_display }}</span></td>
         <td>{{ d.inventario.bodega }}</td>
         <td class="small">{{ d.inventario.detalle.donacion.nombre_publico }}</td>
