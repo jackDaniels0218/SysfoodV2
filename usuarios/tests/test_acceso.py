@@ -178,7 +178,7 @@ class RecuperacionTests(PruebaBase):
     def _token(self):
         self.client.post(reverse("usuarios:recuperar"), {"correo": "ben@prueba.co"})
         self.assertEqual(len(mail.outbox), 1)
-        enlace = [l for l in mail.outbox[0].body.splitlines() if "/restablecer/" in l][0]
+        enlace = next(linea for linea in mail.outbox[0].body.splitlines() if "/restablecer/" in linea)
         return enlace.rstrip("/").split("/")[-1]
 
     def test_flujo_completo_y_token_de_un_solo_uso(self):

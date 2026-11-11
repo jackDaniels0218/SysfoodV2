@@ -28,6 +28,9 @@ class CarritoItem(models.Model):
         ordering = ["car_fec_agregado"]
         constraints = [models.UniqueConstraint(fields=["beneficiario", "inventario"], name="carrito_producto_unico")]
 
+    def __str__(self):
+        return f"{self.inventario.inv_nom}: {self.inventario.cantidad_texto(self.car_cant)}"
+
 
 class Solicitud(models.Model):
     """Solicitud de productos (Actividad 7). Se crea desde el carrito."""
@@ -76,3 +79,6 @@ class SolicitudDetalle(models.Model):
     class Meta:
         db_table = "solicitud_detalle"
         constraints = [models.CheckConstraint(condition=models.Q(sd_cant__gt=0), name="sd_cant_positiva")]
+
+    def __str__(self):
+        return f"{self.inventario.inv_nom}: {self.inventario.cantidad_texto(self.sd_cant)}"

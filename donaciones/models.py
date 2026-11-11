@@ -141,6 +141,14 @@ class DetalleDonacion(models.Model):
 
         return f"{self.dd_nom} ({formatear(self.dd_cantidad, self.dd_unidad)})"
 
+    def save(self, *args, **kwargs):
+        from inventario import unidades
+
+        self.dd_divisible = unidades.es_divisible(self.dd_unidad)
+        if kwargs.get("update_fields") is not None and "dd_unidad" in kwargs["update_fields"]:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "dd_divisible"}
+        super().save(*args, **kwargs)
+
     def clean(self):
         super().clean()
         from inventario import unidades
@@ -149,12 +157,4 @@ class DetalleDonacion(models.Model):
             try:
                 unidades.validar(self.dd_cantidad, self.dd_unidad)
             except ValidationError as error:
-                raise ValidationError({"dd_cantidad": error.messages})
-
-    def save(self, *args, **kwargs):
-        from inventario import unidades
-
-        self.dd_divisible = unidades.es_divisible(self.dd_unidad)
-        if kwargs.get("update_fields") is not None and "dd_unidad" in kwargs["update_fields"]:
-            kwargs["update_fields"] = {*kwargs["update_fields"], "dd_divisible"}
-        super().save(*args, **kwargs)
+                raise ValidationError({"dd_cantidad": error.messages}) from error

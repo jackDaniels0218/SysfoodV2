@@ -625,7 +625,7 @@ def _parse_coordenadas(valor):
     try:
         lat, lng = (float(v) for v in (valor or "").split(","))
     except ValueError:
-        raise ValidationError("Use el formato latitud,longitud. Ejemplo: 4.8143,-74.3546.")
+        raise ValidationError("Use el formato latitud,longitud. Ejemplo: 4.8143,-74.3546.") from None
     if not (-90 <= lat <= 90 and -180 <= lng <= 180):
         raise ValidationError("Las coordenadas están fuera de rango.")
     return lat, lng
@@ -653,7 +653,7 @@ def _parse_escala(valor):
         try:
             numero = float(numero.replace(",", "."))
         except ValueError:
-            raise ValidationError(f"El valor de «{clave}» debe ser un número.")
+            raise ValidationError(f"El valor de «{clave}» debe ser un número.") from None
         if not 0 <= numero <= 100:
             raise ValidationError(f"El valor de «{clave}» debe estar entre 0 y 100.")
         resultado[clave.upper()] = numero
@@ -679,7 +679,7 @@ def _parse_grupos(valor):
         try:
             minimo = float(minimo.replace(",", "."))
         except ValueError:
-            raise ValidationError(f"El mínimo del grupo «{nombre}» debe ser un número.")
+            raise ValidationError(f"El mínimo del grupo «{nombre}» debe ser un número.") from None
         if not 0 <= minimo <= 100:
             raise ValidationError(f"El mínimo del grupo «{nombre}» debe estar entre 0 y 100.")
         if not COLOR.match(color):
@@ -709,7 +709,7 @@ def validar(clave, valor):
         try:
             numero = int(valor)
         except ValueError:
-            raise ValidationError("Debe ser un número entero.")
+            raise ValidationError("Debe ser un número entero.") from None
         minimo = 1 if d.minimo is None else d.minimo
         if numero < minimo:
             raise ValidationError("Debe ser mayor que cero." if minimo == 1 else f"Debe ser mayor o igual a {minimo}.")

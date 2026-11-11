@@ -46,7 +46,7 @@ def a_decimal(valor):
     try:
         return Decimal(str(valor).strip().replace(",", "."))
     except (InvalidOperation, TypeError, ValueError):
-        raise ValidationError("Ingrese una cantidad válida.")
+        raise ValidationError("Ingrese una cantidad válida.") from None
 
 
 def es_entero(cantidad):

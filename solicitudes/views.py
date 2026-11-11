@@ -14,7 +14,7 @@ from inventario.models import Inventario
 
 from . import servicios
 from .forms import AprobarForm, MotivoForm
-from .models import CarritoItem, Solicitud
+from .models import Solicitud
 
 # ---------------------------------------------------------------- Beneficiario
 

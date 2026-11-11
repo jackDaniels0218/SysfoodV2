@@ -30,7 +30,7 @@ def _dibujo_grafico(grafico, ancho=24 * cm, alto=7 * cm):
         pie = Pie()
         pie.x, pie.y, pie.width, pie.height = 30, 10, alto - 40, alto - 40
         pie.data = [max(v, 0) for v in datos]
-        pie.labels = [f"{e} ({v})" for e, v in zip(etiquetas, datos)]
+        pie.labels = [f"{e} ({v})" for e, v in zip(etiquetas, datos, strict=True)]
         pie.sideLabels = True
         propios = grafico.get("colores") or []
         for i in range(len(datos)):
@@ -145,7 +145,7 @@ def a_excel(datos, filtros_texto=""):
             continue
         hoja_g = libro.create_sheet(f"Gráfico {n}")
         hoja_g.append(["Categoría", "Cantidad"])
-        for etiqueta, valor in zip(g["etiquetas"], g["datos"]):
+        for etiqueta, valor in zip(g["etiquetas"], g["datos"], strict=True):
             hoja_g.append([str(etiqueta), valor])
         total = len(g["datos"]) + 1
         grafico = PieChart() if g["tipo"] in ("pie", "doughnut") else BarChart()

@@ -153,6 +153,9 @@ class PerfilDonante(models.Model):
         db_table = "donante"
         verbose_name = "donante"
 
+    def __str__(self):
+        return f"Donante: {self.nombre_publico}"
+
     def clean(self):
         if self.don_tipo_persona == self.JURIDICA and not self.don_raz_soc:
             raise ValidationError({"don_raz_soc": "La razón social es obligatoria para personas jurídicas."})
@@ -279,6 +282,9 @@ class PerfilBeneficiario(models.Model):
                 name="ben_coordenadas_rango",
             ),
         ]
+
+    def __str__(self):
+        return f"Beneficiario: {self.ben_tipo_doc} {self.ben_num_doc}"
 
     def clean(self):
         if self.ben_fec_exp_doc and self.ben_fec_exp_doc > timezone.localdate():

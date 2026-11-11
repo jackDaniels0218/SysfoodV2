@@ -95,6 +95,9 @@ class EntregaDetalle(models.Model):
     class Meta:
         db_table = "entrega_detalle"
 
+    def __str__(self):
+        return f"{self.inventario.inv_nom}: {self.inventario.cantidad_texto(self.de_cant_asig)}"
+
 
 class HistorialEntrega(_SoloInsercion):
     """Historial de estados de la entrega. Solo inserción."""

@@ -132,7 +132,7 @@ class RecalculoAutomaticoTests(PruebaBase):
         )
 
     def test_cambio_de_parametro_recalcula_a_todos(self):
-        b1, b2 = crear_beneficiario(), crear_beneficiario()
+        crear_beneficiario(), crear_beneficiario()
         self.client.force_login(self.admin)
         p = Parametro.objects.get(par_clave="grupos_necesidad")
         r = self.client.post(

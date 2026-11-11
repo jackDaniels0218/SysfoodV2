@@ -27,7 +27,7 @@ from django.conf import settings
 from django.urls import Resolver404, resolve, reverse
 from django.utils import timezone
 
-from core import parametros
+from core import formato, parametros
 
 from . import conocimiento as kb
 from .models import ConsultaChat
@@ -35,12 +35,97 @@ from .models import ConsultaChat
 log = logging.getLogger("sysfood")
 
 PALABRAS_VACIAS = set(
-    """
-a al algo algun alguna como con cual cuales cuando de del donde el ella en es esa ese esta este esto hay la las le
-lo los me mi mis muy necesito no o para pero por puedo puede que se si sin sobre su sus te tengo tiene un una uno
-unos y ya yo quiero hacer hago saber favor ayuda ayudame ayudar porfa hola buenas buenos dias tardes noches gracias
-cuanto cuantos cuanta cuantas tan esta estan estoy ser son fue han he ha debo deberia
-""".split()
+    [
+        "a",
+        "al",
+        "algo",
+        "algun",
+        "alguna",
+        "como",
+        "con",
+        "cual",
+        "cuales",
+        "cuando",
+        "de",
+        "del",
+        "donde",
+        "el",
+        "ella",
+        "en",
+        "es",
+        "esa",
+        "ese",
+        "esta",
+        "este",
+        "esto",
+        "hay",
+        "la",
+        "las",
+        "le",
+        "lo",
+        "los",
+        "me",
+        "mi",
+        "mis",
+        "muy",
+        "necesito",
+        "no",
+        "o",
+        "para",
+        "pero",
+        "por",
+        "puedo",
+        "puede",
+        "que",
+        "se",
+        "si",
+        "sin",
+        "sobre",
+        "su",
+        "sus",
+        "te",
+        "tengo",
+        "tiene",
+        "un",
+        "una",
+        "uno",
+        "unos",
+        "y",
+        "ya",
+        "yo",
+        "quiero",
+        "hacer",
+        "hago",
+        "saber",
+        "favor",
+        "ayuda",
+        "ayudame",
+        "ayudar",
+        "porfa",
+        "hola",
+        "buenas",
+        "buenos",
+        "dias",
+        "tardes",
+        "noches",
+        "gracias",
+        "cuanto",
+        "cuantos",
+        "cuanta",
+        "cuantas",
+        "tan",
+        "esta",
+        "estan",
+        "estoy",
+        "ser",
+        "son",
+        "fue",
+        "han",
+        "he",
+        "ha",
+        "debo",
+        "deberia",
+    ]
 )
 
 SUFIJOS = (
@@ -345,7 +430,7 @@ def _mi_puntaje(usuario):
             "Su puntaje de necesidad aún no se ha calculado; se calcula al completar sus datos.", ConsultaChat.CONTEXTO
         )
     grupo = perfil.grupo
-    texto = f"Su puntaje de necesidad es {kb.formato.numero(perfil.ben_puntaje, 1)} de 100"
+    texto = f"Su puntaje de necesidad es {formato.numero(perfil.ben_puntaje, 1)} de 100"
     texto += f" (grupo «{grupo['nombre']}»)." if grupo else "."
     texto += " Se recalcula solo cuando cambian sus datos o documentos, y cada noche."
     return Respuesta(

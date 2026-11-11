@@ -1,4 +1,7 @@
+from contextlib import suppress
+
 from django.apps import AppConfig
+from django.db import OperationalError, ProgrammingError
 from django.db.models.signals import post_migrate
 
 
@@ -6,10 +9,9 @@ def _sincronizar_parametros(sender, **kwargs):
     """Crea los parámetros nuevos declarados en core.parametros después de cada migrate."""
     from . import parametros
 
-    try:
+    # La tabla puede no existir todavía (por ejemplo, al migrar hacia atrás).
+    with suppress(OperationalError, ProgrammingError):
         parametros.sincronizar()
-    except Exception:  # La tabla puede no existir todavía al migrar hacia atrás.
-        pass
 
 
 class Config(AppConfig):

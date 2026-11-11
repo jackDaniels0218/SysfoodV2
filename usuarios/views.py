@@ -31,7 +31,7 @@ from .forms import (
     RegistroForm,
     RevisionDocumentoForm,
 )
-from .models import DocumentoValidacion, PerfilBeneficiario, PerfilDonante, Usuario
+from .models import DocumentoValidacion, PerfilBeneficiario, Usuario
 
 
 def _formularios_perfil(rol, data=None, usuario=None):
@@ -343,7 +343,7 @@ def ver_documento(request, pk):
     ruta = doc.ruta_absoluta
     if not ruta.exists():
         raise Http404("El archivo no se encuentra en el almacenamiento.")
-    respuesta = FileResponse(open(ruta, "rb"), content_type=doc.docv_mime)
+    respuesta = FileResponse(open(ruta, "rb"), content_type=doc.docv_mime)  # noqa: SIM115 (FileResponse lo cierra)
     respuesta["Content-Disposition"] = f'inline; filename="documento_{doc.pk}.{ruta.suffix.lstrip(".")}"'
     respuesta["Cache-Control"] = "private, no-store"
     respuesta["X-Content-Type-Options"] = "nosniff"

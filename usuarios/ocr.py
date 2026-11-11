@@ -8,6 +8,7 @@ La revisión de calidad de imagen solo necesita Pillow y funciona siempre.
 import io
 import re
 import unicodedata
+from contextlib import suppress
 from datetime import date
 from difflib import SequenceMatcher
 
@@ -68,8 +69,8 @@ def imagenes(contenido, mime, paginas=2):
     if mime == "application/pdf":
         try:
             from pdf2image import convert_from_bytes
-        except ImportError:
-            raise ErrorOCR("pdf2image no está instalado; no se pueden leer PDF.")
+        except ImportError as error:
+            raise ErrorOCR("pdf2image no está instalado; no se pueden leer PDF.") from error
         try:
             return convert_from_bytes(contenido, dpi=200, first_page=1, last_page=paginas)
         except Exception as error:
@@ -165,7 +166,7 @@ def leer(lista_imagenes):
         except Exception as error:
             raise ErrorOCR(f"Tesseract falló: {error}") from error
         palabras = []
-        for palabra, conf in zip(datos["text"], datos["conf"]):
+        for palabra, conf in zip(datos["text"], datos["conf"], strict=True):
             palabra = (palabra or "").strip()
             try:
                 conf = float(conf)
@@ -234,10 +235,8 @@ def fechas_en(texto):
             encontradas.add((int(a), MESES[mes], int(d)))
     validas = set()
     for a, m, d in encontradas:
-        try:
+        with suppress(ValueError):  # Fechas imposibles leídas por el OCR (p. ej., 31 de febrero).
             validas.add(date(a, m, d))
-        except ValueError:
-            pass
     return validas
 
 

@@ -38,7 +38,7 @@ def revisar_calidad(contenido, mime):
     try:
         imagen = ocr.imagenes(contenido, mime)[0]
     except ocr.ImagenIlegible as error:
-        raise ValidationError(f"{error} Tome la foto de nuevo o cargue otro archivo.")
+        raise ValidationError(f"{error} Tome la foto de nuevo o cargue otro archivo.") from error
     calidad = ocr.calidad(imagen)
     if not calidad["legible"]:
         raise ValidationError(
@@ -68,7 +68,6 @@ def decidir(confianza, legible, cfg=None):
 
 def verificar(doc, motivo="Carga del documento"):
     """Lee el documento, lo compara con los datos registrados y aplica el semáforo. Nunca lanza excepciones."""
-    from . import servicios
 
     doc = Doc.objects.select_related("usuario__perfil_beneficiario").get(pk=doc.pk)
     if not aplica(doc.usuario, doc.docv_tipo) or doc.docv_estado != Doc.CARGADO:

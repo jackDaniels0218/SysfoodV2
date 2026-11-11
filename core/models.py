@@ -98,6 +98,9 @@ class Bitacora(_SoloInsercion):
         db_table = "bitacora"
         ordering = ["-bit_fecha", "-bit_id"]
 
+    def __str__(self):
+        return f"{self.bit_fecha:%Y-%m-%d %H:%M} {self.get_bit_accion_display()} {self.bit_entidad} {self.bit_registro}".strip()
+
 
 class Notificacion(models.Model):
     """Notificaciones internas (Actividad 13). Las crea el sistema."""
@@ -132,6 +135,9 @@ class Notificacion(models.Model):
         ordering = ["-not_fecha", "-not_id"]
         indexes = [models.Index(fields=["destinatario", "not_leida"])]
 
+    def __str__(self):
+        return f"{self.not_titulo} → {self.destinatario_id}"
+
 
 class TareaProgramada(models.Model):
     """Control interno de los procesos automáticos (fecha de última ejecución)."""
@@ -143,6 +149,9 @@ class TareaProgramada(models.Model):
 
     class Meta:
         db_table = "tarea_programada"
+
+    def __str__(self):
+        return self.tar_nombre
 
 
 class GeoCache(models.Model):
@@ -160,6 +169,9 @@ class GeoCache(models.Model):
     class Meta:
         db_table = "geo_cache"
         verbose_name = "dirección geocodificada"
+
+    def __str__(self):
+        return self.geo_direccion
 
 
 class FiltroGuardado(models.Model):

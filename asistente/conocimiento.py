@@ -19,7 +19,7 @@ from collections import namedtuple
 
 from django.urls import NoReverseMatch, reverse
 
-from core import formato, parametros
+from core import parametros
 
 Articulo = namedtuple("Articulo", "clave titulo texto palabras roles url")
 

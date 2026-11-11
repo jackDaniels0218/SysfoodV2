@@ -8,7 +8,6 @@ from django.conf import settings
 from django.core import mail
 from django.core.exceptions import PermissionDenied
 from django.core.management import call_command
-from django.test import override_settings
 from django.urls import reverse
 
 from core.models import Bitacora, Notificacion, Parametro
@@ -18,7 +17,6 @@ from core.tests.utilidades import (
     PruebaTransaccional,
     crear_admin,
     crear_beneficiario,
-    crear_bodega,
     crear_donacion,
     crear_donante,
     pdf,
@@ -26,7 +24,6 @@ from core.tests.utilidades import (
 from donaciones.models import Donacion
 from inventario.models import Inventario, Kardex
 from solicitudes import servicios as sol_srv
-from usuarios import servicios as usu_srv
 from usuarios.models import DocumentoValidacion, Usuario
 
 

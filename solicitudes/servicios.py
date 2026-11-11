@@ -17,8 +17,8 @@ from .models import CarritoItem, Solicitud, SolicitudDetalle
 def a_decimal(valor):
     try:
         numero = Decimal(str(valor).strip().replace(",", "."))
-    except (InvalidOperation, TypeError):
-        raise ValidationError("Ingrese una cantidad válida.")
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValidationError("Ingrese una cantidad válida.") from None
     if not numero.is_finite():
         raise ValidationError("Ingrese una cantidad válida.")
     if numero <= 0:

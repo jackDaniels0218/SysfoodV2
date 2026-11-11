@@ -2,6 +2,7 @@
 
 import hashlib
 import uuid
+from contextlib import suppress
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -76,10 +77,9 @@ def _guardar_archivo(usuario, ext, contenido):
 
 
 def _borrar_archivo(doc):
-    try:
+    # Si el archivo no se puede borrar (permisos, disco), el registro igual se elimina.
+    with suppress(OSError):
         doc.ruta_absoluta.unlink(missing_ok=True)
-    except OSError:
-        pass
 
 
 @transaction.atomic

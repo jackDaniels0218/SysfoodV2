@@ -7,7 +7,7 @@ from .models import DocumentoValidacion, PerfilBeneficiario, PerfilDonante, Usua
 
 class BootstrapMixin:
     def _estilizar(self):
-        for nombre, campo in self.fields.items():
+        for campo in self.fields.values():
             widget = campo.widget
             if isinstance(widget, (forms.CheckboxInput,)):
                 widget.attrs.setdefault("class", "form-check-input")
@@ -124,7 +124,10 @@ class AdminUsuarioForm(CuentaForm):
 class PerfilDonanteForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = PerfilDonante
-        exclude = ["usuario"]
+        fields = [
+            "don_tipo_persona", "don_tipo_doc", "don_doc_nit", "don_raz_soc",
+            "don_contacto", "don_dir", "don_frecuencia", "don_anonimo_def",
+        ]  # fmt: skip
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -140,10 +143,11 @@ class PerfilDonanteForm(BootstrapMixin, forms.ModelForm):
 class PerfilBeneficiarioForm(BootstrapMixin, forms.ModelForm):
     class Meta:
         model = PerfilBeneficiario
-        exclude = [
-            "usuario",
-            *sorted(PerfilBeneficiario.CAMPOS_AUTOMATICOS),
-        ]  # Los calcula el sistema, nunca el usuario.
+        # Solo lo que declara el beneficiario. Puntaje, grupo, ubicación y verificación los calcula el sistema.
+        fields = [
+            "ben_tipo_doc", "ben_num_doc", "ben_fec_exp_doc", "ben_dir",
+            "ben_num_personas", "ben_sisben", "ben_estrato", "ben_discapacidad",
+        ]  # fmt: skip
         widgets = {"ben_fec_exp_doc": Fecha()}
 
     def __init__(self, *args, **kwargs):
