@@ -3,6 +3,14 @@
 # carga la demostración si se pide y sirve la aplicación.
 set -e
 
+# Si arranca como root: deja las carpetas de datos (también discos montados) al usuario «sysfood»
+# y vuelve a ejecutar este script como ese usuario. La aplicación nunca corre como root.
+if [ "$(id -u)" = "0" ]; then
+    mkdir -p /app/protegido /app/backups
+    chown -R sysfood:sysfood /app/protegido /app/backups
+    HOME=/home/sysfood exec setpriv --reuid=sysfood --regid=sysfood --init-groups "$0" "$@"
+fi
+
 python - <<'PY'
 import os, time
 import django

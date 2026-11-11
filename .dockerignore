@@ -1,11 +1,20 @@
+# Nada de secretos, entornos ni datos locales en la imagen.
+.git
+.github
 .venv
 venv
-.git
 .env
-db.sqlite3
+*.sqlite3
 __pycache__
 *.pyc
+.ruff_cache
+.coverage
+htmlcov
 staticfiles
 capturas
-protegido/documentos
-backups/*.zip
+docs/capturas
+protegido/*
+!protegido/.gitkeep
+backups/*
+!backups/.gitkeep
+*.log

@@ -33,8 +33,17 @@ def env_bool(clave, defecto="0"):
     return env(clave, defecto).lower() in ("1", "true", "si", "sí", "yes")
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "clave-insegura-solo-para-desarrollo-cambiar")
-DEBUG = env_bool("DJANGO_DEBUG", "1")
+CLAVE_DE_DESARROLLO = "clave-insegura-solo-para-desarrollo-cambiar"
+SECRET_KEY = env("DJANGO_SECRET_KEY", CLAVE_DE_DESARROLLO)
+# Seguro por defecto: sin DJANGO_DEBUG=1 explícito, el sistema corre en modo producción.
+DEBUG = env_bool("DJANGO_DEBUG", "0")
+if not DEBUG and SECRET_KEY == CLAVE_DE_DESARROLLO and "test" not in sys.argv[1:2]:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "Defina DJANGO_SECRET_KEY: en producción no se puede usar la clave de desarrollo. "
+        "Para trabajar en local, ponga DJANGO_DEBUG=1 en .env."
+    )
 ALLOWED_HOSTS = [h.strip() for h in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
@@ -256,9 +265,15 @@ SITE_URL = env("SITE_URL", env("RENDER_EXTERNAL_URL", "http://127.0.0.1:8000")).
 
 MESSAGE_TAGS = {40: "danger"}
 
+# Registro en la consola (Render y Docker lo recogen). Los errores 500 de Django también quedan registrados.
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"sysfood": {"handlers": ["console"], "level": "WARNING" if TESTING else "INFO"}},
+    "formatters": {"simple": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "simple"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {
+        "sysfood": {"handlers": ["console"], "level": "WARNING" if TESTING else "INFO", "propagate": False},
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
 }

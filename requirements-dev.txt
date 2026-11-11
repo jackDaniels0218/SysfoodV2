@@ -1,0 +1,4 @@
+# Herramientas de desarrollo: pip install -r requirements-dev.txt
+-r requirements.txt
+ruff>=0.17,<0.18
+coverage[toml]>=7.6,<8
