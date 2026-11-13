@@ -1,14 +1,10 @@
-# Despliegue en Render (Blueprint): New + › Blueprint › elija este repositorio.
-# Crea la base PostgreSQL y el servicio web (Docker, con Tesseract para el OCR).
-# Al terminar, abra la URL https://<nombre>.onrender.com e ingrese con admin@sysfood.local / Sysfood2025*
+# Despliegue en Render (Blueprint) usando una base PostgreSQL que YA existe en su cuenta.
+# Render solo permite una base gratuita por cuenta; por eso este archivo no crea ninguna.
+# Al aplicar el Blueprint, Render le pedirá DATABASE_URL: pegue la «Internal Database URL» de su base
+# (Dashboard › su base › Connections). Para crear una base nueva junto con el servicio use
+# render.yaml (elija ese archivo en Blueprint › Settings).
+# Al terminar, abra https://<nombre>.onrender.com e ingrese con admin@sysfood.local / Sysfood2025*
 # y cambie esa contraseña de inmediato.
-
-databases:
-  - name: sysfood-db
-    databaseName: sysfood
-    user: sysfood
-    plan: free          # Las bases gratuitas de Render vencen a los 30 días; use un plan pago para producción.
-    region: oregon
 
 services:
   - type: web
@@ -19,9 +15,7 @@ services:
     region: oregon
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: sysfood-db
-          property: connectionString
+        sync: false          # pegue aquí la Internal Database URL de su base existente
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG

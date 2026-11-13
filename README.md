@@ -416,7 +416,7 @@ DEFAULT_FROM_EMAIL=SysFood <su_correo@gmail.com>
 
 ### 7.1 Render (recomendado)
 
-El repositorio incluye **`render.yaml`**, que crea el **servicio web** y usa su base **PostgreSQL ya existente** (Render permite una sola base gratuita por cuenta): al aplicarlo le pide `DATABASE_URL`, que es la *Internal Database URL* de esa base. Si prefiere que cree también la base, use `render.con-base-nueva.yaml`. El servicio web se construye con Docker e incluye Tesseract para el OCR.
+El repositorio incluye **`render.yaml`**, que crea en un solo paso la base **PostgreSQL** y el **servicio web** y los conecta (`DATABASE_URL` se completa sola). Render permite una sola base gratuita por cuenta: si ya tiene una, use `render.base-existente.yaml` (pide `DATABASE_URL`) o elimine la otra. El servicio web se construye con Docker e incluye Tesseract para el OCR.
 
 1. Suba el código a GitHub, que ya es este repositorio.
 2. En [Render](https://dashboard.render.com), vaya a **New + › Blueprint**, elija el repositorio y pulse **Apply**.
