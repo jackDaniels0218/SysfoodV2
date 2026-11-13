@@ -517,4 +517,5 @@ pyproject.toml      Configuración de ruff y coverage
 Modelo de datos y diagramas: **[docs/MODELO_DE_DATOS.md](docs/MODELO_DE_DATOS.md)**.
 Inventario de estadísticas: **[docs/ESTADISTICAS.md](docs/ESTADISTICAS.md)**.
 Auditoría de usabilidad: **[docs/AUDITORIA_USABILIDAD.md](docs/AUDITORIA_USABILIDAD.md)**.
-Dónde quedó cada uno de los 22 requerimientos: **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.
+Dónde quedó cada uno de los 31 requerimientos (22 originales y 9 de las mejoras): **[docs/REQUERIMIENTOS.md](docs/REQUERIMIENTOS.md)**.
+Requerimientos de las mejoras con sus criterios de aceptación: **[docs/REQUERIMIENTOS_MEJORAS.md](docs/REQUERIMIENTOS_MEJORAS.md)**.
