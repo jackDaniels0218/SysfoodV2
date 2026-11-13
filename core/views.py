@@ -19,10 +19,30 @@ from .models import Bitacora, Notificacion, Parametro
 from .permisos import solo_admin
 from .servicios import auditar
 
+# Recorrido de una donación: la lista de «Cómo funciona» y las caras de la caja 3D de la portada.
+PASOS_PORTADA = (
+    {
+        "titulo": "Se dona",
+        "icono": "bi-box-seam",
+        "texto": "El donante registra los productos con su fecha de vencimiento.",
+    },
+    {
+        "titulo": "Se verifica",
+        "icono": "bi-person-check",
+        "texto": "El beneficiario carga sus documentos y el administrador los aprueba.",
+    },
+    {
+        "titulo": "Se solicita",
+        "icono": "bi-cart-check",
+        "texto": "Arma su pedido y, al aprobarlo, se reservan las cantidades.",
+    },
+    {"titulo": "Se entrega", "icono": "bi-truck", "texto": "La entrega avanza por estados hasta llegar a la casa."},
+)
+
 
 def inicio(request):
     if not request.user.is_authenticated:
-        return render(request, "core/bienvenida.html")
+        return render(request, "core/bienvenida.html", {"pasos": PASOS_PORTADA})
     return redirect("reportes:dashboard")
 
 

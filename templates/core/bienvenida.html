@@ -9,7 +9,8 @@
   Fotografías de Unsplash (licencia Unsplash); los créditos están al final de la página.
 {% endcomment %}
 {% block lienzo %}
-<header class="pt-masthead" style="--pt-foto: url('{% static 'img/portada/portada.webp' %}')">
+<header class="pt-masthead">
+  <div class="pt-masthead-foto" style="background-image: url('{% static 'img/portada/portada.webp' %}')" aria-hidden="true"></div>
   <div class="container-xl">
     <div class="pt-masthead-texto">
       <p class="pt-antetitulo">Banco de alimentos · Universidad de Cundinamarca</p>
@@ -90,13 +91,40 @@
 
 <section class="pt-pasos" aria-labelledby="pt-pasos-titulo">
   <div class="container-xl">
-    <h2 id="pt-pasos-titulo">Cómo funciona</h2>
-    <ol>
-      <li><h3>Se dona</h3><p>El donante registra los productos con su fecha de vencimiento.</p></li>
-      <li><h3>Se verifica</h3><p>El beneficiario carga sus documentos y el administrador los aprueba.</p></li>
-      <li><h3>Se solicita</h3><p>Arma su pedido y, al aprobarlo, se reservan las cantidades.</p></li>
-      <li><h3>Se entrega</h3><p>La entrega avanza por estados hasta llegar a la casa.</p></li>
-    </ol>
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <p class="pt-antetitulo">El recorrido de una donación</p>
+        <h2 id="pt-pasos-titulo">Cómo funciona</h2>
+        <p class="pt-pasos-ayuda">Elija un paso o arrastre la caja para girarla.</p>
+        <ol class="pt-pasos-lista">
+          {% for paso in pasos %}
+          <li><button type="button" class="pt-paso" data-paso="{{ forloop.counter0 }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">
+            <span class="pt-paso-num">0{{ forloop.counter }}</span>
+            <span class="pt-paso-titulo">{{ paso.titulo }}</span>
+            <span class="pt-paso-texto">{{ paso.texto }}</span>
+          </button></li>
+          {% endfor %}
+        </ol>
+      </div>
+      <div class="col-lg-6 order-first order-lg-last">
+        {# Caja de donación en CSS 3D: cada cara lateral es un paso. Es decorativa; la lista de la izquierda tiene el contenido. #}
+        <div class="pt-caja-escena" aria-hidden="true">
+          <div class="pt-caja">
+            {% for paso in pasos %}
+            <div class="pt-cara pt-cara-{{ forloop.counter0 }}">
+              <i class="bi {{ paso.icono }}"></i>
+              <span class="pt-cara-num">0{{ forloop.counter }}</span>
+              <span class="pt-cara-titulo">{{ paso.titulo }}</span>
+              <span class="pt-cara-sello">SysFood · Alimentos</span>
+            </div>
+            {% endfor %}
+            <div class="pt-cara pt-cara-tapa"><span class="pt-cinta"></span></div>
+            <div class="pt-cara pt-cara-fondo"></div>
+          </div>
+          <div class="pt-caja-sombra"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -115,3 +143,4 @@
   <p class="pt-creditos">Fotografías de <a href="https://unsplash.com/@ismaelparamo">Ismael Paramo</a>, <a href="https://unsplash.com/@pecko">Jim Petkiewicz</a>, <a href="https://unsplash.com/@mrsmaria">Maria Lin Kim</a> y <a href="https://unsplash.com/@jmuniz">Joel Muniz</a> en Unsplash.</p>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{% static 'js/portada.js' %}"></script>{% endblock %}

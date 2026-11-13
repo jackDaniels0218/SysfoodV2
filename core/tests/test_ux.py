@@ -87,6 +87,19 @@ class BaseAccesibleTests(PruebaBase):
         self.assertContains(r, 'aria-keyshortcuts="Control+K /"')
 
 
+class PortadaTests(PruebaBase):
+    def test_pasos_caja_3d_y_marca(self):
+        r = self.client.get(reverse("core:inicio"))
+        # Cada paso es un botón accesible y una cara de la caja 3D (decorativa, oculta al lector de pantalla).
+        self.assertContains(r, 'class="pt-paso"', count=4)
+        self.assertContains(r, 'aria-pressed="true"', count=1)
+        self.assertContains(r, 'class="pt-caja-escena" aria-hidden="true"')
+        self.assertContains(r, "pt-cara-3")
+        self.assertContains(r, "js/portada.js")
+        self.assertNotContains(r, "V2")
+        self.assertNotContains(r, "trazables")
+
+
 class GuiaTests(PruebaBase):
     def test_pasos_del_beneficiario(self):
         b = crear_beneficiario()
