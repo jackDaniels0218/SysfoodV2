@@ -441,6 +441,18 @@ El dominio de Render se autoriza solo, con `RENDER_EXTERNAL_HOSTNAME`, y se usa 
 - El servicio se **duerme** tras 15 minutos sin visitas y tarda unos segundos en despertar. Mientras duerme no corren las tareas automáticas: se ponen al día al despertar.
 - El disco es **temporal**: los documentos cargados se pierden en cada despliegue. Con un plan pago, descomente el bloque `disk` de `render.yaml` para guardarlos en `/app/protegido`.
 
+**Si Render no le deja entrar o falla**
+
+| Síntoma | Causa y solución |
+| --- | --- |
+| El navegador dice «demasiadas redirecciones» (`ERR_TOO_MANY_REDIRECTS`) | Waitress no confiaba en el proxy de Render y descartaba `X-Forwarded-Proto`. Corregido en `docker/entrypoint.sh` (`--trusted-proxy`): haga un **Manual Deploy › Clear build cache & deploy**. |
+| `DisallowedHost` (error 400) | Entra por un dominio propio no autorizado: agréguelo en `DJANGO_ALLOWED_HOSTS` y `DJANGO_CSRF_TRUSTED_ORIGINS` (con `https://`). |
+| «La base de datos no respondió a tiempo» | `DATABASE_URL` apunta a otra región o usa la URL externa. Use la *Internal Database URL* y cree la base y el servicio en la **misma región**. |
+| `password authentication failed` | La URL se copió incompleta o con la contraseña cambiada. Cópiela de nuevo desde la página de la base. |
+| `relation ... already exists` | La base ya tiene tablas de otro proyecto. Use una base vacía. |
+
+Si falla otra cosa, copie las últimas 30 líneas de la pestaña *Logs* del servicio: el error real está en la última línea antes del `Traceback`.
+
 **Pasar los datos locales a Render.** Con `pg_dump` y `pg_restore`, usando la *External Database URL* que muestra Render en la página de la base:
 
 ```bash
@@ -454,7 +466,7 @@ En ese caso ponga `CARGAR_DEMO=0`. En los planes pagos también puede usar la co
 
 1. En `.env`: `DJANGO_DEBUG=0`, una `DJANGO_SECRET_KEY` larga y aleatoria (sin ella el sistema no arranca en producción), `DJANGO_ALLOWED_HOSTS=su-dominio.com`, `DJANGO_CSRF_TRUSTED_ORIGINS=https://su-dominio.com` y `DJANGO_HTTPS=1`. Esta última activa la redirección a HTTPS, las cookies seguras y HSTS.
 2. `python manage.py collectstatic`
-3. Servidor de aplicación (funciona en Windows y Linux): `waitress-serve --listen=127.0.0.1:8000 --threads=24 sysfood.wsgi:application`
+3. Servidor de aplicación (funciona en Windows y Linux): `waitress-serve --listen=127.0.0.1:8000 --threads=24 --trusted-proxy=127.0.0.1 --trusted-proxy-headers="x-forwarded-proto x-forwarded-for" sysfood.wsgi:application`. Las opciones `--trusted-proxy*` son indispensables: sin ellas waitress descarta `X-Forwarded-Proto` y el sitio entra en un bucle de redirecciones.
 4. Ponga delante un proxy con certificado TLS (Nginx, Caddy o IIS) que sirva `/static/` desde `staticfiles/` y reenvíe el resto a waitress con la cabecera `X-Forwarded-Proto`.
 5. **Nunca** publique la carpeta `protegido/`: ahí están los documentos de validación. El sistema los entrega solo a su titular y al administrador.
 

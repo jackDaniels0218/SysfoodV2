@@ -48,4 +48,9 @@ fi
 # Render asigna el puerto en $PORT; en Docker Compose se usa 8000.
 PUERTO="${PORT:-8000}"
 echo "SysFood listo en el puerto ${PUERTO}"
-exec waitress-serve --listen=0.0.0.0:${PUERTO} --threads=${HILOS:-8} sysfood.wsgi:application
+# Detrás del proxy de Render (que termina el HTTPS) hay que confiar en X-Forwarded-Proto. Sin esto,
+# waitress descarta la cabecera, Django cree que la visita es HTTP y redirige a HTTPS sin fin
+# («demasiadas redirecciones»). Es inofensivo en local: allí no hay proxy.
+exec waitress-serve --listen=0.0.0.0:${PUERTO} --threads=${HILOS:-8} \
+    --trusted-proxy='*' --trusted-proxy-headers='x-forwarded-proto x-forwarded-for' \
+    --clear-untrusted-proxy-headers sysfood.wsgi:application
