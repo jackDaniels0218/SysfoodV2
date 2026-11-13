@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from entregas.models import HistorialEntrega
 from inventario.models import Kardex
+from sysfood import rnf
 from usuarios.models import Usuario
 
 from . import parametros, tareas
@@ -58,7 +59,7 @@ def notificaciones(request):
     qs = request.user.notificaciones.all()
     if request.GET.get("filtro") == "no_leidas":
         qs = qs.filter(not_leida=False)
-    pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("notificaciones")).get_page(request.GET.get("page"))
     return render(request, "core/notificaciones.html", {"pagina": pagina})
 
 
@@ -186,7 +187,7 @@ def trazabilidad(request):
                 Q(bit_registro=registro) | Q(bit_entidad__icontains=registro) | Q(bit_detalle__icontains=registro)
             )
         tipos = Bitacora.ACCIONES
-    pagina = Paginator(qs, 30).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("trazabilidad")).get_page(request.GET.get("page"))
     return render(
         request,
         "core/trazabilidad.html",

@@ -11,6 +11,7 @@ from core.fechas import filtrar_rango
 from core.permisos import beneficiario_verificado, solo_admin, solo_beneficiario
 from core.servicios import auditar
 from inventario.models import Inventario
+from sysfood import rnf
 
 from . import servicios
 from .forms import AprobarForm, MotivoForm
@@ -28,7 +29,7 @@ def catalogo(request):
     if request.GET.get("categoria", "").isdigit():
         qs = qs.filter(categoria_id=request.GET["categoria"])
     qs = qs.order_by("inv_fec_venc", "inv_nom")
-    pagina = Paginator(qs, 12).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("catalogo")).get_page(request.GET.get("page"))
     en_carrito = dict(request.user.carrito.values_list("inventario_id", "car_cant"))
     return render(
         request,
@@ -132,7 +133,7 @@ def mis_solicitudes(request):
     )
     if request.GET.get("estado"):
         qs = qs.filter(sol_estado=request.GET["estado"])
-    pagina = Paginator(qs, 15).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("mis_solicitudes")).get_page(request.GET.get("page"))
     return render(request, "solicitudes/mis_solicitudes.html", {"pagina": pagina, "estados": Solicitud.ESTADOS})
 
 
@@ -176,7 +177,7 @@ def lista_admin(request):
     else:
         qs = qs.order_by("sol_fec_envio" if estado == "pendiente" else "-sol_fec_envio")
     qs = qs.select_related("beneficiario__perfil_beneficiario")
-    pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("solicitudes_admin")).get_page(request.GET.get("page"))
     return render(
         request,
         "solicitudes/admin_lista.html",

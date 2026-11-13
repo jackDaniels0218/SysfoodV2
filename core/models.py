@@ -14,6 +14,8 @@ class Parametro(models.Model):
     par_clave = models.CharField("clave", max_length=60, unique=True)
     par_valor = models.CharField("valor", max_length=500)
     par_desc = models.CharField("descripción", max_length=255)
+    # Último valor tomado de sysfood/rnf.py: permite saber si el valor cambió en el código.
+    par_valor_codigo = models.CharField("valor en el código", max_length=500, blank=True, default="", editable=False)
     usuario_mod = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

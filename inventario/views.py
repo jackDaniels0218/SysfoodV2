@@ -11,6 +11,7 @@ from core import parametros
 from core.models import FiltroGuardado
 from core.permisos import solo_admin
 from core.servicios import auditar
+from sysfood import rnf
 
 from . import servicios, unidades
 from .forms import AjusteForm, BajaForm
@@ -62,7 +63,7 @@ def lista(request):
     if vista in ("tabla", "tarjetas"):
         request.session["inventario_vista"] = vista
     vista = request.session.get("inventario_vista", "tabla")
-    pagina = Paginator(qs, 24).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("inventario")).get_page(request.GET.get("page"))
     dias = parametros.entero("dias_alerta_vencimiento")
     alertas = (
         Inventario.objects.filter(inv_est_venc=Inventario.PROXIMO, inv_cant_disp__gt=0)

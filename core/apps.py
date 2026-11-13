@@ -6,12 +6,13 @@ from django.db.models.signals import post_migrate
 
 
 def _sincronizar_parametros(sender, **kwargs):
-    """Crea los parámetros nuevos declarados en core.parametros después de cada migrate."""
+    """Después de cada migrate: crea los parámetros nuevos y aplica los cambios de sysfood/rnf.py."""
     from . import parametros
 
     # La tabla puede no existir todavía (por ejemplo, al migrar hacia atrás).
     with suppress(OperationalError, ProgrammingError):
         parametros.sincronizar()
+        parametros.aplicar_desde_codigo()
 
 
 class Config(AppConfig):

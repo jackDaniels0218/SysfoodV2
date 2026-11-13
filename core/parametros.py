@@ -9,8 +9,10 @@ Sistema › Parámetros, agrupados por sección, y cada cambio queda en la bitá
 import re
 from collections import OrderedDict, namedtuple
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.text import slugify
+
+from sysfood import rnf
 
 FORMATOS_VALIDOS = ("pdf", "jpg", "png")
 
@@ -524,6 +526,10 @@ DEFINICIONES = OrderedDict(
     ]
 )
 
+# Los requerimientos no funcionales que también son parámetros toman su valor de sysfood/rnf.py.
+for _clave, _valor in rnf.PARAMETROS.items():
+    DEFINICIONES[_clave] = DEFINICIONES[_clave]._replace(valor=str(_valor))
+
 TIPOS_AYUDA = {
     "escala": "Formato: clave:valor separados por comas, con valores de 0 a 100. Ejemplo: A:100, B:70.",
     "grupos": "Formato: Nombre|mínimo|#color separados por punto y coma. Ejemplo: Alta|60|#d9480f; Baja|0|#2b8a3e.",
@@ -829,9 +835,51 @@ def sincronizar(Parametro=None):
         from .models import Parametro
     existentes = set(Parametro.objects.values_list("par_clave", flat=True))
     nuevos = [
-        Parametro(par_clave=clave, par_valor=d.valor, par_desc=d.desc)
+        Parametro(
+            par_clave=clave,
+            par_valor=d.valor,
+            par_desc=d.desc,
+            par_valor_codigo=d.valor if clave in rnf.PARAMETROS else "",
+        )
         for clave, d in DEFINICIONES.items()
         if clave not in existentes
     ]
     Parametro.objects.bulk_create(nuevos)
     return len(nuevos)
+
+
+def aplicar_desde_codigo():
+    """Copia a la base los valores de sysfood/rnf.py que cambiaron en el código (se llama después de migrate).
+
+    Cada parámetro recuerda el último valor que tomó del código (par_valor_codigo). Si el valor de
+    rnf.py es distinto, el código manda: se valida, se guarda y queda en la bitácora. Si es el mismo,
+    no se toca nada y se respeta lo que el administrador haya cambiado en Sistema › Parámetros.
+    Devuelve las claves que cambiaron.
+    """
+    from .models import Parametro
+    from .servicios import auditar
+
+    cambiados = []
+    for clave, valor in rnf.PARAMETROS.items():
+        valor = str(valor)
+        parametro = Parametro.objects.filter(par_clave=clave).first()
+        if parametro is None or parametro.par_valor_codigo == valor:
+            continue
+        try:
+            nuevo = validar(clave, valor)
+        except ValidationError as error:
+            raise ImproperlyConfigured(
+                f"sysfood/rnf.py: el valor «{valor}» de «{clave}» no es válido: {' '.join(error.messages)}"
+            ) from None
+        anterior = parametro.par_valor
+        parametro.par_valor_codigo = valor
+        if anterior == nuevo:
+            parametro.save(update_fields=["par_valor_codigo"])
+            continue
+        parametro.par_valor = nuevo
+        parametro.usuario_mod = None
+        parametro.save()
+        auditar(None, "cambio_parametro", "parametro", clave, f"«{anterior}» → «{nuevo}» (desde sysfood/rnf.py)")
+        notificar_cambio(clave)
+        cambiados.append(clave)
+    return cambiados

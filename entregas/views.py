@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from core.fechas import filtrar_rango
 from core.permisos import solo_admin, solo_beneficiario
 from core.servicios import auditar
+from sysfood import rnf
 
 from . import servicios
 from .forms import DatosEntregaForm
@@ -31,7 +32,7 @@ def lista(request):
             | Q(solicitud__beneficiario__usu_ape__icontains=q)
         )
     qs = filtrar_rango(qs, "ent_fec_crea", request.GET.get("desde"), request.GET.get("hasta"))
-    pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("entregas")).get_page(request.GET.get("page"))
     return render(
         request,
         "entregas/lista.html",

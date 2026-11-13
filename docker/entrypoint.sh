@@ -41,7 +41,7 @@ fi
 (
     while true; do
         python manage.py ejecutar_tareas || echo "Falló la ejecución de tareas; se reintenta en una hora."
-        sleep "${INTERVALO_TAREAS:-3600}"
+        sleep "${INTERVALO_TAREAS:-$(python -c "from sysfood.rnf import INTERVALO_TAREAS_S; print(INTERVALO_TAREAS_S)")}"
     done
 ) &
 
@@ -51,6 +51,6 @@ echo "SysFood listo en el puerto ${PUERTO}"
 # Detrás del proxy de Render (que termina el HTTPS) hay que confiar en X-Forwarded-Proto. Sin esto,
 # waitress descarta la cabecera, Django cree que la visita es HTTP y redirige a HTTPS sin fin
 # («demasiadas redirecciones»). Es inofensivo en local: allí no hay proxy.
-exec waitress-serve --listen=0.0.0.0:${PUERTO} --threads=${HILOS:-8} \
+exec waitress-serve --listen=0.0.0.0:${PUERTO} --threads="${HILOS:-$(python -c "from sysfood.rnf import HILOS_SERVIDOR; print(HILOS_SERVIDOR)")}" \
     --trusted-proxy='*' --trusted-proxy-headers='x-forwarded-proto x-forwarded-for' \
     --clear-untrusted-proxy-headers sysfood.wsgi:application

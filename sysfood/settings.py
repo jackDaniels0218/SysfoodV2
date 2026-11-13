@@ -8,6 +8,8 @@ import os
 import sys
 from pathlib import Path
 
+from sysfood import rnf
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -175,7 +177,9 @@ LOGIN_REDIRECT_URL = "core:inicio"
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
 # Contraseñas: PBKDF2 con sal (por defecto en Django).
+# Las iteraciones se definen en sysfood/rnf.py (CONTRASENA_ITERACIONES_PBKDF2).
 PASSWORD_HASHERS = [
+    "core.hashers.PBKDF2SysFood",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
 ]
@@ -192,14 +196,17 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
         "OPTIONS": {"user_attributes": ("usu_correo", "usu_nom", "usu_ape")},
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": rnf.CONTRASENA_LONGITUD_MINIMA},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     {"NAME": "usuarios.validators.ComplejidadValidator"},
 ]
 
-LANGUAGE_CODE = "es-co"
-TIME_ZONE = "America/Bogota"
+LANGUAGE_CODE = rnf.IDIOMA
+TIME_ZONE = rnf.ZONA_HORARIA
 USE_I18N = True
 USE_TZ = True
 USE_THOUSAND_SEPARATOR = False
@@ -211,15 +218,18 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Documentos de validación: carpeta protegida que NO se publica como estática.
 PROTECTED_MEDIA_ROOT = Path(env("PROTECTED_MEDIA_ROOT", str(BASE_DIR / "protegido")))
 BACKUP_ROOT = Path(env("BACKUP_ROOT", str(BASE_DIR / "backups")))
-DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = rnf.LIMITE_FORMULARIO_MB * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = rnf.LIMITE_ARCHIVO_EN_MEMORIA_MB * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Sesión segura
+# Sesión segura (duración y cierre por inactividad en sysfood/rnf.py)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_AGE = 60 * 60 * 8
+SESSION_COOKIE_AGE = rnf.SESION_MINUTOS * 60
+# Cada petición renueva el vencimiento: la sesión se cierra tras ese tiempo sin actividad.
+SESSION_SAVE_EVERY_REQUEST = rnf.SESION_POR_INACTIVIDAD
+SESSION_EXPIRE_AT_BROWSER_CLOSE = rnf.SESION_CERRAR_CON_NAVEGADOR
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "SAMEORIGIN"  # La revisión de documentos muestra el PDF en un iframe del mismo sitio.
 SILENCED_SYSTEM_CHECKS = [
@@ -233,7 +243,7 @@ if env_bool("DJANGO_HTTPS"):
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_SECONDS = rnf.HSTS_SEGUNDOS
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 

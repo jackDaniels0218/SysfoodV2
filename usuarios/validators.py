@@ -2,24 +2,24 @@ import re
 
 from django.core.exceptions import ValidationError
 
+from sysfood import rnf
+
 
 class ComplejidadValidator:
-    """La contraseña debe tener mayúscula, minúscula, número y carácter especial."""
+    """Tipos de carácter que exige la contraseña, según sysfood/rnf.py (CONTRASENA_EXIGE_*)."""
 
     def validate(self, password, user=None):
-        faltantes = []
-        if not re.search(r"[A-ZÁÉÍÓÚÑ]", password):
-            faltantes.append("una letra mayúscula")
-        if not re.search(r"[a-záéíóúñ]", password):
-            faltantes.append("una letra minúscula")
-        if not re.search(r"\d", password):
-            faltantes.append("un número")
-        if not re.search(r"[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]", password):
-            faltantes.append("un carácter especial")
+        reglas = (
+            (rnf.CONTRASENA_EXIGE_MAYUSCULA, r"[A-ZÁÉÍÓÚÑ]", "una letra mayúscula"),
+            (rnf.CONTRASENA_EXIGE_MINUSCULA, r"[a-záéíóúñ]", "una letra minúscula"),
+            (rnf.CONTRASENA_EXIGE_NUMERO, r"\d", "un número"),
+            (rnf.CONTRASENA_EXIGE_ESPECIAL, r"[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]", "un carácter especial"),
+        )
+        faltantes = [texto for exige, patron, texto in reglas if exige and not re.search(patron, password)]
         if faltantes:
             raise ValidationError(
                 "La contraseña debe contener " + ", ".join(faltantes) + ".", code="password_complejidad"
             )
 
     def get_help_text(self):
-        return "Use al menos 8 caracteres con mayúscula, minúscula, número y carácter especial."
+        return "La contraseña debe " + rnf.requisitos_contrasena() + "."

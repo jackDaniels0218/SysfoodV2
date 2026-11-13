@@ -17,6 +17,8 @@ import urllib.request
 from dataclasses import dataclass
 from decimal import Decimal
 
+from sysfood import rnf
+
 from . import parametros
 
 log = logging.getLogger("sysfood")
@@ -92,7 +94,7 @@ def _nominatim(consulta):
         _ultima_consulta[0] = time.monotonic()
     peticion = urllib.request.Request(url, headers={"User-Agent": AGENTE, "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(peticion, timeout=8) as respuesta:
+        with urllib.request.urlopen(peticion, timeout=rnf.TIEMPO_ESPERA_GEOCODIFICACION_S) as respuesta:
             datos = json.loads(respuesta.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
         raise ErrorGeocodificacion(f"El servicio de mapas no respondió: {error}") from error

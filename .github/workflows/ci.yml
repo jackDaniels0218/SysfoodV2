@@ -48,4 +48,4 @@ jobs:
       - name: Migraciones al día
         run: python manage.py makemigrations --check --dry-run
       - name: Pruebas
-        run: coverage run manage.py test --noinput && coverage report --skip-covered --fail-under=80
+        run: coverage run manage.py test --noinput && coverage report --skip-covered --fail-under=$(python -c "from sysfood.rnf import COBERTURA_MINIMA; print(COBERTURA_MINIMA)")

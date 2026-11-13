@@ -20,6 +20,7 @@ from collections import namedtuple
 from django.urls import NoReverseMatch, reverse
 
 from core import parametros
+from sysfood import rnf
 
 Articulo = namedtuple("Articulo", "clave titulo texto palabras roles url")
 
@@ -47,7 +48,8 @@ ARTICULOS = [
         "Cómo crear una cuenta",
         "Pulse «Registrarse», elija si será donante o beneficiario, complete sus datos y acepte la "
         "política de tratamiento de datos. Luego ingrese con su correo y contraseña. La contraseña debe "
-        "tener al menos 8 caracteres, con mayúsculas, minúsculas, números y un símbolo.",
+        + rnf.requisitos_contrasena()
+        + ".",
         "registrarme registro crear cuenta inscribirme nuevo usuario contraseña requisitos",
         url="usuarios:registro",
     ),

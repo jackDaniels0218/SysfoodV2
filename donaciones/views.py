@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST
 from core.fechas import filtrar_rango
 from core.permisos import rol_requerido, solo_admin, solo_donante
 from core.servicios import auditar
+from sysfood import rnf
 from usuarios.models import Usuario
 
 from . import servicios
@@ -26,7 +27,7 @@ def _filtrar(request, qs):
 @solo_donante
 def mis_donaciones(request):
     qs = _filtrar(request, request.user.donaciones.annotate(productos=Count("detalles")).order_by("-dona_fec_reg"))
-    pagina = Paginator(qs, 15).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("mis_donaciones")).get_page(request.GET.get("page"))
     return render(request, "donaciones/lista.html", {"pagina": pagina, "estados": Donacion.ESTADOS, "es_admin": False})
 
 
@@ -42,7 +43,7 @@ def lista_admin(request):
         qs = qs.filter(donante_id=request.GET["donante"])
     if request.GET.get("anonima") in ("1", "0"):
         qs = qs.filter(dona_anonima=request.GET["anonima"] == "1")
-    pagina = Paginator(qs, 20).get_page(request.GET.get("page"))
+    pagina = Paginator(qs, rnf.por_pagina("donaciones_admin")).get_page(request.GET.get("page"))
     donantes = Usuario.objects.filter(usu_rol=Usuario.DONANTE).order_by("usu_nom")
     return render(
         request,

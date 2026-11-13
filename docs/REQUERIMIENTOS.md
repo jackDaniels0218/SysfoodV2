@@ -2,6 +2,8 @@
 
 Dónde quedó implementado cada uno de los 31 requerimientos y qué prueba automática lo verifica. Los requerimientos 23 a 31 corresponden a las mejoras; su descripción completa y sus criterios de aceptación están en [REQUERIMIENTOS_MEJORAS.md](REQUERIMIENTOS_MEJORAS.md).
 
+Los valores de los requerimientos no funcionales (seguridad, protección de datos, rendimiento, calidad) están en un solo archivo, `sysfood/rnf.py`. Cómo cambiarlos y demostrarlos: [REQUERIMIENTOS_NO_FUNCIONALES.md](REQUERIMIENTOS_NO_FUNCIONALES.md).
+
 | # | Requerimiento | Implementación | Pruebas |
 | --- | --- | --- | --- |
 | 1 | CRUD Usuarios | `usuarios/models.py` (`Usuario`, `PerfilDonante`, `PerfilBeneficiario`), `usuarios/views.py` (registro, perfil, administración). Baja lógica: si tiene registros, se desactiva. Rol fijo (sin CRUD de roles). | `usuarios/tests/test_acceso.py`, `test_admin_usuarios.py` |

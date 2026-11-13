@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST
 from core import parametros
 from core.permisos import solo_admin
 from core.servicios import auditar, enviar_correo
+from sysfood import rnf
 
 from . import puntaje, servicios, ubicacion, verificacion
 from .forms import (
@@ -377,7 +378,7 @@ def lista(request):
             usuarios = usuarios.filter(**{filtro: valor})
     if request.GET.get("orden") == "puntaje":
         usuarios = usuarios.order_by(F("perfil_beneficiario__ben_puntaje").desc(nulls_last=True), "usu_nom")
-    pagina = Paginator(usuarios, 20).get_page(request.GET.get("page"))
+    pagina = Paginator(usuarios, rnf.por_pagina("usuarios")).get_page(request.GET.get("page"))
     return render(
         request,
         "usuarios/admin_lista.html",

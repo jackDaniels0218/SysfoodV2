@@ -24,6 +24,7 @@ from core.tests.utilidades import (
 from donaciones.models import Donacion
 from inventario.models import Inventario, Kardex
 from solicitudes import servicios as sol_srv
+from sysfood import rnf
 from usuarios.models import DocumentoValidacion, Usuario
 
 
@@ -45,7 +46,7 @@ class ParametrosTests(PruebaBase):
         ):
             self.assertIn(clave, claves)
         self.assertEqual(Parametro.objects.get(par_clave="max_productos_solicitud").par_valor, "5")
-        self.assertEqual(Parametro.objects.get(par_clave="tam_max_archivo_mb").par_valor, "5")
+        self.assertEqual(Parametro.objects.get(par_clave="tam_max_archivo_mb").par_valor, str(rnf.TAM_MAX_ARCHIVO_MB))
 
     def test_modificar_valida_y_audita(self):
         p = Parametro.objects.get(par_clave="max_productos_solicitud")
@@ -176,7 +177,7 @@ class ReportesTests(PruebaBase):
 
 
 class RendimientoTests(PruebaBase):
-    """Actividad 16: consultas y registros comunes en 2 segundos o menos."""
+    """Actividad 16: tiempos máximos de sysfood/rnf.py (TIEMPO_MAX_RESPUESTA_S y TIEMPO_MAX_CARGA_DOCUMENTO_S)."""
 
     def test_paginas_comunes_responden_rapido(self):
         admin = crear_admin()
@@ -196,16 +197,17 @@ class RendimientoTests(PruebaBase):
             r = self.client.get(reverse(nombre))
             duracion = time.perf_counter() - inicio
             self.assertEqual(r.status_code, 200)
-            self.assertLess(duracion, 2, nombre)
+            self.assertLess(duracion, rnf.TIEMPO_MAX_RESPUESTA_S, nombre)
 
-    def test_carga_de_documento_de_5mb(self):
+    def test_carga_de_documento_del_tamano_maximo(self):
         ben = crear_beneficiario()
         self.ingresar(ben)
         inicio = time.perf_counter()
         r = self.client.post(
-            reverse("usuarios:documentos"), {"docv_tipo": "identidad", "archivo": pdf(relleno=5 * 1024 * 1024 - 100)}
+            reverse("usuarios:documentos"),
+            {"docv_tipo": "identidad", "archivo": pdf(relleno=rnf.TAM_MAX_ARCHIVO_MB * 1024 * 1024 - 100)},
         )
-        self.assertLess(time.perf_counter() - inicio, 5)
+        self.assertLess(time.perf_counter() - inicio, rnf.TIEMPO_MAX_CARGA_DOCUMENTO_S)
         self.assertEqual(r.status_code, 302)
 
 
