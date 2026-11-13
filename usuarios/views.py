@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, ProtectedError, Q
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -341,11 +341,17 @@ def ver_documento(request, pk):
     doc = get_object_or_404(DocumentoValidacion, pk=pk)
     if not (request.user.es_admin or doc.usuario_id == request.user.pk):
         raise PermissionDenied("No puede ver este documento.")
-    ruta = doc.ruta_absoluta
-    if not ruta.exists():
-        raise Http404("El archivo no se encuentra en el almacenamiento.")
-    respuesta = FileResponse(open(ruta, "rb"), content_type=doc.docv_mime)  # noqa: SIM115 (FileResponse lo cierra)
-    respuesta["Content-Disposition"] = f'inline; filename="documento_{doc.pk}.{ruta.suffix.lstrip(".")}"'
+    try:
+        contenido = doc.leer_contenido()
+    except FileNotFoundError:
+        # Documentos cargados antes de guardar los archivos en la base: el disco de Render los borró.
+        return HttpResponse(
+            '<p style="font-family:sans-serif;padding:1rem">El archivo de este documento ya no está en el '
+            "servidor. El titular debe volver a cargarlo desde «Mis documentos».</p>",
+            status=404,
+        )
+    respuesta = HttpResponse(contenido, content_type=doc.docv_mime)
+    respuesta["Content-Disposition"] = f'inline; filename="documento_{doc.pk}.{doc.ruta_absoluta.suffix.lstrip(".")}"'
     respuesta["Cache-Control"] = "private, no-store"
     respuesta["X-Content-Type-Options"] = "nosniff"
     return respuesta

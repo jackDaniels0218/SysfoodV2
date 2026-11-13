@@ -13,8 +13,8 @@ from django.utils import timezone
 from core import parametros
 from core.servicios import notificar, notificar_administradores
 
+from .models import ArchivoDocumento, PerfilBeneficiario, PerfilDonante, Usuario
 from .models import DocumentoValidacion as Doc
-from .models import PerfilBeneficiario, PerfilDonante, Usuario
 
 FIRMAS = {
     "pdf": (b"%PDF",),
@@ -117,6 +117,7 @@ def cargar_documento(usuario, tipo, archivo, fec_venc=None):
     doc.docv_ocr_resultado = {"calidad": calidad} if calidad else {}
     doc.docv_verif_auto, doc.docv_ocr_intentos, doc.docv_fec_ocr = False, 0, None
     doc.save()
+    ArchivoDocumento.objects.update_or_create(documento=doc, defaults={"arc_contenido": contenido})
     if anterior:
         transaction.on_commit(lambda: _borrar_archivo(anterior))
     estado_previo = _estado_verif(usuario)

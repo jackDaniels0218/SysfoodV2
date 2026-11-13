@@ -420,6 +420,23 @@ class DocumentoValidacion(models.Model):
     def ruta_absoluta(self):
         return settings.PROTECTED_MEDIA_ROOT / self.docv_ruta
 
+    def leer_contenido(self):
+        """Bytes del archivo. Usa la copia del disco y, si no está (el disco de Render se borra al
+        reiniciar), la recupera de la base de datos y la vuelve a escribir. FileNotFoundError si no hay."""
+        ruta = self.ruta_absoluta
+        if self.docv_ruta and ruta.is_file():
+            return ruta.read_bytes()
+        guardado = ArchivoDocumento.objects.filter(documento_id=self.pk).values_list("arc_contenido", flat=True).first()
+        if guardado is None:
+            raise FileNotFoundError(f"El archivo del documento {self.pk} no está guardado.")
+        contenido = bytes(guardado)
+        try:  # Copia en disco para las siguientes lecturas; si falla, se sigue leyendo de la base.
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            ruta.write_bytes(contenido)
+        except OSError:
+            pass
+        return contenido
+
     @property
     def es_imagen(self):
         return self.docv_mime.startswith("image/")
@@ -434,3 +451,27 @@ class DocumentoValidacion(models.Model):
     @property
     def discrepancias(self):
         return [c for c in (self.docv_ocr_resultado or {}).get("campos", []) if c.get("coincide", 0) < 1]
+
+
+class ArchivoDocumento(models.Model):
+    """Contenido de un documento de validación guardado en la base de datos.
+
+    Es la copia permanente: el disco del servidor puede borrarse (en Render, en cada despliegue o
+    reinicio). Va en una tabla aparte para no traer los bytes en cada consulta de documentos.
+    """
+
+    documento = models.OneToOneField(
+        DocumentoValidacion,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        db_column="docv_id",
+        related_name="archivo",
+    )
+    arc_contenido = models.BinaryField("contenido")
+
+    class Meta:
+        db_table = "archivo_documento"
+        verbose_name = "archivo de documento"
+
+    def __str__(self):
+        return f"Archivo del documento {self.documento_id}"

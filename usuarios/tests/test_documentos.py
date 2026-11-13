@@ -114,6 +114,29 @@ class CargaDocumentosTests(PruebaBase):
         self.assertFalse(Doc.objects.filter(pk=doc.pk).exists())
         self.assertFalse(ruta.exists())
 
+    def test_el_documento_se_ve_aunque_se_borre_el_disco(self):
+        """En Render el disco se borra al reiniciar: el archivo se recupera de la base de datos."""
+        from usuarios.models import ArchivoDocumento
+
+        archivo = pdf()
+        doc = servicios.cargar_documento(self.ben, Doc.IDENTIDAD, archivo)
+        original = doc.ruta_absoluta.read_bytes()
+        self.assertEqual(bytes(ArchivoDocumento.objects.get(documento=doc).arc_contenido), original)
+        doc.ruta_absoluta.unlink()
+        self.ingresar(self.ben)
+        r = self.client.get(reverse("usuarios:ver_documento", args=[doc.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, original)
+        self.assertTrue(doc.ruta_absoluta.exists())  # Se vuelve a escribir la copia en disco.
+
+    def test_documento_sin_archivo_explica_que_hay_que_cargarlo_de_nuevo(self):
+        doc = servicios.cargar_documento(self.ben, Doc.IDENTIDAD, pdf())
+        doc.archivo.delete()
+        doc.ruta_absoluta.unlink()
+        self.ingresar(self.ben)
+        r = self.client.get(reverse("usuarios:ver_documento", args=[doc.pk]))
+        self.assertContains(r, "volver a cargarlo", status_code=404)
+
     def test_solo_titular_y_administrador_ven_el_documento(self):
         doc = servicios.cargar_documento(self.ben, Doc.IDENTIDAD, pdf())
         url = reverse("usuarios:ver_documento", args=[doc.pk])

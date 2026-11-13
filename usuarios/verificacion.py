@@ -95,7 +95,7 @@ def verificar(doc, motivo="Carga del documento"):
 
     intentos = doc.docv_ocr_intentos + 1
     try:
-        contenido = doc.ruta_absoluta.read_bytes()
+        contenido = doc.leer_contenido()
         paginas = ocr.imagenes(contenido, doc.docv_mime)
         calidad = ocr.calidad(paginas[0])
         texto, confianza_ocr = ocr.leer(paginas)

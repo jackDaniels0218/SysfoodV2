@@ -41,8 +41,9 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-    # Los documentos cargados se guardan en /app/protegido. En el plan gratuito el disco se borra en cada
-    # despliegue; para conservarlos, use un plan pago y descomente el disco persistente:
+    # Los documentos cargados se guardan en PostgreSQL (tabla archivo_documento), así que sobreviven a los
+    # despliegues y reinicios del plan gratuito; /app/protegido es solo una copia rápida que se rehace sola.
+    # Opcional, con plan pago, un disco persistente evita reescribir esa copia tras cada reinicio:
     # disk:
     #   name: documentos
     #   mountPath: /app/protegido
