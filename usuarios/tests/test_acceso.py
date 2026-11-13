@@ -8,9 +8,18 @@ from django.utils import timezone
 
 from core.models import Bitacora, Parametro
 from core.tests.utilidades import CLAVE, PruebaBase, crear_admin, crear_beneficiario, crear_donante
+from sysfood import rnf
 from usuarios.models import PerfilBeneficiario, Usuario
 
-NUEVA = "OtraClave#2025"
+
+def largo_minimo(clave):
+    """Alarga la clave hasta la longitud mínima de sysfood/rnf.py, para que las pruebas sigan
+    sirviendo si se cambia ese requerimiento."""
+    return clave + "x" * max(0, rnf.CONTRASENA_LONGITUD_MINIMA - len(clave))
+
+
+NUEVA = largo_minimo("OtraClave#2025")
+SEGURA = largo_minimo("Segura#2025x")
 
 
 def datos_registro(rol="donante", **extra):
@@ -20,8 +29,8 @@ def datos_registro(rol="donante", **extra):
         "usu_ape": "Ruiz",
         "usu_correo": "laura@correo.com",
         "usu_tel": "3101112222",
-        "password1": "Segura#2025x",
-        "password2": "Segura#2025x",
+        "password1": SEGURA,
+        "password2": SEGURA,
         "acepta": "on",
         "don-don_tipo_persona": "natural",
         "don-don_tipo_doc": "CC",
@@ -32,7 +41,7 @@ def datos_registro(rol="donante", **extra):
         "ben-ben_fec_exp_doc": "2012-03-04",
         "ben-ben_dir": "Cl 9",
         "ben-ben_num_personas": "4",
-        "ben-ben_sisben": "B",
+        "ben-ben_sisben": "B3",
         "ben-ben_estrato": "2",
     }
     datos.update(extra)
@@ -75,9 +84,10 @@ class RegistroTests(PruebaBase):
     def test_confirmacion_y_requisitos_de_contrasena(self):
         r = self.client.post(reverse("usuarios:registro"), datos_registro(password2="Distinta#2025"))
         self.assertContains(r, "Las contraseñas no coinciden")
-        r = self.client.post(
-            reverse("usuarios:registro"), datos_registro(password1="sencilla12", password2="sencilla12")
-        )
+        if not rnf.CONTRASENA_EXIGE_MAYUSCULA:
+            self.skipTest("sysfood/rnf.py no exige mayúsculas")
+        sencilla = largo_minimo("sencilla#12")
+        r = self.client.post(reverse("usuarios:registro"), datos_registro(password1=sencilla, password2=sencilla))
         self.assertContains(r, "una letra mayúscula")
         self.assertFalse(Usuario.objects.exists())
 
@@ -130,9 +140,9 @@ class LoginTests(PruebaBase):
         self.assertEqual(self.usuario.usu_intentos, 1)
 
     def test_bloqueo_temporal_tras_intentos_fallidos(self):
-        for _ in range(5):
+        for _ in range(rnf.INTENTOS_INGRESO):
             r = self.login("mala")
-        self.assertContains(r, "bloqueada por 15 minutos")
+        self.assertContains(r, f"bloqueada por {rnf.MINUTOS_BLOQUEO} minutos")
         self.usuario.refresh_from_db()
         self.assertEqual(self.usuario.usu_estado, Usuario.BLOQUEADO)
         r = self.login(CLAVE)

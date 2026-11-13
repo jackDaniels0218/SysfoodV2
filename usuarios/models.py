@@ -179,6 +179,14 @@ class PerfilBeneficiario(models.Model):
         ("Pasaporte", "Pasaporte"),
     ]
     SISBEN = [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("NR", "No registrado")]
+    # Sisbén IV: cada grupo se divide en subgrupos numerados (A1-A5, B1-B7, C1-C18, D1-D21).
+    SISBEN_SUBGRUPOS = {"A": 5, "B": 7, "C": 18, "D": 21}
+    SISBEN_CATEGORIAS = {
+        "A": "Pobreza extrema",
+        "B": "Pobreza moderada",
+        "C": "Vulnerable",
+        "D": "No pobre, no vulnerable",
+    }
     ESTRATOS = [(i, str(i)) for i in range(1, 7)]
     PENDIENTE, EN_REVISION, VERIFICADO, RECHAZADO = "pendiente", "en_revision", "verificado", "rechazado"
     ESTADOS_VERIF = [
@@ -201,6 +209,7 @@ class PerfilBeneficiario(models.Model):
     ben_dir = models.CharField("dirección de residencia", max_length=200)
     ben_num_personas = models.PositiveSmallIntegerField("personas en el hogar")
     ben_sisben = models.CharField("nivel de Sisbén", max_length=2, choices=SISBEN)
+    ben_sisben_subgrupo = models.PositiveSmallIntegerField("subgrupo de Sisbén", null=True, blank=True)
     ben_estrato = models.PositiveSmallIntegerField("estrato social", choices=ESTRATOS)
     ben_discapacidad = models.BooleanField("tiene discapacidad", default=False)
     ben_estado_verif = models.CharField(
@@ -289,6 +298,19 @@ class PerfilBeneficiario(models.Model):
     def clean(self):
         if self.ben_fec_exp_doc and self.ben_fec_exp_doc > timezone.localdate():
             raise ValidationError({"ben_fec_exp_doc": "La fecha de expedición no puede ser futura."})
+
+    @property
+    def sisben_codigo(self):
+        """Grupo y subgrupo como aparecen en el certificado (C8), o la letra si no se registró el subgrupo."""
+        if self.ben_sisben == "NR":
+            return "No registrado"
+        return f"{self.ben_sisben}{self.ben_sisben_subgrupo or ''}"
+
+    @property
+    def sisben_texto(self):
+        if self.ben_sisben == "NR":
+            return "No registrado"
+        return f"{self.sisben_codigo} · {self.SISBEN_CATEGORIAS.get(self.ben_sisben, '')}"
 
     @property
     def verificado(self):

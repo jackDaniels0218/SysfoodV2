@@ -99,6 +99,7 @@ def crear_beneficiario(verificado=False, admin=None, discapacidad=False, **extra
         ben_dir="Barrio Centro",
         ben_num_personas=3,
         ben_sisben="A",
+        ben_sisben_subgrupo=2,
         ben_estrato=1,
         ben_discapacidad=discapacidad,
     )

@@ -138,6 +138,8 @@ def verificar(doc, motivo="Carga del documento"):
         }
     conf = ocr.confianza(filas, confianza_ocr) if legible else 0.0
     decision = decidir(conf, legible)
+    if decision == Doc.ALTA and ocr.incumple_obligatorios(filas):
+        decision = Doc.MEDIA  # Va a la cola del administrador con la discrepancia resaltada.
     resultado = {
         "campos": filas,
         "calidad": calidad,
@@ -146,9 +148,15 @@ def verificar(doc, motivo="Carga del documento"):
         "umbral_alto": parametros.entero("ocr_umbral_alto"),
         "umbral_bajo": parametros.entero("ocr_umbral_bajo"),
     }
+    extra = {}
+    if doc.docv_tipo == Doc.SISBEN and not doc.docv_fec_venc:
+        vigencia = ocr.vigencia_sisben(texto)
+        if vigencia:
+            extra["docv_fec_venc"] = vigencia  # El documento vence cuando se acabe la vigencia del certificado.
     with transaction.atomic():
         _guardar(
             doc,
+            **extra,
             docv_ocr_estado=Doc.OCR_PROCESADO,
             docv_ocr_texto=texto[:20000],
             docv_ocr_confianza=conf,

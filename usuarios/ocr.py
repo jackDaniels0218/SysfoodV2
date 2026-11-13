@@ -249,14 +249,64 @@ def buscar_fecha(texto, esperada):
     return 0.0, ", ".join(f.strftime("%d/%m/%Y") for f in sorted(fechas)[:3])
 
 
-def buscar_grupo_sisben(texto, letra):
+# Confusiones típicas del OCR en el número del subgrupo (C8 leído como CB, A1 como Al...).
+_DIGITOS_OCR = str.maketrans({"o": "0", "b": "8", "l": "1", "i": "1", "s": "5", "z": "2", "g": "9"})
+
+
+def grupos_sisben_en(texto):
+    """Grupos del Sisbén IV leídos, como [("C", 8), ...]. Primero los que siguen a «grupo sisben»."""
+    t = plano(texto)
+    hallados = []
+    for zona in re.findall(r"grupo\s*(?:sisben)?\s*(?:iv\b|4\b)?\s*:?\s*([a-z0-9 ]{2,6})", t):
+        m = re.match(r"([abcd])\s?([0-9oblisz]{1,2})\b", zona)
+        if m:
+            hallados.append((m.group(1).upper(), int(m.group(2).translate(_DIGITOS_OCR))))
+    for letra, sub in re.findall(r"\b([abcd])\s?(\d{1,2})\b", t):
+        hallados.append((letra.upper(), int(sub)))
+    return list(dict.fromkeys(hallados))
+
+
+def buscar_grupo_sisben(texto, letra, subgrupo=None):
+    """1 si el certificado trae el mismo grupo y subgrupo; 0,5 si solo coincide la letra; 0 si no."""
     if not letra or letra == "NR":
         return 0.0, ""
-    hallados = re.findall(r"\b([abcd])\s?(\d{1,2})\b", plano(texto))
-    for grupo, sub in hallados:
-        if grupo.upper() == letra:
-            return 1.0, f"{grupo.upper()}{sub}"
-    return 0.0, ", ".join(f"{g.upper()}{s}" for g, s in hallados[:3])
+    hallados = grupos_sisben_en(texto)
+    if subgrupo and (letra, subgrupo) in hallados:
+        return 1.0, f"{letra}{subgrupo}"
+    misma_letra = [f"{g}{s}" for g, s in hallados if g == letra]
+    if misma_letra:
+        # Sin subgrupo registrado (datos anteriores) basta la letra; con otro subgrupo es una discrepancia.
+        return (0.5 if subgrupo else 1.0), misma_letra[0]
+    return 0.0, ", ".join(f"{g}{s}" for g, s in hallados[:3])
+
+
+def buscar_estado_registro(texto):
+    """Estado del registro en el Sisbén: 1 si es «válido», 0 si es otro (suspendido, excluido…), 0,5 si no se lee."""
+    t = plano(texto)
+    malo = re.search(r"registro\s*:?\s*(no valido|suspendido|excluido|en verificacion|retirado)", t)
+    if malo:
+        return 0.0, malo.group(1).capitalize()
+    if re.search(r"registro\s*:?\s*valido", t):
+        return 1.0, "Registro válido"
+    return 0.5, ""
+
+
+def vigencia_sisben(texto):
+    """Fecha de «Vigencia hasta» del certificado, o None."""
+    m = re.search(r"vigencia\s*(?:hasta)?\s*:?\s*(.{6,30})", plano(texto))
+    if not m:
+        return None
+    fechas = fechas_en(m.group(1))
+    return max(fechas) if fechas else None
+
+
+def buscar_vigencia(texto, hoy=None):
+    """1 si la vigencia no ha vencido, 0 si venció, 0,5 si no se lee."""
+    fecha = vigencia_sisben(texto)
+    if fecha is None:
+        return 0.5, ""
+    hoy = hoy or date.today()
+    return (1.0 if fecha >= hoy else 0.0), f"Hasta {fecha.strftime('%d/%m/%Y')}"
 
 
 def buscar_estrato(texto, estrato):
@@ -293,11 +343,15 @@ def campos_a_comparar(doc):
         return base + [
             (
                 "sisben",
-                "Grupo de Sisbén",
-                perfil.get_ben_sisben_display(),
-                lambda t: buscar_grupo_sisben(t, perfil.ben_sisben),
-                1,
-            )
+                "Grupo y subgrupo de Sisbén",
+                perfil.sisben_codigo,
+                lambda t: buscar_grupo_sisben(t, perfil.ben_sisben, perfil.ben_sisben_subgrupo),
+                2,
+                1.0,  # Obligatorio: sin coincidencia exacta nunca se aprueba solo.
+            ),
+            # Obligatorios: un registro no válido o un certificado vencido nunca se aprueban solos.
+            ("registro", "Estado del registro", "Registro válido", buscar_estado_registro, 1, 0.5),
+            ("vigencia", "Vigencia del certificado", "Vigente", buscar_vigencia, 1, 0.5),
         ]
     if doc.docv_tipo == "residencia":
         return [
@@ -310,7 +364,7 @@ def campos_a_comparar(doc):
 
 def comparar(doc, texto):
     filas = []
-    for clave, etiqueta, esperado, funcion, peso in campos_a_comparar(doc):
+    for clave, etiqueta, esperado, funcion, peso, *minimo in campos_a_comparar(doc):
         coincide, leido = funcion(texto)
         filas.append(
             {
@@ -320,9 +374,15 @@ def comparar(doc, texto):
                 "leido": leido,
                 "coincide": coincide,
                 "peso": peso,
+                "minimo": minimo[0] if minimo else 0,
             }
         )
     return filas
+
+
+def incumple_obligatorios(filas):
+    """Campos obligatorios que no alcanzan su mínimo: impiden la aprobación automática."""
+    return [f for f in filas if f["coincide"] < f.get("minimo", 0)]
 
 
 def confianza(filas, confianza_ocr):

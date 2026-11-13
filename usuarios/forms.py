@@ -152,6 +152,28 @@ class PerfilBeneficiarioForm(BootstrapMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        P = PerfilBeneficiario
+        opciones = [("", "Seleccione su grupo")]
+        for letra, maximo in P.SISBEN_SUBGRUPOS.items():
+            opciones.append(
+                (
+                    f"{letra} · {P.SISBEN_CATEGORIAS[letra]}",
+                    [(f"{letra}{n}", f"{letra}{n}") for n in range(1, maximo + 1)],
+                )
+            )
+        opciones.append(("NR", "No estoy registrado en el Sisbén"))
+        self.fields["ben_sisben"] = forms.ChoiceField(
+            label="Grupo y subgrupo de Sisbén IV",
+            choices=opciones,
+            help_text="Como aparece en su certificado del Sisbén, por ejemplo C8.",
+        )
+        if self.instance.pk and self.instance.ben_sisben:
+            p = self.instance
+            self.initial["ben_sisben"] = (
+                "NR"
+                if p.ben_sisben == "NR"
+                else (f"{p.ben_sisben}{p.ben_sisben_subgrupo}" if p.ben_sisben_subgrupo else "")
+            )
         self.fields["ben_fec_exp_doc"].widget.attrs["max"] = timezone.localdate().isoformat()
         self.fields["ben_num_personas"].widget.attrs["min"] = 1
         self._estilizar()
@@ -167,6 +189,22 @@ class PerfilBeneficiarioForm(BootstrapMixin, forms.ModelForm):
         if not valor.isalnum():
             raise forms.ValidationError("El número de documento solo admite letras y números.")
         return valor
+
+    def clean_ben_sisben(self):
+        valor = self.cleaned_data["ben_sisben"].strip().upper()
+        if valor == "NR":
+            self._subgrupo = None
+            return "NR"
+        letra, numero = valor[:1], valor[1:]
+        maximo = PerfilBeneficiario.SISBEN_SUBGRUPOS.get(letra)
+        if not maximo or not numero.isdigit() or not 1 <= int(numero) <= maximo:
+            raise forms.ValidationError("Elija un grupo válido del Sisbén IV (A1-A5, B1-B7, C1-C18 o D1-D21).")
+        self._subgrupo = int(numero)
+        return letra
+
+    def save(self, commit=True):
+        self.instance.ben_sisben_subgrupo = getattr(self, "_subgrupo", self.instance.ben_sisben_subgrupo)
+        return super().save(commit)
 
     def clean_ben_num_personas(self):
         valor = self.cleaned_data["ben_num_personas"]

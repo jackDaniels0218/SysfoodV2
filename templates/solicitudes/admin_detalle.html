@@ -13,7 +13,7 @@
       <dt class="col-6">Teléfono</dt><dd class="col-6">{{ s.beneficiario.usu_tel }}</dd>
       <dt class="col-6">Dirección</dt><dd class="col-6">{{ perfil.ben_dir }}</dd>
       <dt class="col-6">Personas en el hogar</dt><dd class="col-6">{{ perfil.ben_num_personas }}</dd>
-      <dt class="col-6">Sisbén / Estrato</dt><dd class="col-6">{{ perfil.get_ben_sisben_display }} / {{ perfil.ben_estrato }}</dd>
+      <dt class="col-6">Sisbén / Estrato</dt><dd class="col-6">{{ perfil.sisben_texto }} / {{ perfil.ben_estrato }}</dd>
       <dt class="col-6">Discapacidad</dt><dd class="col-6">{{ perfil.ben_discapacidad|yesno:"Sí,No" }}</dd>
       <dt class="col-6">Verificación</dt><dd class="col-6">{{ perfil.get_ben_estado_verif_display }}</dd>
     </dl>

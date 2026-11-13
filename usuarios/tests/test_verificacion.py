@@ -133,7 +133,7 @@ class SemaforoTests(PruebaBase):
         self.assertTrue(Notificacion.objects.filter(destinatario=self.b, not_mensaje__contains="pre-aprobado").exists())
 
     def test_tres_verdes_verifican_la_cuenta_sin_intervencion(self):
-        with motor(texto_de(self.b) + " SISBEN GRUPO A2"):
+        with motor(texto_de(self.b) + " " + certificado_sisben(self.b)):
             verificacion.verificar(self.cargar("identidad"))
             verificacion.verificar(self.cargar("sisben"))
         with motor(f"{self.b.usu_nom} {self.b.usu_ape} Barrio Centro ESTRATO 1 factura de servicios"):
@@ -222,3 +222,75 @@ class SemaforoTests(PruebaBase):
         self.assertEqual(doc.docv_ocr_estado, Doc.OCR_NO_APLICA)
         with motor("lo que sea"):
             self.assertIsNone(verificacion.verificar(doc))
+
+
+def certificado_sisben(usuario, grupo="A2", registro="Registro válido", vigencia="31 de diciembre de 2099"):
+    """Texto de un certificado común del Sisbén IV (datos ficticios), como lo leería el OCR."""
+    p = usuario.perfil_beneficiario
+    return (
+        f"DATOS PERSONALES Tipo de Documento Cedula de ciudadania Numero de Documento {p.ben_num_doc} "
+        f"Sisbén {usuario.usu_nom.upper()} {usuario.usu_ape.upper()} Para efectos del periodo de transicion "
+        f"presentamos su clasificacion de Sisben IV. Vigencia hasta {vigencia} GRUPO SISBÉN IV {grupo} "
+        f"Municipio Encuesta: EL ROSAL CUNDINAMARCA Estado del registro: {registro} No. Ficha: 25260001552200000552"
+    )
+
+
+class CertificadoSisbenTests(PruebaBase):
+    """El certificado del Sisbén se valida con grupo y subgrupo, estado del registro y vigencia."""
+
+    def setUp(self):
+        crear_admin()
+        self.b = crear_beneficiario()  # Declara A2.
+
+    def verificar(self, texto):
+        doc = servicios.cargar_documento(self.b, "sisben", png())
+        with motor(texto):
+            decision = verificacion.verificar(doc)
+        doc.refresh_from_db()
+        return decision, doc, {c["campo"]: c for c in doc.docv_ocr_resultado["campos"]}
+
+    def test_certificado_correcto_se_preaprueba_y_toma_la_vigencia(self):
+        decision, doc, campos = self.verificar(certificado_sisben(self.b))
+        self.assertEqual(decision, Doc.ALTA)
+        self.assertEqual(doc.docv_estado, Doc.APROBADO)
+        self.assertEqual(campos["sisben"]["leido"], "A2")
+        self.assertEqual(campos["registro"]["coincide"], 1.0)
+        self.assertEqual(doc.docv_fec_venc, date(2099, 12, 31))
+
+    def test_subgrupo_distinto_va_al_administrador(self):
+        decision, doc, campos = self.verificar(certificado_sisben(self.b, grupo="A4"))
+        self.assertEqual(campos["sisben"]["coincide"], 0.5)
+        self.assertEqual(campos["sisben"]["leido"], "A4")
+        self.assertNotEqual(doc.docv_estado, Doc.APROBADO)
+
+    def test_registro_no_valido_o_vencido_no_se_aprueba(self):
+        _, doc, campos = self.verificar(certificado_sisben(self.b, registro="Registro suspendido"))
+        self.assertEqual(campos["registro"]["coincide"], 0.0)
+        self.assertNotEqual(doc.docv_estado, Doc.APROBADO)
+        Doc.objects.all().delete()
+        _, doc, campos = self.verificar(certificado_sisben(self.b, vigencia="31 de diciembre de 2020"))
+        self.assertEqual(campos["vigencia"]["coincide"], 0.0)
+        self.assertNotEqual(doc.docv_estado, Doc.APROBADO)
+
+    def test_tolera_errores_de_lectura_del_subgrupo(self):
+        self.assertEqual(ocr.buscar_grupo_sisben("GRUPO SISBEN IV CB Vulnerable", "C", 8)[0], 1.0)
+        self.assertEqual(ocr.buscar_grupo_sisben("GRUPO SISBEN IV C8", "C", None)[0], 1.0)  # Datos sin subgrupo.
+        self.assertEqual(ocr.buscar_grupo_sisben("GRUPO SISBEN IV D3", "C", 8)[0], 0.0)
+
+
+class SubgrupoSisbenFormTests(PruebaBase):
+    def test_subgrupo_fuera_de_rango_se_rechaza(self):
+        from usuarios.forms import PerfilBeneficiarioForm
+
+        datos = {
+            "ben_tipo_doc": "CC", "ben_num_doc": "123456", "ben_fec_exp_doc": "2015-01-01", "ben_dir": "Cra 1",
+            "ben_num_personas": 3, "ben_estrato": 2, "ben_sisben": "B9",
+        }  # fmt: skip
+        form = PerfilBeneficiarioForm(datos)
+        self.assertFalse(form.is_valid())
+        self.assertIn("ben_sisben", form.errors)
+        datos["ben_sisben"] = "C18"
+        form = PerfilBeneficiarioForm(datos)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["ben_sisben"], "C")
+        self.assertEqual(form._subgrupo, 18)

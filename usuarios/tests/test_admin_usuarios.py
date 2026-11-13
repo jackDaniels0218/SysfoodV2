@@ -5,6 +5,7 @@ from django.urls import reverse
 from core.models import Bitacora
 from core.tests.utilidades import PruebaBase, crear_admin, crear_beneficiario, crear_donacion, crear_donante
 from usuarios.models import Usuario
+from usuarios.tests.test_acceso import SEGURA
 
 
 class AdminUsuariosTests(PruebaBase):
@@ -19,8 +20,8 @@ class AdminUsuariosTests(PruebaBase):
             "usu_ape": "Paz",
             "usu_tel": "3001231234",
             "usu_estado": "activo",
-            "password1": "Segura#2025x",
-            "password2": "Segura#2025x",
+            "password1": SEGURA,
+            "password2": SEGURA,
             "ben-ben_tipo_doc": "TI",
             "ben-ben_num_doc": "1001",
             "ben-ben_fec_exp_doc": "2020-01-01",
@@ -45,8 +46,8 @@ class AdminUsuariosTests(PruebaBase):
             "usu_ape": "C",
             "usu_tel": "3000000001",
             "usu_estado": "activo",
-            "password1": "Segura#2025x",
-            "password2": "Segura#2025x",
+            "password1": SEGURA,
+            "password2": SEGURA,
         }
         self.client.post(reverse("usuarios:crear"), datos)
         self.assertTrue(Usuario.objects.filter(usu_correo="otro@prueba.co", usu_rol="administrador").exists())
@@ -116,7 +117,7 @@ class PerfilPropioTests(PruebaBase):
             "ben-ben_fec_exp_doc": "2015-01-01",
             "ben-ben_dir": "Otra",
             "ben-ben_num_personas": "5",
-            "ben-ben_sisben": "C",
+            "ben-ben_sisben": "C8",
             "ben-ben_estrato": "2",
             "ben-ben_estado_verif": "verificado",
         }

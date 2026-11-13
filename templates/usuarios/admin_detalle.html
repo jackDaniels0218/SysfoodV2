@@ -49,7 +49,7 @@
         <dt class="col-5">Documento</dt><dd class="col-7">{{ p.ben_tipo_doc }} {{ p.ben_num_doc }} (exp. {{ p.ben_fec_exp_doc|date:"d/m/Y" }})</dd>
         <dt class="col-5">Dirección</dt><dd class="col-7">{{ p.ben_dir }}</dd>
         <dt class="col-5">Personas en el hogar</dt><dd class="col-7">{{ p.ben_num_personas }}</dd>
-        <dt class="col-5">Sisbén / Estrato</dt><dd class="col-7">{{ p.get_ben_sisben_display }} / {{ p.ben_estrato }}</dd>
+        <dt class="col-5">Sisbén / Estrato</dt><dd class="col-7">{{ p.sisben_texto }} / {{ p.ben_estrato }}</dd>
         <dt class="col-5">Discapacidad</dt><dd class="col-7">{{ p.ben_discapacidad|yesno:"Sí,No" }}</dd>
         <dt class="col-5">Verificación</dt><dd class="col-7">{% include "parciales/estado.html" with valor=p.ben_estado_verif texto=p.get_ben_estado_verif_display %} {{ p.ben_fec_verif|date:"d/m/Y" }}</dd>
       </dl>
