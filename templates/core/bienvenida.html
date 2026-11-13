@@ -1,63 +1,117 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}Bienvenido{% endblock %}
-{% block contenido %}
-<section class="hero-sf mb-5">
-  <div class="row align-items-center g-4">
-    <div class="col-lg-7">
-      <span class="hero-chip sf-entra mb-3"><i class="bi bi-stars"></i> Donaciones transparentes y trazables</span>
-      <h1 class="sf-entra" style="animation-delay:.1s">Que ningún alimento se pierda y <em>ninguna familia</em> se quede sin mesa.</h1>
-      <p class="lead mt-3 mb-4 sf-entra" style="animation-delay:.2s">SysFood conecta a quienes donan con quienes lo necesitan, y un administrador verifica cada paso: del estante a la puerta de casa.</p>
-      <div class="d-flex flex-wrap gap-2 sf-entra" style="animation-delay:.3s">
-        <a class="btn btn-light btn-lg" href="{% url 'usuarios:registro' %}"><i class="bi bi-rocket-takeoff"></i> Crear una cuenta</a>
-        <a class="btn btn-outline-light btn-lg" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
+{% block cuerpo_clase %}sf-portada{% endblock %}
+{% block main_clase %}pb-0{% endblock %}
+{% comment %}
+  Estructura basada en la plantilla «Landing Page» de Start Bootstrap (licencia MIT):
+  portada con fotografía, franja de perfiles, bloques alternados de imagen y texto y llamada a la acción.
+  Fotografías de Unsplash (licencia Unsplash); los créditos están al final de la página.
+{% endcomment %}
+{% block lienzo %}
+<header class="pt-masthead" style="--pt-foto: url('{% static 'img/portada/portada.webp' %}')">
+  <div class="container-xl">
+    <div class="pt-masthead-texto">
+      <p class="pt-antetitulo">Banco de alimentos · Universidad de Cundinamarca</p>
+      <h1>Que ningún alimento se pierda y ninguna familia se quede sin mesa.</h1>
+      <p class="pt-entrada">SysFood conecta a quienes donan con quienes lo necesitan. Un administrador revisa cada paso, desde que el producto entra a la bodega hasta que llega a la casa.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn pt-btn-claro btn-lg" href="{% url 'usuarios:registro' %}">Crear una cuenta</a>
+        <a class="btn pt-btn-borde btn-lg" href="{% url 'usuarios:login' %}">Ya tengo cuenta</a>
       </div>
     </div>
-    <div class="col-lg-5">
-      <div class="hero-flota" aria-hidden="true">
-        <div class="flota f1"><span class="ico"><i class="bi bi-gift-fill"></i></span><div>Nueva donación<small>Arroz · 50 kg · vence en 240 días</small></div></div>
-        <div class="flota f2"><span class="ico"><i class="bi bi-hourglass-split"></i></span><div>Próximo a vencer<small>Entrega prioritaria</small></div></div>
-        <div class="flota f3"><span class="ico"><i class="bi bi-truck"></i></span><div>Entrega en camino<small>Código SF-8KQ2M7XA</small></div></div>
+  </div>
+</header>
+
+<section class="pt-perfiles" aria-labelledby="pt-perfiles-titulo">
+  <div class="container-xl">
+    <h2 id="pt-perfiles-titulo" class="visually-hidden">Quiénes participan</h2>
+    <div class="row g-0">
+      <div class="col-md-4 pt-perfil">
+        <i class="bi bi-box-seam" aria-hidden="true"></i>
+        <h3>Donantes</h3>
+        <p>Personas y empresas registran lo que donan, con su nombre o de forma anónima.</p>
+      </div>
+      <div class="col-md-4 pt-perfil">
+        <i class="bi bi-house-heart" aria-hidden="true"></i>
+        <h3>Beneficiarios</h3>
+        <p>Familias verificadas piden hasta cinco productos y siguen su entrega con un código.</p>
+      </div>
+      <div class="col-md-4 pt-perfil">
+        <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+        <h3>Administración</h3>
+        <p>Controla la bodega y los vencimientos, aprueba solicitudes y genera reportes.</p>
       </div>
     </div>
   </div>
 </section>
 
-<div class="marquee mb-5" aria-hidden="true">
-  <div class="marquee-track">
-    {% for _ in "12" %}
-    <span><i class="bi bi-circle-fill"></i>Donantes públicos o anónimos</span>
-    <span><i class="bi bi-circle-fill"></i>Verificación con documentos</span>
-    <span><i class="bi bi-circle-fill"></i>Control de vencimientos</span>
-    <span><i class="bi bi-circle-fill"></i>Kardex de inventario</span>
-    <span><i class="bi bi-circle-fill"></i>Seguimiento con código</span>
-    <span><i class="bi bi-circle-fill"></i>Reportes en PDF y Excel</span>
-    {% endfor %}
+<section class="pt-bloques">
+  <div class="pt-bloque">
+    <div class="pt-bloque-foto"><img src="{% static 'img/portada/donantes.webp' %}" alt="Canastas con zanahorias, remolachas, apio y cebolla larga listas para repartir" loading="lazy" width="1000" height="750"></div>
+    <div class="pt-bloque-texto">
+      <p class="pt-antetitulo">Para quien dona</p>
+      <h2>Lo que dona entra directo al inventario</h2>
+      <p>Registra los productos con la cantidad y la fecha de vencimiento, y quedan disponibles en el inventario. Después ve en qué estado está cada uno hasta que se entrega. Nunca ve los datos de la familia que lo recibe.</p>
+      <ul class="pt-lista">
+        <li>Donación pública o anónima</li>
+        <li>Productos por unidad, kilo o litro</li>
+        <li>Historial de todo lo donado</li>
+      </ul>
+    </div>
   </div>
-</div>
+  <div class="pt-bloque pt-bloque-invertido">
+    <div class="pt-bloque-foto"><img src="{% static 'img/portada/beneficiarios.webp' %}" alt="Dos bolsas de papel con manzanas, banano, repollo y pan" loading="lazy" width="1200" height="900"></div>
+    <div class="pt-bloque-texto">
+      <p class="pt-antetitulo">Para quien recibe</p>
+      <h2>Pide lo que necesita, sin filas ni papeles repetidos</h2>
+      <p>Carga sus documentos una sola vez desde el celular. Cuando la cuenta está verificada, elige productos del catálogo y envía la solicitud. Las familias con más necesidad se atienden primero.</p>
+      <ul class="pt-lista">
+        <li>Verificación de documentos con foto</li>
+        <li>Carrito de hasta cinco productos</li>
+        <li>Seguimiento de la entrega con un código</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pt-bloque">
+    <div class="pt-bloque-foto"><img src="{% static 'img/portada/administracion.webp' %}" alt="Voluntarios con guantes organizan latas, banano y bolsas de mercado sobre una mesa" loading="lazy" width="1200" height="800"></div>
+    <div class="pt-bloque-texto">
+      <p class="pt-antetitulo">Para el equipo</p>
+      <h2>Toda la operación en un solo lugar</h2>
+      <p>Inventario con alertas de vencimiento, solicitudes ordenadas por prioridad, entregas por estado y un mapa de las zonas con más necesidad. Cada acción queda registrada en la bitácora.</p>
+      <ul class="pt-lista">
+        <li>Reportes en PDF, Excel y CSV</li>
+        <li>Reglas configurables sin tocar el código</li>
+        <li>Bitácora de cada cambio</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
-<div class="row g-4 mb-5">
-  <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body">
-    <div class="feature-ico"><i class="bi bi-gift"></i></div>
-    <h2 class="h5">Donantes</h2>
-    <p class="mb-0 text-muted">Personas o empresas registran sus productos, de forma pública o anónima, y siguen su recorrido hasta la entrega sin ver datos del beneficiario.</p>
-  </div></div></div>
-  <div class="col-md-4"><div class="card feature-card calido h-100"><div class="card-body">
-    <div class="feature-ico"><i class="bi bi-people"></i></div>
-    <h2 class="h5">Beneficiarios</h2>
-    <p class="mb-0 text-muted">Verifican su cuenta con documentos, arman un carrito de hasta 5 productos y consultan su entrega con un código de seguimiento.</p>
-  </div></div></div>
-  <div class="col-md-4"><div class="card feature-card azul h-100"><div class="card-body">
-    <div class="feature-ico"><i class="bi bi-shield-check"></i></div>
-    <h2 class="h5">Administración</h2>
-    <p class="mb-0 text-muted">Controla el inventario y sus vencimientos, aprueba solicitudes, consulta la trazabilidad completa y genera reportes.</p>
-  </div></div></div>
-</div>
+<section class="pt-pasos" aria-labelledby="pt-pasos-titulo">
+  <div class="container-xl">
+    <h2 id="pt-pasos-titulo">Cómo funciona</h2>
+    <ol>
+      <li><h3>Se dona</h3><p>El donante registra los productos con su fecha de vencimiento.</p></li>
+      <li><h3>Se verifica</h3><p>El beneficiario carga sus documentos y el administrador los aprueba.</p></li>
+      <li><h3>Se solicita</h3><p>Arma su pedido y, al aprobarlo, se reservan las cantidades.</p></li>
+      <li><h3>Se entrega</h3><p>La entrega avanza por estados hasta llegar a la casa.</p></li>
+    </ol>
+  </div>
+</section>
 
-<h2 class="h3 text-center mb-4">Así funciona</h2>
-<div class="ruta mb-4 pt-2">
-  <div class="ruta-item"><h3>Se dona</h3><p>El donante registra productos con su fecha de vencimiento y entran solos al inventario.</p></div>
-  <div class="ruta-item"><h3>Se verifica</h3><p>El beneficiario carga sus documentos y el administrador los aprueba.</p></div>
-  <div class="ruta-item"><h3>Se solicita</h3><p>Arma su carrito y envía la solicitud. El administrador la aprueba y se reservan las cantidades.</p></div>
-  <div class="ruta-item"><h3>Se entrega</h3><p>La entrega avanza por estados hasta llegar, y todo queda registrado.</p></div>
+<section class="pt-llamado">
+  <div class="container-xl">
+    <h2>¿Tiene alimentos para donar o necesita apoyo?</h2>
+    <p>El registro toma unos minutos.</p>
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <a class="btn pt-btn-claro btn-lg" href="{% url 'usuarios:registro' %}">Crear una cuenta</a>
+      <a class="btn pt-btn-borde btn-lg" href="{% url 'usuarios:login' %}">Ingresar</a>
+    </div>
+  </div>
+</section>
+
+<div class="container-xl">
+  <p class="pt-creditos">Fotografías de <a href="https://unsplash.com/@ismaelparamo">Ismael Paramo</a>, <a href="https://unsplash.com/@pecko">Jim Petkiewicz</a>, <a href="https://unsplash.com/@mrsmaria">Maria Lin Kim</a> y <a href="https://unsplash.com/@jmuniz">Joel Muniz</a> en Unsplash.</p>
 </div>
 {% endblock %}

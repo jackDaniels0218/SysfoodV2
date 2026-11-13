@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --- Aparición escalonada al hacer scroll ---
-    var candidatos = document.querySelectorAll("main .card, main .table-responsive, main .list-group, main .pasos, main .alert-info, main .ruta-item, main .marquee, main h1, main .tarjeta-indicador, main .producto-card");
+    var candidatos = document.querySelectorAll("main .card, main .table-responsive, main .list-group, main .pasos, main .alert-info, main h1, main .tarjeta-indicador, main .producto-card");
     var elementos = [];
     candidatos.forEach(function (el) {
       if (el.closest(".reveal") && el.closest(".reveal") !== el) { return; }
@@ -162,7 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // --- Brillo que sigue al cursor en las tarjetas ---
-    document.querySelectorAll(".tarjeta-indicador, .producto-card, .feature-card").forEach(function (c) {
+    document.querySelectorAll(".tarjeta-indicador, .producto-card").forEach(function (c) {
       c.addEventListener("pointermove", function (e) {
         var r = c.getBoundingClientRect();
         c.style.setProperty("--mx", (e.clientX - r.left) + "px");
